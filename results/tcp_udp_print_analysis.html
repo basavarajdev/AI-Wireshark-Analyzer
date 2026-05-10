@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TCP/UDP Analysis – paused-event-while-printing-via-network_for_6.35.0.404.pcapng</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:#f4f6f9; color:#2c3e50; font-size:14px; }
+  header { background:linear-gradient(135deg,#1a252f,#2c3e50); color:#fff; padding:28px 40px; }
+  header h1 { font-size:1.6em; font-weight:700; }
+  header p  { color:#aab; margin-top:6px; font-size:0.9em; }
+  .container { max-width:1200px; margin:24px auto; padding:0 24px; }
+  .card { background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08);
+           margin-bottom:24px; overflow:hidden; }
+  .card-header { padding:14px 20px; font-weight:600; font-size:1em; border-bottom:1px solid #eee; }
+  .card-body   { padding:16px 20px; }
+
+  /* summary grid */
+  .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:16px; }
+  .metric { background:#f8f9fb; border-radius:8px; padding:14px 18px;
+             border-left:4px solid #3498db; }
+  .metric .val { font-size:1.8em; font-weight:700; color:#2c3e50; }
+  .metric .label { font-size:0.8em; color:#7f8c8d; margin-top:4px; }
+
+  .severity-bar { display:flex; align-items:center; gap:12px; padding:14px 20px;
+                   background:#fafafa; border-top:1px solid #eee; }
+  .severity-bar span { font-size:0.82em; color:#555; }
+
+  table { border-collapse:collapse; width:100%; font-size:0.85em; }
+  th { background:#2c3e50; color:#fff; padding:8px 12px; text-align:left; }
+  td { padding:7px 12px; border-bottom:1px solid #eef; }
+  tr:hover td { background:#f5f9ff; }
+
+  .section-label { font-size:0.75em; text-transform:uppercase; letter-spacing:.06em;
+                    color:#7f8c8d; margin-bottom:6px; }
+  .finding { border-left:4px solid; padding:12px 16px; margin-bottom:12px;
+              border-radius:0 6px 6px 0; background:#fafafa; }
+  .finding.critical { border-color:#c0392b; background:#fdf2f2; }
+  .finding.high     { border-color:#e67e22; background:#fef9f0; }
+  .finding.medium   { border-color:#d4ac0d; background:#fefcf0; }
+  .finding.low      { border-color:#2e86c1; background:#eaf4fb; }
+  .finding h3 { font-size:0.95em; margin-bottom:4px; }
+  .finding p  { font-size:0.85em; color:#555; line-height:1.5; }
+  .finding ul { font-size:0.85em; color:#555; padding-left:18px; line-height:1.8; }
+
+  .overall { padding:20px; text-align:center; color:#fff; font-size:1.2em;
+              font-weight:700; border-radius:8px; margin-bottom:20px;
+              background:#c0392b; }
+
+  footer { text-align:center; color:#aaa; font-size:0.78em; padding:20px 0 32px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TCP / UDP Traffic Analysis Report</h1>
+  <p>paused-event-while-printing-via-network_for_6.35.0.404.pcapng &nbsp;|&nbsp; Generated 2026-03-30 12:12:58</p>
+</header>
+
+<div class="container">
+
+  <div class="overall">
+    Overall Assessment: CRITICAL &nbsp;
+    — Severe printer flow-control stall detected
+  </div>
+
+  <!-- ── Capture Overview ── -->
+  <div class="card">
+    <div class="card-header">Capture Overview</div>
+    <div class="card-body">
+      <div class="summary-grid">
+        <div class="metric" style="border-color:#3498db;">
+          <div class="val">68,490</div>
+          <div class="label">Total Packets</div>
+        </div>
+        <div class="metric" style="border-color:#1abc9c;">
+          <div class="val">528.48 s</div>
+          <div class="label">Capture Duration</div>
+        </div>
+        <div class="metric" style="border-color:#8e44ad;">
+          <div class="val">44,219</div>
+          <div class="label">TCP Frames</div>
+        </div>
+        <div class="metric" style="border-color:#e67e22;">
+          <div class="val">16,394</div>
+          <div class="label">UDP Frames</div>
+        </div>
+        <div class="metric" style="border-color:#e74c3c;">
+          <div class="val">10.44.8.204</div>
+          <div class="label">Print Client</div>
+        </div>
+        <div class="metric" style="border-color:#27ae60;">
+          <div class="val">10.44.8.124:9100</div>
+          <div class="label">Printer (RAW port)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Key Issues ── -->
+  <div class="card">
+    <div class="card-header">Key Findings Summary</div>
+    <div class="card-body">
+
+      <div class="finding critical">
+        <h3>1. Printer Receive Buffer Exhaustion (Zero-Window Stall) &nbsp;<span style="background:#c0392b;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.78em;font-weight:bold;">CRITICAL</span></h3>
+        <p>
+          The printer (<strong>10.44.8.124</strong>) announced a <em>zero receive window</em>
+          10,624 times over the 528.48 s capture.
+          This means the printer's internal TCP receive buffer was repeatedly full —
+          the printer could not process incoming print data as fast as the client was sending it.
+          Every zero-window event forces the sending client to completely halt transmission and
+          wait for a <em>window update</em>; 2,655 such updates were observed.
+        </p>
+        <p style="margin-top:8px;"><strong>Rate:</strong> ≈ 20.1 zero-windows/second sustained over the full capture.</p>
+        <p style="margin-top:6px;"><strong>Root cause:</strong> Printer's internal data pipeline (PDL/PCL rendering engine) is slower than the network feed, causing buffer saturation. This is the direct mechanism behind the reported "paused event while printing".</p>
+      </div>
+
+      <div class="finding high">
+        <h3>2. High Retransmission Rate on Print Stream &nbsp;<span style="background:#e67e22;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.78em;font-weight:bold;">HIGH</span></h3>
+        <p>
+          <strong>385 retransmissions</strong> and
+          <strong>86 duplicate ACKs</strong> were detected
+          exclusively on the print stream (10.44.8.204 → 10.44.8.124:9100).
+          Each retransmission represents a 1 460-byte segment that the client had to re-send
+          after its retransmit timer expired during a zero-window stall.
+        </p>
+        <ul style="margin-top:8px;">
+          <li>No fast-retransmissions detected — all retransmissions are timeout-driven, confirming the zero-window stall is the trigger.</li>
+          <li>Lost segment events: <strong>0</strong></li>
+        </ul>
+      </div>
+
+      <div class="finding low">
+        <h3>3. TCP RST Events (Port 443 / TLS Connections) &nbsp;<span style="background:#2e86c1;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.78em;font-weight:bold;">LOW</span></h3>
+        <p>
+          <strong>21 TCP RST</strong> segments were captured. All are on port 443
+          (TLS/HTTPS connections to external Internet hosts) and are
+          <strong>unrelated to the print stream</strong>. These represent normal
+          TCP connection lifecycle terminations and server-initiated session resets
+          for cloud services (Microsoft Azure, CDN endpoints).
+        </p>
+        <p style="margin-top:6px;"><strong>Notable burst:</strong> 3 RST bursts of 3+ resets within 2 seconds detected — see RST Detail table below.</p>
+      </div>
+
+      <div class="finding low">
+        <h3>4. Print Job Segmentation — Expected Behaviour &nbsp;<span style="background:#5d6d7e;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.78em;font-weight:bold;">INFO</span></h3>
+        <p>
+          The client opened <strong>81 separate TCP connections</strong>
+          to port 9100 throughout the capture (approximately one every
+          6.5 s).
+          A total of <strong>293.54 MB</strong> of print data
+          was transmitted. This pipelined connection cycling is normal driver behaviour for
+          large print jobs split across multiple TCP sessions.
+        </p>
+      </div>
+
+      <div class="finding low">
+        <h3>5. Elevated UDP Broadcast Traffic from 10.44.8.83 &nbsp;<span style="background:#2e86c1;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.78em;font-weight:bold;">LOW</span></h3>
+        <p>
+          Host <strong>10.44.8.83</strong> continuously broadcast UDP packets to the
+          subnet broadcast address (10.44.8.255) on ports <strong>22222</strong> and
+          <strong>3289</strong>, and to 255.255.255.255 on port <strong>10004</strong>.
+          This pattern is typical of a printer management or device-discovery service
+          (common on Ricoh, HP, and Konica Minolta network print devices).
+          If this host is not a managed print server, the broadcasts should be reviewed
+          as they add unnecessary network load.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Print Stream Metrics ── -->
+  <div class="card">
+    <div class="card-header">Print Stream TCP Metrics (Port 9100)</div>
+    <div class="card-body">
+      <div class="summary-grid">
+        <div class="metric" style="border-color:#c0392b;">
+          <div class="val">10,624</div>
+          <div class="label">Zero-Window / Window-Full Events</div>
+        </div>
+        <div class="metric" style="border-color:#e67e22;">
+          <div class="val">2,655</div>
+          <div class="label">Window Update (re-open) Events</div>
+        </div>
+        <div class="metric" style="border-color:#e74c3c;">
+          <div class="val">385</div>
+          <div class="label">Retransmissions</div>
+        </div>
+        <div class="metric" style="border-color:#d4ac0d;">
+          <div class="val">86</div>
+          <div class="label">Duplicate ACKs</div>
+        </div>
+        <div class="metric" style="border-color:#8e44ad;">
+          <div class="val">81</div>
+          <div class="label">TCP Connections Opened</div>
+        </div>
+        <div class="metric" style="border-color:#27ae60;">
+          <div class="val">293.5 MB</div>
+          <div class="label">Print Data Transferred</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <div class="section-label">Zero-Window Announcements Over Time (30 s buckets)</div>
+        <div style="overflow-x:auto;white-space:nowrap;padding:8px 0;"><div title="0–30s: 103 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:98px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">0s</div></div><div title="30–60s: 122 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:116px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">30s</div></div><div title="60–90s: 121 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:115px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">60s</div></div><div title="90–120s: 120 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:114px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">90s</div></div><div title="120–150s: 97 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:92px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">120s</div></div><div title="150–180s: 101 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:96px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">150s</div></div><div title="180–210s: 126 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:120px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">180s</div></div><div title="210–240s: 112 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:106px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">210s</div></div><div title="240–270s: 115 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:109px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">240s</div></div><div title="270–300s: 120 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:114px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">270s</div></div><div title="300–330s: 110 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:104px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">300s</div></div><div title="330–360s: 112 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:106px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">330s</div></div><div title="360–390s: 118 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:112px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">360s</div></div><div title="390–420s: 30 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:28px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">390s</div></div><div title="420–450s: 18 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:17px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">420s</div></div><div title="450–480s: 19 zero-windows" style="display:inline-block;width:22px;margin:1px;vertical-align:bottom;"><div style="background:#e74c3c;height:18px;border-radius:2px 2px 0 0;"></div><div style="font-size:8px;text-align:center;color:#888;transform:rotate(-45deg);margin-top:2px;">450s</div></div></div>
+        <p style="font-size:0.8em;color:#888;margin-top:4px;">
+          Each bar = number of zero-window packets from printer in a 30 s window.
+          Note the sustained rate through ~390 s, then tapering as the job nears completion.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RST Detail ── -->
+  <div class="card">
+    <div class="card-header">TCP Reset (RST) Detail</div>
+    <div class="card-body">
+      
+      <table>
+        <thead><tr>
+          <th>Frame</th><th>Time (s)</th>
+          <th>Source</th><th>Destination</th>
+        </tr></thead>
+        <tbody><tr><td>390</td><td>7.135572000</td><td>108.140.32.194:443</td><td>10.44.8.204:51609</td></tr>
+<tr><td>5105</td><td>38.317765000</td><td>150.171.22.17:443</td><td>10.44.8.204:51622</td></tr>
+<tr><td>12871</td><td>56.727292000</td><td>10.44.8.204:51633</td><td>20.190.148.166:443</td></tr>
+<tr><td>14676</td><td>69.216328000</td><td>10.44.8.204:51637</td><td>203.121.59.202:443</td></tr>
+<tr><td>22960</td><td>130.893422000</td><td>10.44.8.204:51658</td><td>40.126.16.167:443</td></tr>
+<tr><td>38308</td><td>239.107683000</td><td>20.42.65.91:443</td><td>10.44.8.204:51653</td></tr>
+<tr><td>44429</td><td>281.167515000</td><td>52.123.131.14:443</td><td>10.44.8.204:51659</td></tr>
+<tr><td>47829</td><td>306.334204000</td><td>134.224.1.155:443</td><td>10.44.8.204:51695</td></tr>
+<tr><td>47830</td><td>306.334204000</td><td>134.224.1.155:443</td><td>10.44.8.204:51695</td></tr>
+<tr><td>47833</td><td>306.345052000</td><td>134.224.1.155:443</td><td>10.44.8.204:51697</td></tr>
+<tr><td>47834</td><td>306.345052000</td><td>134.224.1.155:443</td><td>10.44.8.204:51697</td></tr>
+<tr><td>47835</td><td>306.349167000</td><td>134.224.1.155:443</td><td>10.44.8.204:51694</td></tr>
+<tr><td>47836</td><td>306.349167000</td><td>134.224.1.155:443</td><td>10.44.8.204:51694</td></tr>
+<tr><td>56930</td><td>368.356223000</td><td>10.44.8.204:51782</td><td>203.121.99.136:443</td></tr>
+<tr><td>61448</td><td>401.475702000</td><td>10.44.8.204:51806</td><td>52.130.17.205:443</td></tr>
+<tr><td>61449</td><td>401.476170000</td><td>10.44.8.204:51808</td><td>52.130.17.205:443</td></tr>
+<tr><td>61501</td><td>402.414650000</td><td>10.44.8.204:51805</td><td>203.121.59.98:443</td></tr>
+<tr><td>65657</td><td>474.355165000</td><td>10.44.8.204:51849</td><td>52.130.17.205:443</td></tr>
+<tr><td>65658</td><td>474.355660000</td><td>10.44.8.204:51850</td><td>52.130.17.205:443</td></tr>
+<tr><td>65735</td><td>476.042528000</td><td>10.44.8.204:51853</td><td>52.130.17.205:443</td></tr>
+<tr><td>65985</td><td>480.942561000</td><td>10.44.8.204:51856</td><td>52.130.17.205:443</td></tr>
+</tbody>
+      </table>
+      <div style="margin-top:16px;"><div class="section-label">RST Bursts (≥ 3 resets within 2 s)</div><table><thead><tr><th>Source IP</th><th>Count</th><th>Start Time</th></tr></thead><tbody><tr><td>10.44.8.204</td><td>3</td><td>401.476 s</td></tr>
+<tr><td>10.44.8.204</td><td>3</td><td>474.355 s</td></tr>
+<tr><td>134.224.1.155</td><td>6</td><td>306.334 s</td></tr>
+</tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ── UDP Analysis ── -->
+  <div class="card">
+    <div class="card-header">UDP Traffic Analysis</div>
+    <div class="card-body">
+      <div class="summary-grid" style="margin-bottom:20px;">
+        <div class="metric" style="border-color:#e67e22;">
+          <div class="val">16,394</div>
+          <div class="label">Total UDP Frames</div>
+        </div>
+        <div class="metric" style="border-color:#8e44ad;">
+          <div class="val">5,934</div>
+          <div class="label">QUIC Frames (UDP/443)</div>
+        </div>
+      </div>
+
+      <div class="section-label">Top UDP Flows (by frame count)</div>
+      <table>
+        <thead><tr>
+          <th>Source IP</th><th>Src Port</th>
+          <th>Destination IP</th><th>Dst Port</th>
+          <th>Frames</th><th>Volume</th><th>Relative Volume</th>
+        </tr></thead>
+        <tbody><tr><td>10.44.8.204</td><td>59131</td><td>13.107.136.10</td><td>443</td><td>3835</td><td>4570.6 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#8e44ad;width:100%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>10004</td><td>255.255.255.255</td><td>10004</td><td>2466</td><td>219.1 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:64%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>13.107.136.10</td><td>443</td><td>10.44.8.204</td><td>59131</td><td>1288</td><td>87.8 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:33%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60444</td><td>10.44.8.255</td><td>3289</td><td>177</td><td>3.8 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60436</td><td>10.44.8.255</td><td>22222</td><td>177</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60440</td><td>10.44.8.255</td><td>22222</td><td>177</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>56916</td><td>10.44.8.255</td><td>22222</td><td>177</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>56912</td><td>10.44.8.255</td><td>22222</td><td>177</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>56920</td><td>10.44.8.255</td><td>3289</td><td>177</td><td>3.8 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>52989</td><td>10.44.8.255</td><td>22222</td><td>177</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>52993</td><td>10.44.8.255</td><td>3289</td><td>176</td><td>3.8 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>52985</td><td>10.44.8.255</td><td>22222</td><td>176</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60230</td><td>10.44.8.255</td><td>22222</td><td>176</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60226</td><td>10.44.8.255</td><td>22222</td><td>176</td><td>6.2 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+<tr><td>10.44.8.83</td><td>60234</td><td>10.44.8.255</td><td>3289</td><td>176</td><td>3.8 KB</td><td style="width:120px;"><div style="background:#e8e8e8;border-radius:4px;height:16px;width:100%;"><div style="background:#16a085;width:4%;height:16px;border-radius:4px;"></div></div></td></tr>
+</tbody>
+      </table>
+
+      
+    </div>
+  </div>
+
+  <!-- ── Recommendations ── -->
+  <div class="card">
+    <div class="card-header">Recommendations</div>
+    <div class="card-body">
+
+      <div class="finding critical" style="margin-bottom:12px;">
+        <h3>Printer Buffer / Flow Control</h3>
+        <ul>
+          <li>Upgrade printer firmware — newer versions often include print pipeline optimisations that reduce zero-window frequency.</li>
+          <li>Enable <strong>TCP Offload / LAN I/O buffering</strong> in the printer's network settings if available (increases internal receive buffer size).</li>
+          <li>Switch to <strong>IPP (port 631)</strong> instead of Raw/JetDirect (port 9100) — IPP provides better flow control and job-status feedback.</li>
+          <li>If using a print spooler, ensure the spooler is not sending data faster than the printer's rated throughput (consider throttling the spooler's send rate).</li>
+          <li>For large jobs, use <strong>PCL6 or HP-GL/2</strong> (vector-based) instead of rasterised formats — the rasteriser is often the bottleneck in the printer's pipeline.</li>
+          <li>Consider upgrading the network interface on the printer to Gigabit if currently 100 Mbps.</li>
+        </ul>
+      </div>
+
+      <div class="finding medium" style="margin-bottom:12px;">
+        <h3>TCP Retransmissions</h3>
+        <ul>
+          <li>Retransmissions are secondary symptoms of the zero-window stall. Resolving the buffer exhaustion above will eliminate them.</li>
+          <li>Review TCP retransmit timeout settings on the print client if retransmissions persist after firmware update.</li>
+        </ul>
+      </div>
+
+      <div class="finding low" style="margin-bottom:12px;">
+        <h3>UDP Broadcasts from 10.44.8.83</h3>
+        <ul>
+          <li>Identify the device at 10.44.8.83 and verify whether the broadcast discovery service is intentional.</li>
+          <li>If this is a print management server, configure it to use <strong>unicast discovery</strong> instead of subnet broadcast to reduce unnecessary network load.</li>
+          <li>Port 10004 broadcasts should be scoped to a VLAN or suppressed at the switch using broadcast storm control if the rate is abnormal.</li>
+        </ul>
+      </div>
+
+      <div class="finding low">
+        <h3>TCP RST / External TLS Connections</h3>
+        <ul>
+          <li>RSTs on port 443 connections are benign — standard TLS session cleanup from Azure / CDN servers.</li>
+          <li>No action required unless specific applications report connection errors.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /container -->
+<footer>Generated by AI Wireshark Analyser &nbsp;|&nbsp; 2026-03-30 12:12:58</footer>
+</body>
+</html>

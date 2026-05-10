@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPv6 Analysis – 2408:8a04:e001:0:faed:fcff:fefe:10c1</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:#f4f6f9; color:#2c3e50; font-size:14px; }
+  header { background:linear-gradient(135deg,#1a252f,#2c3e50); color:#fff; padding:28px 40px; }
+  header h1 { font-size:1.5em; font-weight:700; }
+  header p  { color:#aab; margin-top:6px; font-size:0.9em; }
+  .container { max-width:1200px; margin:24px auto; padding:0 24px; }
+  .card { background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08);
+           margin-bottom:24px; overflow:hidden; }
+  .card-header { padding:14px 20px; font-weight:600; font-size:1em; border-bottom:1px solid #eee; }
+  .card-body   { padding:16px 20px; }
+  .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+  .metric { background:#f8f9fb; border-radius:8px; padding:14px 18px; border-left:4px solid #3498db; }
+  .metric .val { font-size:1.6em; font-weight:700; color:#2c3e50; }
+  .metric .label { font-size:0.78em; color:#7f8c8d; margin-top:4px; }
+  table { border-collapse:collapse; width:100%; font-size:0.85em; margin-top:8px; }
+  th { background:#2c3e50; color:#fff; padding:8px 12px; text-align:left; }
+  td { padding:7px 12px; border-bottom:1px solid #eef; }
+  tr:hover td { background:#f5f9ff; }
+  .finding { border-left:4px solid; padding:12px 16px; margin-bottom:12px;
+              border-radius:0 6px 6px 0; background:#fafafa; }
+  .finding.high     { border-color:#e74c3c; background:#fdf2f2; }
+  .finding.medium   { border-color:#f39c12; background:#fef9f0; }
+  .finding.low      { border-color:#3498db; background:#eaf4fb; }
+  .finding h3 { font-size:0.95em; margin-bottom:4px; }
+  .finding p  { font-size:0.85em; color:#555; line-height:1.5; }
+  code { background:#e8e8e8; padding:2px 6px; border-radius:3px; font-size:0.9em; }
+  h4 { font-size:0.9em; color:#34495e; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>IPv6 Traffic Analysis Report</h1>
+  <p>Target: <strong>2408:8a04:e001:0:faed:fcff:fefe:10c1</strong> &nbsp;|&nbsp; File: IPv6_0421.pcapng &nbsp;|&nbsp; Generated: 2026-04-30 18:49:14</p>
+</header>
+<div class="container">
+
+  <!-- Overall Status -->
+  <div class="card">
+    <div class="card-header" style="background:#f39c12;color:#fff;">
+      Overall Assessment: MEDIUM &nbsp;—&nbsp; 7 issue(s) found
+    </div>
+    <div class="card-body">
+      <div class="summary-grid">
+        <div class="metric"><div class="val">1,341</div><div class="label">Total Packets</div></div>
+        <div class="metric"><div class="val">148.2 KB</div><div class="label">Total Data</div></div>
+        <div class="metric"><div class="val">15.4h</div><div class="label">Duration</div></div>
+        <div class="metric"><div class="val">0.02</div><div class="label">Pkts/sec</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issues -->
+  <div class="card">
+    <div class="card-header">⚠️ Issues & Findings (7)</div>
+    <div class="card-body">
+      
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> TCP RST packets detected</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> TCP</p>
+          <p>4 RST packet(s) observed (0 sent, 4 received). RSTs after immediate FIN indicate port probing/service discovery.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> Review if the connecting host is authorized to probe ports. Check firewall rules and service availability on ports 631 (IPP) and 8080.</p>
+        </div>
+        
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> Port probing / service discovery detected</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> TCP</p>
+          <p>9 connection(s) with immediate FIN after SYN-ACK — pattern consistent with port scanning or printer availability checks.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> This is likely a print client checking service availability. If unexpected, investigate the source host.</p>
+        </div>
+        
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> SNMP errors detected (25.0% error rate)</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> SNMP</p>
+          <p>311 SNMP error response(s) out of 1243 total SNMP packets. Error breakdown: {'noSuchName': 311}</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> noSuchName (error 2) indicates the SNMP manager is requesting OIDs that don't exist on this device. Update the SNMP manager's MIB or polling configuration to match the device's supported OID tree.</p>
+        </div>
+        
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> Default SNMP community string 'public' in use</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> Security</p>
+          <p>SNMP traffic uses the default 'public' community string (1243 packets). This is a security risk.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> Change the SNMP community string to a non-default value. Consider upgrading to SNMPv3 with authentication and encryption.</p>
+        </div>
+        
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> SNMPv1 in use (no encryption/authentication)</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> Security</p>
+          <p>SNMPv1 detected (1243 packets). SNMPv1 sends community strings in cleartext with no authentication.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> Upgrade to SNMPv3 with authPriv security level for encrypted and authenticated SNMP communication.</p>
+        </div>
+        
+        <div class="finding medium">
+          <h3><span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">MEDIUM</span> 73 unanswered SNMP requests</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> SNMP</p>
+          <p>Host received 658 SNMP requests but only sent 585 responses. 73 requests went unanswered.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> Check if the SNMP agent on the device is overloaded or if requests are timing out due to network latency.</p>
+        </div>
+        
+        <div class="finding low">
+          <h3><span style="background:#3498db;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75em;margin-right:8px;">LOW</span> Slow Neighbor Advertisement responses (1 instances)</h3>
+          <p style="margin-top:6px;"><strong>Category:</strong> ICMPv6</p>
+          <p>1 Neighbor Advertisement response(s) took >1 second. This can cause temporary connectivity loss for the peer.</p>
+          <p style="margin-top:6px;color:#2c3e50;"><strong>Remediation:</strong> Check device load and IPv6 stack responsiveness. Ensure the device is not sleeping/power-saving during NS/NA exchange.</p>
+        </div>
+        
+    </div>
+  </div>
+
+  <!-- Protocol Distribution -->
+  <div class="card">
+    <div class="card-header">📊 Protocol Distribution</div>
+    <div class="card-body">
+      <div style="margin:4px 0;"><span style="display:inline-block;width:100px;">snmp</span><div style="display:inline-block;background:#3498db;height:18px;width:100%;border-radius:3px;vertical-align:middle;"></div> <small>1243</small></div>
+<div style="margin:4px 0;"><span style="display:inline-block;width:100px;">tcp</span><div style="display:inline-block;background:#3498db;height:18px;width:4%;border-radius:3px;vertical-align:middle;"></div> <small>54</small></div>
+<div style="margin:4px 0;"><span style="display:inline-block;width:100px;">icmpv6</span><div style="display:inline-block;background:#3498db;height:18px;width:3%;border-radius:3px;vertical-align:middle;"></div> <small>44</small></div>
+
+    </div>
+  </div>
+
+  <!-- Communication Peers -->
+  <div class="card">
+    <div class="card-header">🌐 Communication Peers</div>
+    <div class="card-body">
+      <table><th>IPv6 Address</th><th>Packets</th><tr><td>2408:8a04:e001::9ce</td><td>1244</td></tr><tr><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>96</td></tr><tr><td>ff02::1:ff15:38ab</td><td>1</td></tr></table>
+    </div>
+  </div>
+
+  <!-- TCP Analysis -->
+  <div class="card"><div class="card-header">🔌 TCP Analysis</div><div class="card-body">
+    <div class="summary-grid">
+      <div class="metric"><div class="val">54</div><div class="label">TCP Packets</div></div>
+      <div class="metric"><div class="val">9</div><div class="label">Inbound Connections</div></div>
+      <div class="metric"><div class="val">9</div><div class="label">SYN-ACK Sent</div></div>
+      <div class="metric" style="border-color:#e74c3c"><div class="val">4</div><div class="label">RST Total</div></div>
+      <div class="metric"><div class="val">0</div><div class="label">Retransmissions</div></div>
+      <div class="metric"><div class="val">9</div><div class="label">Port Probes</div></div>
+    </div>
+    <div style="margin-top:16px;"><h4>Destination Ports</h4>
+    <table><th>Port</th><th>Service</th><th>Packets</th><tr><td>631</td><td>IPP (Printing)</td><td>16</td></tr>
+<tr><td>8080</td><td>HTTP Proxy/Web</td><td>15</td></tr>
+<tr><td>50140</td><td></td><td>3</td></tr>
+<tr><td>54844</td><td></td><td>3</td></tr>
+<tr><td>51890</td><td></td><td>3</td></tr>
+<tr><td>56807</td><td></td><td>3</td></tr>
+<tr><td>52153</td><td></td><td>3</td></tr>
+<tr><td>50141</td><td></td><td>2</td></tr>
+<tr><td>54842</td><td></td><td>2</td></tr>
+<tr><td>56805</td><td></td><td>2</td></tr>
+</table></div>
+    <div style="margin-top:16px;"><h4>Inbound Connections</h4><table><th>Frame</th><th>Time</th><th>Peer</th><th>Peer Port</th><th>Local Port</th><tr><td>238928</td><td>53898.507879000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>50140</td><td>8080</td></tr>
+<tr><td>238930</td><td>53898.507997000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>50141</td><td>631</td></tr>
+<tr><td>243664</td><td>54121.984331000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>54842</td><td>631</td></tr>
+<tr><td>243666</td><td>54121.984448000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>54844</td><td>8080</td></tr>
+<tr><td>243875</td><td>54124.913312000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>51890</td><td>631</td></tr>
+<tr><td>245576</td><td>54247.338466000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>56805</td><td>631</td></tr>
+<tr><td>245578</td><td>54247.338593000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>56807</td><td>8080</td></tr>
+<tr><td>255606</td><td>55213.140000000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>52153</td><td>8080</td></tr>
+<tr><td>255607</td><td>55213.140000000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb</td><td>52151</td><td>631</td></tr>
+</table></div>
+    <div style="margin-top:16px;"><h4>RST Packets</h4><table><th>Frame</th><th>Time</th><th>Source</th><th>Destination</th><tr><td>240267</td><td>54018.689397000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb:50141</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1:631</td></tr>
+<tr><td>245493</td><td>54242.144247000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb:54842</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1:631</td></tr>
+<tr><td>246795</td><td>54369.662925000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb:56805</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1:631</td></tr>
+<tr><td>256909</td><td>55333.759190000</td><td>2408:8a04:e001:0:e4d0:17f0:c5fa:16bb:52151</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1:631</td></tr>
+</table></div>
+  </div></div>
+
+  <!-- UDP Analysis -->
+  <div class="card"><div class="card-header">📦 UDP Analysis</div><div class="card-body">
+    <div class="summary-grid">
+      <div class="metric"><div class="val">1243</div><div class="label">UDP Packets</div></div>
+    </div>
+    <div style="margin-top:16px;"><h4>Top UDP Flows</h4>
+    <table><th>Source</th><th>SPort</th><th>Dest</th><th>DPort</th><th>Frames</th><th>Volume</th><tr><td>2408:8a04:e001::9ce</td><td>57735</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>388</td><td>23.3 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>57735</td><td>382</td><td>23.5 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>52388</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>240</td><td>14.0 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>52388</td><td>165</td><td>10.0 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>56970</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>11</td><td>0.6 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>56970</td><td>11</td><td>0.6 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>63267</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>11</td><td>0.6 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>63267</td><td>11</td><td>0.6 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>52023</td><td>8</td><td>0.5 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>63087</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>3</td><td>0.2 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>63087</td><td>3</td><td>0.2 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>59608</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>3</td><td>0.2 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>59608</td><td>3</td><td>0.2 KB</td></tr>
+<tr><td>2408:8a04:e001::9ce</td><td>60126</td><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2</td><td>0.2 KB</td></tr>
+<tr><td>2408:8a04:e001:0:faed:fcff:fefe:10c1</td><td>161</td><td>2408:8a04:e001::9ce</td><td>60126</td><td>2</td><td>0.2 KB</td></tr>
+</table></div>
+  </div></div>
+
+  
+        <div class="card">
+          <div class="card-header">📡 SNMP Analysis</div>
+          <div class="card-body">
+            <div class="summary-grid">
+              <div class="metric"><div class="val">1243</div><div class="label">Total SNMP Packets</div></div>
+              <div class="metric" style="border-color:#e74c3c"><div class="val">311</div><div class="label">SNMP Errors</div></div>
+              <div class="metric"><div class="val">25.0%</div><div class="label">Error Rate</div></div>
+              <div class="metric"><div class="val">73</div><div class="label">Unanswered Requests</div></div>
+            </div>
+            <div style="margin-top:16px;">
+              <h4>SNMP Versions</h4>
+              <p>SNMPv1: 1243 pkts</p>
+              <h4 style="margin-top:12px;">Community Strings</h4>
+              <p>"public": 1243 pkts</p>
+              <h4 style="margin-top:12px;">SNMP Peers</h4>
+              <p>2408:8a04:e001::9ce</p>
+            </div>
+            <div style="margin-top:16px;"><h4>Error Breakdown</h4><table><th>Error Type</th><th>Count</th><tr><td>noSuchName</td><td>311</td></tr></table></div>
+          </div>
+        </div>
+  
+        <div class="card">
+          <div class="card-header">🔗 ICMPv6 / Neighbor Discovery</div>
+          <div class="card-body">
+            <div class="summary-grid">
+              <div class="metric"><div class="val">44</div><div class="label">Total ICMPv6</div></div>
+              <div class="metric"><div class="val">21</div><div class="label">NS Received</div></div>
+              <div class="metric"><div class="val">22</div><div class="label">NA Sent</div></div>
+              <div class="metric"><div class="val">1</div><div class="label">Slow Responses (>1s)</div></div>
+            </div>
+            <div style="margin-top:16px;">
+              <h4>ICMPv6 Type Distribution</h4>
+              <table><th>Type</th><th>Count</th><tr><td>Neighbor Solicitation</td><td>22</td></tr><tr><td>Neighbor Advertisement</td><td>22</td></tr></table>
+            </div>
+            <p style="margin-top:12px;color:#555;">MAC Address (from NA): <code>f8:ed:fc:fe:10:c1</code></p>
+          </div>
+        </div>
+
+</div>
+</body>
+</html>

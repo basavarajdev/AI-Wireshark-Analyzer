@@ -1,0 +1,357 @@
+{
+  "target_ipv6": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+  "pcap_file": "/home/bidnal/Downloads/IPv6_0421.pcapng",
+  "overview": {
+    "total_packets": 1341,
+    "total_bytes": 151758,
+    "duration_seconds": 55328.69,
+    "avg_packets_per_sec": 0.02,
+    "avg_bytes_per_packet": 113.2,
+    "protocol_distribution": {
+      "snmp": 1243,
+      "tcp": 54,
+      "icmpv6": 44
+    },
+    "top_peers": {
+      "2408:8a04:e001::9ce": 1244,
+      "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb": 96,
+      "ff02::1:ff15:38ab": 1
+    }
+  },
+  "tcp": {
+    "total_tcp_packets": 54,
+    "connections_to_host": 9,
+    "connections_from_host": 0,
+    "syn_ack_sent": 9,
+    "rst_sent": 0,
+    "rst_received": 4,
+    "fin_sent": 5,
+    "fin_received": 9,
+    "retransmissions": 0,
+    "duplicate_acks": 0,
+    "zero_window": 0,
+    "window_full": 0,
+    "out_of_order": 0,
+    "port_probes_detected": 9,
+    "destination_ports": {
+      "631": 16,
+      "8080": 15,
+      "50140": 3,
+      "54844": 3,
+      "51890": 3,
+      "56807": 3,
+      "52153": 3,
+      "50141": 2,
+      "54842": 2,
+      "56805": 2,
+      "52151": 2
+    },
+    "connection_detail": [
+      {
+        "frame": "238928",
+        "time": "53898.507879000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "50140",
+        "local_port": "8080"
+      },
+      {
+        "frame": "238930",
+        "time": "53898.507997000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "50141",
+        "local_port": "631"
+      },
+      {
+        "frame": "243664",
+        "time": "54121.984331000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "54842",
+        "local_port": "631"
+      },
+      {
+        "frame": "243666",
+        "time": "54121.984448000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "54844",
+        "local_port": "8080"
+      },
+      {
+        "frame": "243875",
+        "time": "54124.913312000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "51890",
+        "local_port": "631"
+      },
+      {
+        "frame": "245576",
+        "time": "54247.338466000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "56805",
+        "local_port": "631"
+      },
+      {
+        "frame": "245578",
+        "time": "54247.338593000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "56807",
+        "local_port": "8080"
+      },
+      {
+        "frame": "255606",
+        "time": "55213.140000000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "52153",
+        "local_port": "8080"
+      },
+      {
+        "frame": "255607",
+        "time": "55213.140000000",
+        "peer": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "peer_port": "52151",
+        "local_port": "631"
+      }
+    ],
+    "rst_detail": [
+      {
+        "frame": "240267",
+        "time": "54018.689397000",
+        "src": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "sport": "50141",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "631"
+      },
+      {
+        "frame": "245493",
+        "time": "54242.144247000",
+        "src": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "sport": "54842",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "631"
+      },
+      {
+        "frame": "246795",
+        "time": "54369.662925000",
+        "src": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "sport": "56805",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "631"
+      },
+      {
+        "frame": "256909",
+        "time": "55333.759190000",
+        "src": "2408:8a04:e001:0:e4d0:17f0:c5fa:16bb",
+        "sport": "52151",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "631"
+      }
+    ]
+  },
+  "udp": {
+    "total_udp_packets": 1243,
+    "top_flows": [
+      {
+        "frames": 388,
+        "bytes": 23867,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "57735",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 382,
+        "bytes": 24101,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "57735"
+      },
+      {
+        "frames": 240,
+        "bytes": 14337,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "52388",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 165,
+        "bytes": 10273,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "52388"
+      },
+      {
+        "frames": 11,
+        "bytes": 600,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "56970",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 11,
+        "bytes": 643,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "56970"
+      },
+      {
+        "frames": 11,
+        "bytes": 600,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "63267",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 11,
+        "bytes": 643,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "63267"
+      },
+      {
+        "frames": 8,
+        "bytes": 520,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "52023"
+      },
+      {
+        "frames": 3,
+        "bytes": 157,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "63087",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 3,
+        "bytes": 213,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "63087"
+      },
+      {
+        "frames": 3,
+        "bytes": 157,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "59608",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 3,
+        "bytes": 213,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "59608"
+      },
+      {
+        "frames": 2,
+        "bytes": 172,
+        "src": "2408:8a04:e001::9ce",
+        "sport": "60126",
+        "dst": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "dport": "161"
+      },
+      {
+        "frames": 2,
+        "bytes": 180,
+        "src": "2408:8a04:e001:0:faed:fcff:fefe:10c1",
+        "sport": "161",
+        "dst": "2408:8a04:e001::9ce",
+        "dport": "60126"
+      }
+    ],
+    "snmp_analysis": {
+      "total_snmp_packets": 1243,
+      "snmp_errors": 311,
+      "error_rate_pct": 25.0,
+      "communities": {
+        "public": 1243
+      },
+      "versions": {
+        "SNMPv1": 1243
+      },
+      "error_breakdown": {
+        "noSuchName": 311
+      },
+      "requests_to_host": 658,
+      "responses_from_host": 585,
+      "unanswered_requests": 73,
+      "snmp_peers": [
+        "2408:8a04:e001::9ce"
+      ]
+    }
+  },
+  "icmpv6": {
+    "total_icmpv6_packets": 44,
+    "type_distribution": {
+      "Neighbor Solicitation": 22,
+      "Neighbor Advertisement": 22
+    },
+    "neighbor_solicitations_received": 21,
+    "neighbor_advertisements_sent": 22,
+    "slow_na_responses": 1,
+    "icmpv6_errors": [],
+    "mac_address": "f8:ed:fc:fe:10:c1"
+  },
+  "issues": [
+    {
+      "severity": "medium",
+      "category": "TCP",
+      "title": "TCP RST packets detected",
+      "detail": "4 RST packet(s) observed (0 sent, 4 received). RSTs after immediate FIN indicate port probing/service discovery.",
+      "remediation": "Review if the connecting host is authorized to probe ports. Check firewall rules and service availability on ports 631 (IPP) and 8080."
+    },
+    {
+      "severity": "medium",
+      "category": "TCP",
+      "title": "Port probing / service discovery detected",
+      "detail": "9 connection(s) with immediate FIN after SYN-ACK \u2014 pattern consistent with port scanning or printer availability checks.",
+      "remediation": "This is likely a print client checking service availability. If unexpected, investigate the source host."
+    },
+    {
+      "severity": "medium",
+      "category": "SNMP",
+      "title": "SNMP errors detected (25.0% error rate)",
+      "detail": "311 SNMP error response(s) out of 1243 total SNMP packets. Error breakdown: {'noSuchName': 311}",
+      "remediation": "noSuchName (error 2) indicates the SNMP manager is requesting OIDs that don't exist on this device. Update the SNMP manager's MIB or polling configuration to match the device's supported OID tree."
+    },
+    {
+      "severity": "medium",
+      "category": "Security",
+      "title": "Default SNMP community string 'public' in use",
+      "detail": "SNMP traffic uses the default 'public' community string (1243 packets). This is a security risk.",
+      "remediation": "Change the SNMP community string to a non-default value. Consider upgrading to SNMPv3 with authentication and encryption."
+    },
+    {
+      "severity": "medium",
+      "category": "Security",
+      "title": "SNMPv1 in use (no encryption/authentication)",
+      "detail": "SNMPv1 detected (1243 packets). SNMPv1 sends community strings in cleartext with no authentication.",
+      "remediation": "Upgrade to SNMPv3 with authPriv security level for encrypted and authenticated SNMP communication."
+    },
+    {
+      "severity": "medium",
+      "category": "SNMP",
+      "title": "73 unanswered SNMP requests",
+      "detail": "Host received 658 SNMP requests but only sent 585 responses. 73 requests went unanswered.",
+      "remediation": "Check if the SNMP agent on the device is overloaded or if requests are timing out due to network latency."
+    },
+    {
+      "severity": "low",
+      "category": "ICMPv6",
+      "title": "Slow Neighbor Advertisement responses (1 instances)",
+      "detail": "1 Neighbor Advertisement response(s) took >1 second. This can cause temporary connectivity loss for the peer.",
+      "remediation": "Check device load and IPv6 stack responsiveness. Ensure the device is not sleeping/power-saving during NS/NA exchange."
+    }
+  ]
+}

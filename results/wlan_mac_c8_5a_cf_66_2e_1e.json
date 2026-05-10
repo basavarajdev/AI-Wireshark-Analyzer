@@ -1,0 +1,1280 @@
+{
+  "total_packets": 121,
+  "mac_filter": "c8:5a:cf:66:2e:1e",
+  "statistics": {
+    "total_frames": 121,
+    "frame_type_distribution": {
+      "Probe Response": 105,
+      "Probe Request": 9,
+      "ACK": 2,
+      "Authentication": 1,
+      "Association Request": 1,
+      "Association Response": 1,
+      "QoS Data": 1,
+      "Deauthentication": 1
+    },
+    "management_frames": 118,
+    "control_frames": 2,
+    "data_frames": 1,
+    "unknown_frames": 0,
+    "unique_bssids": 16,
+    "top_bssids": {
+      "5e:60:ba:51:09:1f": 26,
+      "2a:56:5a:04:cb:47": 22,
+      "34:0a:33:88:24:d6": 18,
+      "16:ac:60:d3:0d:d7": 12,
+      "ff:ff:ff:ff:ff:ff": 9,
+      "70:4f:57:de:4d:50": 7,
+      "00:19:e3:33:41:71": 5,
+      "b8:8d:12:64:e2:c9": 5,
+      "54:af:97:40:7f:1a": 4,
+      "f8:1e:df:ff:b5:97": 3
+    },
+    "unique_ssids": 15,
+    "detected_ssids": {
+      "DIRECT-1F-HP Envy 6100e series": 25,
+      "DIRECT-47-HP M507 LaserJet": 22,
+      "dlink-24D2_2g": 18,
+      "DIRECT-D7-HP M406 LaserJet": 12,
+      "<MISSING>": 6,
+      "TP-Link_IO_TEAM": 6,
+      "AirPortX": 5,
+      "New_BCT": 4,
+      "Apollo_Airprint_AP": 4,
+      "TP-Link_prakash_2_4": 4,
+      "TP-Link_433C": 2,
+      "DIRECT-9F-HP OfficeJet Pro 8030": 1,
+      "HPI_ZoomRoom": 1,
+      "hpinternet": 1,
+      "New_BC\ufffd": 1
+    },
+    "unique_transmitters": 15,
+    "top_transmitters": {
+      "5e:60:ba:51:09:1f": 26,
+      "2a:56:5a:04:cb:47": 22,
+      "34:0a:33:88:24:d6": 16,
+      "16:ac:60:d3:0d:d7": 12,
+      "c8:5a:cf:66:2e:1e": 11,
+      "70:4f:57:de:4d:50": 7,
+      "00:19:e3:33:41:71": 5,
+      "b8:8d:12:64:e2:c9": 5,
+      "f8:1e:df:ff:b5:97": 4,
+      "54:af:97:40:7f:1a": 4
+    },
+    "unique_receivers": 3,
+    "broadcast_frames": 9,
+    "channels_used": [
+      1
+    ],
+    "channel_distribution": {
+      "1": 121
+    },
+    "signal_min_dbm": -61,
+    "signal_max_dbm": -2,
+    "signal_mean_dbm": -44.9,
+    "signal_std_dbm": 10.8,
+    "noise_mean_dbm": -63.0,
+    "data_rate_min_mbps": 1.0,
+    "data_rate_max_mbps": 12.0,
+    "data_rate_mean_mbps": 3.1,
+    "phy_distribution": {
+      "802.11g": 72,
+      "802.11ac (VHT)": 49
+    },
+    "retry_frames": 73,
+    "retry_rate": 60.33,
+    "protected_frames": 0,
+    "unprotected_data_frames": 1,
+    "avg_frame_size": 385.8,
+    "max_frame_size": 581,
+    "min_frame_size": 40
+  },
+  "connection_events": {
+    "association_requests": 1,
+    "association_responses": 1,
+    "associating_clients": 1,
+    "association_by_client": {
+      "c8:5a:cf:66:2e:1e": 1
+    },
+    "reassociation_requests": 0,
+    "reassociation_responses": 0,
+    "roaming_clients": 0,
+    "roaming_details": {},
+    "deauthentication_frames": 1,
+    "disassociation_frames": 0,
+    "total_disconnections": 1,
+    "disconnect_sources": {
+      "c8:5a:cf:66:2e:1e": 1
+    },
+    "authentication_frames": 1,
+    "auth_clients": 1,
+    "channel_switch_clients": 0,
+    "channel_switch_details": {},
+    "band_switch_clients": 0,
+    "band_switch_details": {}
+  },
+  "threats": {
+    "connection_failures": {
+      "detected": true,
+      "severity": "medium",
+      "total_failures": 1,
+      "failure_breakdown": {
+        "STA leaving BSS intentionally": 1
+      },
+      "message": "1 connection failure event(s): 1\u00d7 STA leaving BSS intentionally",
+      "remediations": {
+        "STA leaving BSS intentionally": "Normal, client-initiated teardown \u2014 no failure. Recovery: not required. If unexpected, verify supplicant auto-reconnect policy."
+      },
+      "client_timelines": {
+        "c8:5a:cf:66:2e:1e": [
+          {
+            "frame": 3305,
+            "type": "Deauthentication",
+            "root_cause": "STA leaving BSS intentionally",
+            "code": 3,
+            "reason": "STA is leaving or has left the BSS (intentional disconnect)",
+            "timestamp": 1774326653.492572,
+            "signal_dbm": -49
+          }
+        ]
+      },
+      "failure_details": [
+        {
+          "type": "Deauthentication",
+          "root_cause": "Client voluntarily disconnected (normal teardown, code 3)",
+          "remediation": "No action needed. If unexpected, check supplicant auto-reconnect policy.",
+          "code": 3,
+          "reason": "STA is leaving or has left the BSS (intentional disconnect)",
+          "frame": 3305,
+          "timestamp": 1774326653.492572,
+          "sa": "c8:5a:cf:66:2e:1e",
+          "bssid": "34:0a:33:88:24:d6",
+          "signal_dbm": -49,
+          "evidence": [
+            "Deauth/Disassoc sent BY the client (SA = client MAC) \u2014 voluntary"
+          ],
+          "connection_phase": "Failed during 4-way Handshake"
+        }
+      ],
+      "connection_flows": {
+        "c8:5a:cf:66:2e:1e": [
+          {
+            "events": [
+              {
+                "frame": 1679,
+                "timestamp": 1774326647.343718,
+                "signal_dbm": -45,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1682,
+                "timestamp": 1774326647.362533,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 1683,
+                "timestamp": 1774326647.364773,
+                "signal_dbm": -47,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"dlink-24D2_2g\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1684,
+                "timestamp": 1774326647.367581,
+                "signal_dbm": -37,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 1687,
+                "timestamp": 1774326647.38165,
+                "signal_dbm": -46,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1688,
+                "timestamp": 1774326647.384695,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 1701,
+                "timestamp": 1774326647.42915,
+                "signal_dbm": -45,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1714,
+                "timestamp": 1774326647.469366,
+                "signal_dbm": -30,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_433C)",
+                "category": "scan"
+              },
+              {
+                "frame": 1718,
+                "timestamp": 1774326647.493597,
+                "signal_dbm": -31,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_433C)",
+                "category": "scan"
+              },
+              {
+                "frame": 1735,
+                "timestamp": 1774326647.581944,
+                "signal_dbm": -43,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1737,
+                "timestamp": 1774326647.59786,
+                "signal_dbm": -41,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1738,
+                "timestamp": 1774326647.605963,
+                "signal_dbm": -41,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1739,
+                "timestamp": 1774326647.642614,
+                "signal_dbm": -43,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1760,
+                "timestamp": 1774326647.74902,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 1831,
+                "timestamp": 1774326648.14036,
+                "signal_dbm": -50,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"dlink-24D2_2g\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1832,
+                "timestamp": 1774326648.141114,
+                "signal_dbm": -50,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"<MISSING>\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1833,
+                "timestamp": 1774326648.145192,
+                "signal_dbm": -44,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1834,
+                "timestamp": 1774326648.152225,
+                "signal_dbm": -2,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_prakash_2_4)",
+                "category": "scan"
+              },
+              {
+                "frame": 1835,
+                "timestamp": 1774326648.156918,
+                "signal_dbm": -2,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_prakash_2_4)",
+                "category": "scan"
+              },
+              {
+                "frame": 1837,
+                "timestamp": 1774326648.159629,
+                "signal_dbm": -46,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-9F-HP OfficeJet Pro 8030)",
+                "category": "scan"
+              },
+              {
+                "frame": 1838,
+                "timestamp": 1774326648.162909,
+                "signal_dbm": -50,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"<MISSING>\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1839,
+                "timestamp": 1774326648.165051,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: AirPortX)",
+                "category": "scan"
+              },
+              {
+                "frame": 1840,
+                "timestamp": 1774326648.167135,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 1841,
+                "timestamp": 1774326648.172218,
+                "signal_dbm": -23,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: Apollo_Airprint_AP)",
+                "category": "scan"
+              },
+              {
+                "frame": 1842,
+                "timestamp": 1774326648.180696,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HPI_ZoomRoom)",
+                "category": "scan"
+              },
+              {
+                "frame": 1843,
+                "timestamp": 1774326648.181414,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 1847,
+                "timestamp": 1774326648.191216,
+                "signal_dbm": -23,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: Apollo_Airprint_AP)",
+                "category": "scan"
+              },
+              {
+                "frame": 1849,
+                "timestamp": 1774326648.197021,
+                "signal_dbm": -31,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: AirPortX)",
+                "category": "scan"
+              },
+              {
+                "frame": 1850,
+                "timestamp": 1774326648.20332,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: hpinternet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1851,
+                "timestamp": 1774326648.205461,
+                "signal_dbm": -36,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: AirPortX)",
+                "category": "scan"
+              },
+              {
+                "frame": 1856,
+                "timestamp": 1774326648.216386,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: AirPortX)",
+                "category": "scan"
+              },
+              {
+                "frame": 1859,
+                "timestamp": 1774326648.244919,
+                "signal_dbm": -44,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1862,
+                "timestamp": 1774326648.265287,
+                "signal_dbm": -48,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: New_BCT)",
+                "category": "scan"
+              },
+              {
+                "frame": 1864,
+                "timestamp": 1774326648.28505,
+                "signal_dbm": -59,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 1870,
+                "timestamp": 1774326648.307057,
+                "signal_dbm": -43,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1871,
+                "timestamp": 1774326648.309697,
+                "signal_dbm": -47,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: New_BCT)",
+                "category": "scan"
+              },
+              {
+                "frame": 1872,
+                "timestamp": 1774326648.313765,
+                "signal_dbm": -43,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 1879,
+                "timestamp": 1774326648.365257,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: New_BC\ufffd)",
+                "category": "scan"
+              },
+              {
+                "frame": 1885,
+                "timestamp": 1774326648.400734,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: New_BCT)",
+                "category": "scan"
+              },
+              {
+                "frame": 1906,
+                "timestamp": 1774326648.549816,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2013,
+                "timestamp": 1774326649.014597,
+                "signal_dbm": -51,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"<MISSING>\"",
+                "category": "scan"
+              },
+              {
+                "frame": 2015,
+                "timestamp": 1774326649.026985,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 2017,
+                "timestamp": 1774326649.030296,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 2022,
+                "timestamp": 1774326649.045036,
+                "signal_dbm": -39,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 2027,
+                "timestamp": 1774326649.06855,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2041,
+                "timestamp": 1774326649.097704,
+                "signal_dbm": -39,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 2058,
+                "timestamp": 1774326649.148047,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2060,
+                "timestamp": 1774326649.149375,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2066,
+                "timestamp": 1774326649.153317,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2068,
+                "timestamp": 1774326649.154868,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2070,
+                "timestamp": 1774326649.156277,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2072,
+                "timestamp": 1774326649.157718,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2074,
+                "timestamp": 1774326649.160595,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2075,
+                "timestamp": 1774326649.161316,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2076,
+                "timestamp": 1774326649.16202,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2077,
+                "timestamp": 1774326649.162781,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2078,
+                "timestamp": 1774326649.16606,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2079,
+                "timestamp": 1774326649.166786,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2080,
+                "timestamp": 1774326649.167496,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2081,
+                "timestamp": 1774326649.16824,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2082,
+                "timestamp": 1774326649.169,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2083,
+                "timestamp": 1774326649.169669,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2084,
+                "timestamp": 1774326649.170433,
+                "signal_dbm": -52,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2085,
+                "timestamp": 1774326649.171184,
+                "signal_dbm": -52,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2086,
+                "timestamp": 1774326649.171934,
+                "signal_dbm": -51,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-1F-HP Envy 6100e series)",
+                "category": "scan"
+              },
+              {
+                "frame": 2087,
+                "timestamp": 1774326649.174567,
+                "signal_dbm": -60,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 2094,
+                "timestamp": 1774326649.19056,
+                "signal_dbm": -55,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 2097,
+                "timestamp": 1774326649.196378,
+                "signal_dbm": -61,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 3042,
+                "timestamp": 1774326652.648516,
+                "signal_dbm": -54,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"dlink-24D2_2g\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3045,
+                "timestamp": 1774326652.669842,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3056,
+                "timestamp": 1774326652.702396,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3102,
+                "timestamp": 1774326652.846137,
+                "signal_dbm": -37,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3264,
+                "timestamp": 1774326653.320172,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Auth Response",
+                "status": 0,
+                "note": "Authentication accepted",
+                "category": "success"
+              },
+              {
+                "frame": 3281,
+                "timestamp": 1774326653.391029,
+                "signal_dbm": -53,
+                "direction": "client\u2192AP",
+                "step": "Association Request",
+                "note": "Client requesting to join BSS",
+                "category": "assoc"
+              },
+              {
+                "frame": 3287,
+                "timestamp": 1774326653.405464,
+                "signal_dbm": -41,
+                "direction": "AP\u2192client",
+                "step": "Association Response",
+                "status": 0,
+                "note": "Client joined BSS successfully",
+                "category": "success"
+              },
+              {
+                "frame": 3295,
+                "timestamp": 1774326653.435452,
+                "signal_dbm": -40,
+                "direction": "AP\u2192client",
+                "step": "EAPOL Msg1 \u2014 ANonce",
+                "note": "AP sends random ANonce to start 4-way handshake",
+                "category": "eapol"
+              },
+              {
+                "frame": 3305,
+                "timestamp": 1774326653.492572,
+                "signal_dbm": -49,
+                "direction": "client\u2192AP",
+                "step": "Deauthentication",
+                "reason_code": 3,
+                "reason_text": "STA is leaving or has left the BSS (intentional disconnect)",
+                "note": "Client terminated connection \u2014 STA is leaving or has left the BSS (intentional disconnect)",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Client voluntarily disconnected (normal teardown, code 3)",
+                "evidence": [
+                  "Deauth/Disassoc sent BY the client (SA = client MAC) \u2014 voluntary"
+                ]
+              }
+            ],
+            "ap_bssid": "2a:56:5a:04:cb:47",
+            "start_frame": 1679,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": true,
+              "eapol_stats": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed during 4-way Handshake",
+              "recommended_action": "No action needed. If unexpected, check supplicant auto-reconnect policy.",
+              "validated_disconnect": "Client voluntarily disconnected (normal teardown, code 3)",
+              "evidence": [
+                "Deauth/Disassoc sent BY the client (SA = client MAC) \u2014 voluntary"
+              ]
+            }
+          },
+          {
+            "events": [
+              {
+                "frame": 3363,
+                "timestamp": 1774326653.635297,
+                "signal_dbm": -39,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3371,
+                "timestamp": 1774326653.656875,
+                "signal_dbm": -53,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"<MISSING>\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3372,
+                "timestamp": 1774326653.668388,
+                "signal_dbm": -50,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"dlink-24D2_2g\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3376,
+                "timestamp": 1774326653.679371,
+                "signal_dbm": -48,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3378,
+                "timestamp": 1774326653.692144,
+                "signal_dbm": -59,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 3382,
+                "timestamp": 1774326653.696722,
+                "signal_dbm": -61,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_IO_TEAM)",
+                "category": "scan"
+              },
+              {
+                "frame": 3390,
+                "timestamp": 1774326653.71446,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3426,
+                "timestamp": 1774326653.841706,
+                "signal_dbm": -41,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3429,
+                "timestamp": 1774326653.84579,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3431,
+                "timestamp": 1774326653.852703,
+                "signal_dbm": -40,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              },
+              {
+                "frame": 3434,
+                "timestamp": 1774326653.864099,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3436,
+                "timestamp": 1774326653.865023,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3437,
+                "timestamp": 1774326653.873435,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3467,
+                "timestamp": 1774326653.961237,
+                "signal_dbm": -51,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"<MISSING>\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3469,
+                "timestamp": 1774326653.966667,
+                "signal_dbm": -48,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3470,
+                "timestamp": 1774326653.973139,
+                "signal_dbm": -4,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_prakash_2_4)",
+                "category": "scan"
+              },
+              {
+                "frame": 3473,
+                "timestamp": 1774326653.978146,
+                "signal_dbm": -3,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: TP-Link_prakash_2_4)",
+                "category": "scan"
+              },
+              {
+                "frame": 3474,
+                "timestamp": 1774326653.982207,
+                "signal_dbm": -44,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3475,
+                "timestamp": 1774326653.985286,
+                "signal_dbm": -60,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded",
+                "category": "scan"
+              },
+              {
+                "frame": 3476,
+                "timestamp": 1774326653.991129,
+                "signal_dbm": -47,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3478,
+                "timestamp": 1774326654.009151,
+                "signal_dbm": -41,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: Apollo_Airprint_AP)",
+                "category": "scan"
+              },
+              {
+                "frame": 3479,
+                "timestamp": 1774326654.010299,
+                "signal_dbm": -55,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded",
+                "category": "scan"
+              },
+              {
+                "frame": 3481,
+                "timestamp": 1774326654.017543,
+                "signal_dbm": -23,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: Apollo_Airprint_AP)",
+                "category": "scan"
+              },
+              {
+                "frame": 3487,
+                "timestamp": 1774326654.031878,
+                "signal_dbm": -30,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: AirPortX)",
+                "category": "scan"
+              },
+              {
+                "frame": 3497,
+                "timestamp": 1774326654.063517,
+                "signal_dbm": -46,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3498,
+                "timestamp": 1774326654.064675,
+                "signal_dbm": -48,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3500,
+                "timestamp": 1774326654.075668,
+                "signal_dbm": -60,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: <MISSING>)",
+                "category": "scan"
+              },
+              {
+                "frame": 3501,
+                "timestamp": 1774326654.089442,
+                "signal_dbm": -47,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3505,
+                "timestamp": 1774326654.097252,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3508,
+                "timestamp": 1774326654.111049,
+                "signal_dbm": -45,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-47-HP M507 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3509,
+                "timestamp": 1774326654.12343,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: New_BCT)",
+                "category": "scan"
+              },
+              {
+                "frame": 3526,
+                "timestamp": 1774326654.173119,
+                "signal_dbm": -44,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3527,
+                "timestamp": 1774326654.174084,
+                "signal_dbm": -48,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3579,
+                "timestamp": 1774326654.259051,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3584,
+                "timestamp": 1774326654.288222,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3585,
+                "timestamp": 1774326654.296134,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3587,
+                "timestamp": 1774326654.30873,
+                "signal_dbm": -49,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3590,
+                "timestamp": 1774326654.325916,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3591,
+                "timestamp": 1774326654.326754,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3592,
+                "timestamp": 1774326654.327658,
+                "signal_dbm": -50,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: DIRECT-D7-HP M406 LaserJet)",
+                "category": "scan"
+              },
+              {
+                "frame": 3669,
+                "timestamp": 1774326654.491889,
+                "signal_dbm": -39,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: dlink-24D2_2g)",
+                "category": "scan"
+              }
+            ],
+            "ap_bssid": "34:0a:33:88:24:d6",
+            "start_frame": 3363,
+            "data_frames": 0
+          }
+        ]
+      }
+    },
+    "unprotected_traffic": {
+      "detected": true,
+      "severity": "info",
+      "unprotected_count": 1,
+      "total_data_frames": 1,
+      "null_frames_excluded": 0,
+      "unprotected_ratio": 1.0,
+      "message": "1 of 1 non-null data frames (100.0%) have no protected bit \u2014 expected in a WPA2/WPA3 network (pre-authentication / EAPOL frames)",
+      "security_context": "RSN (WPA2/WPA3) advertised in this capture. Unprotected frames during association/handshake phase are expected \u2014 the WPA key exchange (EAPOL) itself is unencrypted. Data frames will only be encrypted after a successful 4-way handshake."
+    }
+  }
+}

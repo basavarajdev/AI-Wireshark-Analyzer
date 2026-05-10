@@ -1,0 +1,970 @@
+{
+  "total_packets": 1254,
+  "mac_filter": "f8:ed:fc:fe:00:e9",
+  "statistics": {
+    "total_frames": 1254,
+    "frame_type_distribution": {
+      "ACK": 416,
+      "QoS Null": 302,
+      "QoS Data": 152,
+      "CTS": 138,
+      "RTS": 124,
+      "Data": 33,
+      "Probe Request": 33,
+      "Block Ack": 22,
+      "Probe Response": 13,
+      "Action": 9,
+      "Authentication": 4,
+      "Block Ack Request": 4,
+      "Association Request": 2,
+      "Association Response": 2
+    },
+    "management_frames": 63,
+    "control_frames": 704,
+    "data_frames": 487,
+    "unknown_frames": 0,
+    "unique_bssids": 2,
+    "top_bssids": {
+      "90:3c:b3:bb:1c:8c": 518,
+      "ff:ff:ff:ff:ff:ff": 32
+    },
+    "unique_ssids": 1,
+    "detected_ssids": {
+      "HP_Connectivity_Test": 48
+    },
+    "unique_transmitters": 3,
+    "top_transmitters": {
+      "f8:ed:fc:fe:00:e9": 519,
+      "90:3c:b3:bb:1c:8c": 26,
+      "00:e3:c0:01:06:c3": 5
+    },
+    "unique_receivers": 16,
+    "broadcast_frames": 44,
+    "channels_used": [
+      6,
+      36
+    ],
+    "channel_distribution": {
+      "36": 1234,
+      "6": 20
+    },
+    "signal_min_dbm": -88,
+    "signal_max_dbm": -32,
+    "signal_mean_dbm": -59.3,
+    "signal_std_dbm": 27.1,
+    "data_rate_min_mbps": 1.0,
+    "data_rate_max_mbps": 57.7778,
+    "data_rate_mean_mbps": 6.5,
+    "phy_distribution": {
+      "802.11n (HT)": 1139,
+      "802.11ax (HE)": 95,
+      "802.11g": 20
+    },
+    "retry_frames": 0,
+    "retry_rate": 0.0,
+    "protected_frames": 173,
+    "unprotected_data_frames": 323,
+    "avg_frame_size": 187.9,
+    "max_frame_size": 1614,
+    "min_frame_size": 62
+  },
+  "connection_events": {
+    "association_requests": 2,
+    "association_responses": 2,
+    "associating_clients": 1,
+    "association_by_client": {
+      "f8:ed:fc:fe:00:e9": 2
+    },
+    "reassociation_requests": 0,
+    "reassociation_responses": 0,
+    "roaming_clients": 0,
+    "roaming_details": {},
+    "deauthentication_frames": 0,
+    "disassociation_frames": 0,
+    "total_disconnections": 0,
+    "authentication_frames": 4,
+    "auth_clients": 2,
+    "channel_switch_clients": 1,
+    "channel_switch_details": {
+      "f8:ed:fc:fe:00:e9": [
+        6,
+        36
+      ]
+    },
+    "band_switch_clients": 1,
+    "band_switch_details": {
+      "f8:ed:fc:fe:00:e9": [
+        "2.4GHz",
+        "5GHz"
+      ]
+    }
+  },
+  "threats": {
+    "connection_failures": {
+      "detected": true,
+      "severity": "high",
+      "eapol_handshake_analysis": {
+        "pattern": "4-way handshake progressed to Msg3 (association likely succeeded)",
+        "msg1_count": 1,
+        "msg2_count": 1,
+        "msg3_count": 1,
+        "wrong_psk_likely": false,
+        "note": "Handshake reached Msg3 \u2014 passphrase appears correct. Disconnection may be due to GTK renewal or other reason."
+      },
+      "total_failures": 1,
+      "failure_breakdown": {
+        "Status code 30": 1
+      },
+      "message": "1 connection failure event(s): 1\u00d7 Status code 30",
+      "remediations": {
+        "Status code 30": "Refer to IEEE 802.11 status code 30"
+      },
+      "client_timelines": {
+        "90:3c:b3:bb:1c:8c": [
+          {
+            "frame": 4811,
+            "type": "Association Response Failure",
+            "root_cause": "Status code 30",
+            "code": 30,
+            "reason": "Status code 30",
+            "timestamp": 1775802736.594734,
+            "signal_dbm": -32
+          }
+        ]
+      },
+      "failure_details": [
+        {
+          "type": "Association Response Failure",
+          "root_cause": "Status code 30",
+          "remediation": "Refer to IEEE 802.11 status code 30",
+          "code": 30,
+          "reason": "Status code 30",
+          "frame": 4811,
+          "timestamp": 1775802736.594734,
+          "sa": "90:3c:b3:bb:1c:8c",
+          "bssid": "90:3c:b3:bb:1c:8c",
+          "signal_dbm": -32
+        }
+      ],
+      "connection_flows": {
+        "f8:ed:fc:fe:00:e9": [
+          {
+            "events": [
+              {
+                "frame": 3898,
+                "timestamp": 1775802713.619205,
+                "signal_dbm": -65,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3899,
+                "timestamp": 1775802713.619208,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3901,
+                "timestamp": 1775802713.674713,
+                "signal_dbm": -64,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3902,
+                "timestamp": 1775802713.717873,
+                "signal_dbm": -64,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 3918,
+                "timestamp": 1775802714.225158,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4081,
+                "timestamp": 1775802719.271419,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4082,
+                "timestamp": 1775802719.271422,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4084,
+                "timestamp": 1775802719.27297,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4085,
+                "timestamp": 1775802719.272973,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4088,
+                "timestamp": 1775802719.30497,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4089,
+                "timestamp": 1775802719.305739,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4091,
+                "timestamp": 1775802719.375747,
+                "signal_dbm": -85,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4092,
+                "timestamp": 1775802719.37575,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4138,
+                "timestamp": 1775802720.48468,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4139,
+                "timestamp": 1775802720.484683,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4141,
+                "timestamp": 1775802720.535635,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4142,
+                "timestamp": 1775802720.582574,
+                "signal_dbm": -65,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4260,
+                "timestamp": 1775802722.63697,
+                "signal_dbm": -64,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4261,
+                "timestamp": 1775802722.636974,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4263,
+                "timestamp": 1775802722.685962,
+                "signal_dbm": -65,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4264,
+                "timestamp": 1775802722.735646,
+                "signal_dbm": -65,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4281,
+                "timestamp": 1775802723.276938,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4286,
+                "timestamp": 1775802723.312098,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4288,
+                "timestamp": 1775802723.377111,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4436,
+                "timestamp": 1775802728.357357,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4437,
+                "timestamp": 1775802728.35736,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4439,
+                "timestamp": 1775802728.35878,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4440,
+                "timestamp": 1775802728.358782,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4451,
+                "timestamp": 1775802728.419371,
+                "signal_dbm": -85,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4452,
+                "timestamp": 1775802728.419373,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4454,
+                "timestamp": 1775802728.461638,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4455,
+                "timestamp": 1775802728.461641,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4490,
+                "timestamp": 1775802729.562985,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4491,
+                "timestamp": 1775802729.562987,
+                "signal_dbm": -67,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4492,
+                "timestamp": 1775802729.642121,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4494,
+                "timestamp": 1775802729.649289,
+                "signal_dbm": -66,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4730,
+                "timestamp": 1775802735.244136,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4731,
+                "timestamp": 1775802735.244139,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4733,
+                "timestamp": 1775802735.245568,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4734,
+                "timestamp": 1775802735.24557,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4737,
+                "timestamp": 1775802735.280214,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4738,
+                "timestamp": 1775802735.280217,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4747,
+                "timestamp": 1775802735.348593,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 4748,
+                "timestamp": 1775802735.348595,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4795,
+                "timestamp": 1775802736.529774,
+                "signal_dbm": -86,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 982,
+            "data_frames": 61
+          },
+          {
+            "events": [
+              {
+                "frame": 4797,
+                "timestamp": 1775802736.530137,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "SAE Commit (Client \u2192 AP)",
+                "note": "WPA3-SAE Commit: client initiating Dragonfly handshake step 1",
+                "category": "auth",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 4799,
+                "timestamp": 1775802736.531195,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 4801,
+                "timestamp": 1775802736.540042,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "SAE Commit Response (AP \u2192 Client)",
+                "status": 0,
+                "note": "WPA3-SAE Commit accepted",
+                "category": "success",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 4804,
+                "timestamp": 1775802736.588916,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "SAE Confirm (Client \u2192 AP)",
+                "note": "WPA3-SAE Confirm: client initiating Dragonfly handshake step 2",
+                "category": "auth",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 4807,
+                "timestamp": 1775802736.590939,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "SAE Confirm Response (AP \u2192 Client)",
+                "status": 0,
+                "note": "WPA3-SAE Confirm accepted",
+                "category": "success",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 4809,
+                "timestamp": 1775802736.593586,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "Association Request",
+                "note": "Client requesting to join BSS",
+                "category": "assoc"
+              },
+              {
+                "frame": 4811,
+                "timestamp": 1775802736.594734,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Association Response",
+                "status": 30,
+                "note": "Association REJECTED \u2014 status 30",
+                "category": "failure",
+                "is_terminal": true,
+                "status_code": 30,
+                "validated_reason": "Status code 30",
+                "evidence": [
+                  "Association rejected with status code 30",
+                  "SAE authentication was completed before association"
+                ]
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 4797,
+            "data_frames": 0,
+            "auth_protocol": "WPA3-SAE",
+            "diagnosis": {
+              "status_code": 30,
+              "status_text": "Status code 30",
+              "auth_protocol_used": "WPA3-SAE",
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 status code 30. Collect AP syslog and verify security/capability configuration match.",
+              "validated_reason": "Status code 30",
+              "evidence": [
+                "Association rejected with status code 30",
+                "SAE authentication was completed before association"
+              ]
+            }
+          },
+          {
+            "events": [
+              {
+                "frame": 4869,
+                "timestamp": 1775802737.710766,
+                "signal_dbm": -88,
+                "direction": "client\u2192AP",
+                "step": "Association Request",
+                "note": "Client requesting to join BSS",
+                "category": "assoc"
+              },
+              {
+                "frame": 4872,
+                "timestamp": 1775802737.761315,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Association Response",
+                "status": 0,
+                "note": "Client joined BSS successfully",
+                "category": "success"
+              },
+              {
+                "frame": 4874,
+                "timestamp": 1775802737.763043,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "EAPOL Msg1 \u2014 ANonce",
+                "note": "AP sends random ANonce to start 4-way handshake",
+                "category": "eapol"
+              },
+              {
+                "frame": 4879,
+                "timestamp": 1775802737.797066,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "EAPOL Msg2 \u2014 SNonce+MIC",
+                "note": "Client sends SNonce + MIC derived from PSK. AP validates MIC to verify PSK.",
+                "category": "eapol"
+              },
+              {
+                "frame": 4881,
+                "timestamp": 1775802737.798889,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "EAPOL Msg3 \u2014 PTK Install",
+                "note": "AP accepted client MIC \u2192 PSK is correct. Sends GTK and triggers PTK install.",
+                "category": "eapol"
+              },
+              {
+                "frame": 4885,
+                "timestamp": 1775802737.800711,
+                "signal_dbm": -87,
+                "direction": "client\u2192AP",
+                "step": "EAPOL Msg4 \u2014 Confirm",
+                "note": "Client confirms PTK installed. Session keys now active.",
+                "category": "eapol"
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 4813,
+            "data_frames": 422
+          }
+        ]
+      }
+    },
+    "probe_failures": {
+      "detected": true,
+      "severity": "medium",
+      "probe_requests": 33,
+      "probe_responses": 13,
+      "response_rate_pct": 39.4,
+      "message": "Low probe response rate: 13/33 answered (39%)",
+      "top_scanning_devices": {
+        "f8:ed:fc:fe:00:e9": 33
+      }
+    },
+    "weak_signal_coverage": {
+      "detected": true,
+      "severity": "medium",
+      "weak_frame_count": 609,
+      "weak_ratio": 0.486,
+      "message": "Weak signal coverage: 48.6% of frames below -75 dBm (609 frames)",
+      "weak_bssids": {
+        "90:3c:b3:bb:1c:8c": 454,
+        "ff:ff:ff:ff:ff:ff": 12
+      }
+    },
+    "unprotected_traffic": {
+      "detected": true,
+      "severity": "info",
+      "unprotected_count": 21,
+      "total_data_frames": 185,
+      "null_frames_excluded": 302,
+      "unprotected_ratio": 0.114,
+      "message": "21 of 185 non-null data frames (11.4%) have no protected bit \u2014 expected in a WPA2/WPA3 network (pre-authentication / EAPOL frames)",
+      "security_context": "RSN (WPA2/WPA3) advertised in this capture. Unprotected frames during association/handshake phase are expected \u2014 the WPA key exchange (EAPOL) itself is unencrypted. Data frames will only be encrypted after a successful 4-way handshake."
+    },
+    "ip_connectivity_failure": {
+      "detected": true,
+      "severity": "high",
+      "affected_sessions": 1,
+      "sessions": [
+        {
+          "client": "f8:ed:fc:fe:00:e9",
+          "ap_bssid": "90:3c:b3:bb:1c:8c",
+          "eapol_msg4_frame": 4885,
+          "from_client_frames": 131,
+          "to_client_frames": 5,
+          "null_polls": 273,
+          "multicast_only_client": false,
+          "observations": [
+            "Client sent 131 protected frame(s) (3 unicast, 128 multicast)",
+            "AP sent 5 protected unicast frame(s) to client after handshake (minimal \u2014 no sustained data exchange)",
+            "273 QoS-Null power-save poll(s) from client \u2014 AP repeatedly has no downlink data queued for client"
+          ]
+        }
+      ],
+      "message": "1 session(s) where WPA2 handshake succeeded but AP sent no unicast data \u2014 likely DHCP/IP connectivity failure (client: f8:ed:fc:fe:00:e9, AP: 90:3c:b3:bb:1c:8c)",
+      "root_cause_candidates": [
+        "DHCP server not responding or unreachable from AP",
+        "AP has no uplink / internet gateway is down",
+        "Client IP address pool exhausted on AP",
+        "VLAN or firewall policy blocking client after auth",
+        "AP in isolated BSS mode (no L3 routing)"
+      ],
+      "recommended_actions": [
+        "Check DHCP server status and available lease pool on AP",
+        "Verify AP uplink/WAN port and gateway connectivity",
+        "Check for VLAN assignment or firewall rules applied post-auth",
+        "Test by connecting another device to the same SSID",
+        "Review AP system logs for DHCP relay or IP assignment errors"
+      ]
+    },
+    "wpa3_sae_failures": {
+      "detected": true,
+      "severity": "info",
+      "sae_sessions": [],
+      "issues": [
+        "WPA3-SAE + 4-way EAPOL handshake completed successfully (Msg1\u2013Msg4 all seen, 2 SAE Confirm(s) with status=0)."
+      ],
+      "failure_counts": {},
+      "wpa3_network_detected": true,
+      "sae_akm_advertised": true,
+      "owe_advertised": false,
+      "message": "WPA3-SAE: 1 advisory notice(s) \u2014 WPA3-SAE + 4-way EAPOL handshake completed successfully (Msg1\u2013Msg4 all seen, 2 S..."
+    },
+    "control_frame_issues": {
+      "detected": true,
+      "severity": "medium",
+      "control_frame_summary": {
+        "rts_frames": 124,
+        "cts_frames": 138,
+        "ack_frames": 416,
+        "ps_poll_frames": 0,
+        "block_ack_requests": 4,
+        "block_ack_responses": 22,
+        "cf_end_frames": 0,
+        "top_rts_senders": {
+          "f8:ed:fc:fe:00:e9": 124
+        },
+        "avg_duration_us": 1033.4,
+        "max_duration_us": 32616
+      },
+      "issues": [
+        {
+          "category": "NAV/Duration",
+          "issue": "Excessive NAV duration values",
+          "severity": "medium",
+          "count": 14,
+          "max_duration_us": 32616,
+          "sources": {},
+          "description": "14 frame(s) with NAV > 5ms (max: 32616 \u03bcs). Excessively large Duration/NAV values can starve other stations from accessing the medium (virtual carrier sense abuse).",
+          "impact": "Other stations defer transmission for the NAV duration, causing unfair medium access and throughput starvation.",
+          "remediation": "Identify source of excessive NAV values (check TA field). Update driver/firmware. If intentional: possible NAV attack \u2014 enable AP-side protection."
+        }
+      ],
+      "message": "Control frame analysis: 1 issue(s) \u2014 124 RTS, 138 CTS, 0 PS-Poll, 4 BAR"
+    },
+    "power_save_issues": {
+      "detected": true,
+      "severity": "medium",
+      "power_save_summary": {
+        "null_frames": 0,
+        "qos_null_frames": 302,
+        "total_null_frames": 302,
+        "real_data_frames": 185,
+        "null_to_data_ratio": 0.62,
+        "top_null_senders": {
+          "f8:ed:fc:fe:00:e9": 302
+        },
+        "pm_transitions_by_client": {
+          "f8:ed:fc:fe:00:e9": {
+            "transitions": 308,
+            "frames_in_ps": 206,
+            "frames_active": 313,
+            "total_frames": 519
+          }
+        }
+      },
+      "issues": [
+        {
+          "category": "Null Data",
+          "issue": "Null/QoS-Null frames dominate data traffic",
+          "severity": "medium",
+          "null_count": 302,
+          "data_count": 185,
+          "null_ratio": 0.62,
+          "description": "Null/QoS-Null frames are 62.0% of all data-type frames (302 null vs 185 real data). Excessive null frames indicate clients are in power-save most of the time, spending more time on PS signaling than data transfer.",
+          "impact": "Network overhead from PS management; indicates idle or poorly-configured clients wasting airtime.",
+          "remediation": "Review client power-save configuration. Adjust DTIM interval on AP (longer DTIM = fewer wakeups). For active clients: disable aggressive power-save in driver."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for f8:ed:fc:fe:00:e9",
+          "severity": "low",
+          "client": "f8:ed:fc:fe:00:e9",
+          "transitions": 308,
+          "transition_rate": 0.593,
+          "transitions_per_sec": 2.3,
+          "description": "Client f8:ed:fc:fe:00:e9 had 308 power-save mode transitions across 519 frames (59.3% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        }
+      ],
+      "message": "Power management analysis: 2 issue(s) \u2014 302 null frame(s), 185 data frame(s)"
+    },
+    "connection_delays": {
+      "detected": true,
+      "severity": "medium",
+      "total_clients_with_delays": 1,
+      "max_delay_seconds": 17.26,
+      "delay_analyses": [
+        {
+          "client": "f8:ed:fc:fe:00:e9",
+          "ap_bssid": "90:3c:b3:bb:1c:8c",
+          "delay_seconds": 17.26,
+          "first_probe_response_frame": 4082,
+          "first_probe_response_time": 1775802719.271422,
+          "first_auth_frame": 4797,
+          "first_auth_time": 1775802736.530137,
+          "scan_cycles": 7,
+          "channels_scanned": [
+            6,
+            36
+          ],
+          "bands_scanned": [
+            "2.4GHz",
+            "5GHz"
+          ],
+          "channel_detail": {
+            "ch36 (5GHz)": {
+              "probes_sent": 12,
+              "responses_received": 12,
+              "signal_min": -87.0,
+              "signal_max": -85.0,
+              "signal_avg": -86.0
+            },
+            "ch6 (2.4GHz)": {
+              "probes_sent": 15,
+              "responses_received": 0,
+              "signal_min": -67.0,
+              "signal_max": -64.0,
+              "signal_avg": -66.1
+            }
+          },
+          "total_probes_in_delay": 27,
+          "total_responses_in_delay": 12,
+          "reasons": [
+            {
+              "reason": "multi_band_scanning",
+              "severity": "medium",
+              "description": "Client scanning across 2 bands (2.4GHz, 5GHz). AP responded on: 5GHz. No response on: 2.4GHz.",
+              "impact": "Client spends time scanning bands where no AP is available, delaying the connection decision.",
+              "remediation": "Configure client band preference or disable unused bands. Deploy AP on both bands if dual-band clients are expected."
+            },
+            {
+              "reason": "unanswered_channels",
+              "severity": "low",
+              "description": "15 probes on ch6 (2.4GHz) received no AP response. AP only responds on ch36 (5GHz).",
+              "impact": "Time wasted probing channels where no AP operates.",
+              "remediation": "Use preferred channel lists on the client or deploy AP on expected channels."
+            },
+            {
+              "reason": "multiple_scan_cycles",
+              "severity": "medium",
+              "description": "Client performed 7 scan cycles before connecting. Average inter-cycle gap: 2.7s, max gap: 5.6s.",
+              "impact": "Client supplicant requires multiple scan rounds to build a stable BSS candidate list before committing to an AP.",
+              "remediation": "Reduce scan dwell time in client driver settings. Lower the minimum scan results threshold. Use cached PMKSA or fast reconnect (802.11r) to skip full scanning."
+            },
+            {
+              "reason": "scan_to_directed_transition",
+              "severity": "low",
+              "description": "Client took 17.3s from first AP response to send a directed (unicast) probe to the AP \u2014 indicating AP selection evaluation phase.",
+              "impact": "Client evaluates multiple scan results before selecting a target AP for association.",
+              "remediation": "Configure preferred BSSID/SSID list. Use 802.11k neighbor reports for faster AP selection."
+            },
+            {
+              "reason": "passive_scan_periods",
+              "severity": "low",
+              "description": "2 passive listening period(s) totalling 10.6s (gaps > 3s with no client transmissions).",
+              "impact": "Client performs passive scanning (listening for beacons) on DFS or low-priority channels before active probing.",
+              "remediation": "Use active scanning on all channels (where regulatory allows). Reduce passive scan dwell time in driver configuration."
+            }
+          ],
+          "severity": "medium"
+        }
+      ],
+      "message": "Connection delay detected: 1 client(s) with delays up to 17.3s between first probe response and authentication"
+    }
+  }
+}

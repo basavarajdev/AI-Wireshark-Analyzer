@@ -1,0 +1,133 @@
+# Default Configuration for AI-Wireshark-Analyzer
+
+# Application Settings
+app:
+  name: "AI-Wireshark-Analyzer"
+  version: "1.0.0"
+  debug: false
+
+# API Settings
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  max_upload_size: 104857600  # 100MB
+
+# Feature Extraction
+features:
+  # Packet features to extract
+  packet_features:
+    - protocol
+    - length
+    - src_ip
+    - dst_ip
+    - src_port
+    - dst_port
+    - tcp_flags
+    - timestamp
+    - ttl
+    - window_size
+  
+  # Time window for flow aggregation (seconds)
+  flow_window: 60
+  
+  # Maximum packets to process (0 = unlimited)
+  max_packets: 0
+
+# Model Settings
+models:
+  # Isolation Forest
+  isolation_forest:
+    n_estimators: 100
+    contamination: 0.1
+    random_state: 42
+  
+  # Autoencoder
+  autoencoder:
+    encoding_dim: 32
+    epochs: 100
+    batch_size: 256
+    learning_rate: 0.001
+    validation_split: 0.2
+  
+  # Random Forest Classifier
+  random_forest:
+    n_estimators: 200
+    max_depth: 20
+    random_state: 42
+
+# Anomaly Detection Thresholds
+anomaly_detection:
+  # Anomaly score threshold
+  threshold: 0.7
+  
+  # Minimum packets for reliable detection
+  min_packets: 100
+
+# Protocol-Specific Thresholds
+protocols:
+  tcp:
+    max_syn_rate: 100  # SYN packets per second
+    max_retransmission_rate: 0.1
+    max_rst_rate: 50
+  
+  udp:
+    max_packet_rate: 1000
+    max_payload_variance: 0.8
+  
+  dns:
+    max_query_rate: 100
+    max_nxdomain_rate: 0.3
+    min_label_length: 3
+    max_subdomain_depth: 5
+  
+  http:
+    suspicious_user_agents:
+      - "sqlmap"
+      - "nikto"
+      - "nmap"
+      - "masscan"
+    max_request_rate: 50
+  
+  icmp:
+    max_packet_rate: 100
+    max_payload_size: 1024
+
+  wlan:
+    max_deauth_count: 20
+    max_disassoc_count: 20
+    max_beacon_rate: 50       # beacons per second
+    max_probe_count: 10       # probe requests per device
+    max_auth_count: 30
+    max_retry_rate: 0.15      # 15% retry threshold
+    weak_signal_dbm: -75      # dBm below which signal is weak
+
+  dhcp:
+    starvation_mac_threshold: 20  # unique MACs in Discovers
+    max_dhcp_servers: 2           # expected number of DHCP servers
+    max_request_rate: 10          # DHCP requests per second
+    max_nak_count: 10             # NAK flood threshold
+
+# Visualization
+visualization:
+  figsize: [12, 8]
+  style: "darkgrid"
+  dpi: 300
+  color_palette: "husl"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "[{time:YYYY-MM-DD HH:mm:ss}] {level} | {message}"
+  file: "logs/ai_wireshark.log"
+  rotation: "10 MB"
+  retention: "30 days"
+
+# Data Paths
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  external_data: "data/external"
+  models: "models"
+  logs: "logs"
+  results: "results"

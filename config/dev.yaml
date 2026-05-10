@@ -1,0 +1,26 @@
+# Development Configuration
+
+# Override default settings for development
+
+app:
+  debug: true
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+  workers: 1
+
+logging:
+  level: "DEBUG"
+  file: "logs/dev.log"
+
+# Faster training for development
+models:
+  autoencoder:
+    epochs: 20
+    batch_size: 128
+
+# Lower thresholds for testing
+anomaly_detection:
+  threshold: 0.5
+  min_packets: 10

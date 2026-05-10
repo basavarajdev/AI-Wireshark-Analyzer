@@ -1,0 +1,649 @@
+{
+  "total_packets": 1018,
+  "mac_filter": "f8:ed:fc:fe:00:e9",
+  "statistics": {
+    "total_frames": 1018,
+    "frame_type_distribution": {
+      "ACK": 382,
+      "QoS Null": 298,
+      "QoS Data": 91,
+      "RTS": 87,
+      "CTS": 84,
+      "Data": 17,
+      "Probe Request": 15,
+      "Block Ack": 13,
+      "Probe Response": 11,
+      "Authentication": 6,
+      "Block Ack Request": 6,
+      "Action": 4,
+      "Association Request": 2,
+      "Association Response": 2
+    },
+    "management_frames": 40,
+    "control_frames": 572,
+    "data_frames": 406,
+    "unknown_frames": 0,
+    "unique_bssids": 2,
+    "top_bssids": {
+      "90:3c:b3:bb:1c:8c": 433,
+      "ff:ff:ff:ff:ff:ff": 13
+    },
+    "unique_ssids": 1,
+    "detected_ssids": {
+      "HP_Connectivity_Test": 28
+    },
+    "unique_transmitters": 3,
+    "top_transmitters": {
+      "f8:ed:fc:fe:00:e9": 409,
+      "90:3c:b3:bb:1c:8c": 21,
+      "00:e3:c0:01:06:c3": 14
+    },
+    "unique_receivers": 14,
+    "broadcast_frames": 28,
+    "channels_used": [
+      36
+    ],
+    "channel_distribution": {
+      "36": 1018
+    },
+    "signal_min_dbm": -82,
+    "signal_max_dbm": -32,
+    "signal_mean_dbm": -55.9,
+    "signal_std_dbm": 23.8,
+    "data_rate_min_mbps": 6.0,
+    "data_rate_max_mbps": 72.2222,
+    "data_rate_mean_mbps": 7.2,
+    "phy_distribution": {
+      "802.11n (HT)": 984,
+      "802.11ax (HE)": 34
+    },
+    "retry_frames": 8,
+    "retry_rate": 0.79,
+    "protected_frames": 108,
+    "unprotected_data_frames": 302,
+    "avg_frame_size": 137.2,
+    "max_frame_size": 1614,
+    "min_frame_size": 62
+  },
+  "connection_events": {
+    "association_requests": 2,
+    "association_responses": 2,
+    "associating_clients": 1,
+    "association_by_client": {
+      "f8:ed:fc:fe:00:e9": 2
+    },
+    "reassociation_requests": 0,
+    "reassociation_responses": 0,
+    "roaming_clients": 0,
+    "roaming_details": {},
+    "deauthentication_frames": 0,
+    "disassociation_frames": 0,
+    "total_disconnections": 0,
+    "authentication_frames": 6,
+    "auth_clients": 2,
+    "channel_switch_clients": 0,
+    "channel_switch_details": {},
+    "band_switch_clients": 0,
+    "band_switch_details": {}
+  },
+  "threats": {
+    "connection_failures": {
+      "detected": true,
+      "severity": "medium",
+      "eapol_handshake_analysis": {
+        "pattern": "4-way handshake progressed to Msg3 (association likely succeeded)",
+        "msg1_count": 1,
+        "msg2_count": 1,
+        "msg3_count": 1,
+        "wrong_psk_likely": false,
+        "note": "Handshake reached Msg3 \u2014 passphrase appears correct. Disconnection may be due to GTK renewal or other reason."
+      },
+      "total_failures": 1,
+      "failure_breakdown": {
+        "Invalid PMKID \u2014 stale PMKSA cache": 1
+      },
+      "message": "1 connection failure event(s): 1\u00d7 Invalid PMKID \u2014 stale PMKSA cache",
+      "remediations": {
+        "Invalid PMKID \u2014 stale PMKSA cache": "Client presented a cached Pairwise Master Key Identifier (PMKID) in the Association Request RSN IE, but the AP does not recognise it. This occurs when: (1) the AP rebooted and lost its PMKSA cache, (2) the client roamed away for too long and the PMKSA entry expired on the AP, (3) the client used Open System auth (auth_alg=0) but included an SAE-derived PMKID \u2014 skipping SAE Commit/Confirm \u2014 hoping to fast-reconnect via PMKSA caching. Recovery: client should clear its PMKSA cache and retry with a full SAE (auth_alg=3) Commit/Confirm exchange (WPA3) or fresh 4-way handshake (WPA2). On the AP side: increase PMKSA cache lifetime if clients frequently roam back."
+      },
+      "client_timelines": {
+        "90:3c:b3:bb:1c:8c": [
+          {
+            "frame": 593,
+            "type": "Association Response Failure",
+            "root_cause": "Invalid PMKID \u2014 stale PMKSA cache",
+            "code": 53,
+            "reason": "Invalid Pairwise Master Key Identifier (PMKID)",
+            "timestamp": 1775650987.226778,
+            "signal_dbm": -33
+          }
+        ]
+      },
+      "failure_details": [
+        {
+          "type": "Association Response Failure",
+          "root_cause": "Invalid PMKID \u2014 stale PMKSA cache",
+          "remediation": "Client presented a cached Pairwise Master Key Identifier (PMKID) in the Association Request RSN IE, but the AP does not recognise it. This occurs when: (1) the AP rebooted and lost its PMKSA cache, (2) the client roamed away for too long and the PMKSA entry expired on the AP, (3) the client used Open System auth (auth_alg=0) but included an SAE-derived PMKID \u2014 skipping SAE Commit/Confirm \u2014 hoping to fast-reconnect via PMKSA caching. Recovery: client should clear its PMKSA cache and retry with a full SAE (auth_alg=3) Commit/Confirm exchange (WPA3) or fresh 4-way handshake (WPA2). On the AP side: increase PMKSA cache lifetime if clients frequently roam back.",
+          "code": 53,
+          "reason": "Invalid Pairwise Master Key Identifier (PMKID)",
+          "frame": 593,
+          "timestamp": 1775650987.226778,
+          "sa": "90:3c:b3:bb:1c:8c",
+          "bssid": "90:3c:b3:bb:1c:8c",
+          "signal_dbm": -33
+        }
+      ],
+      "connection_flows": {
+        "f8:ed:fc:fe:00:e9": [
+          {
+            "events": [
+              {
+                "frame": 422,
+                "timestamp": 1775650980.02485,
+                "signal_dbm": -72,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 423,
+                "timestamp": 1775650980.024853,
+                "signal_dbm": -73,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 425,
+                "timestamp": 1775650980.049644,
+                "signal_dbm": -73,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 426,
+                "timestamp": 1775650980.098345,
+                "signal_dbm": -72,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 550,
+                "timestamp": 1775650986.041377,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 551,
+                "timestamp": 1775650986.04138,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 553,
+                "timestamp": 1775650986.042778,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 554,
+                "timestamp": 1775650986.04278,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 558,
+                "timestamp": 1775650986.114917,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 559,
+                "timestamp": 1775650986.114919,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 583,
+                "timestamp": 1775650987.221424,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 14,
+            "data_frames": 64
+          },
+          {
+            "events": [
+              {
+                "frame": 585,
+                "timestamp": 1775650987.221703,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Auth Request (Open/WPA2)",
+                "note": "Client requesting 802.11 Open/WPA2 authentication",
+                "category": "auth"
+              },
+              {
+                "frame": 587,
+                "timestamp": 1775650987.22263,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 589,
+                "timestamp": 1775650987.224462,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Auth Response",
+                "status": 0,
+                "note": "Authentication accepted",
+                "category": "success"
+              },
+              {
+                "frame": 591,
+                "timestamp": 1775650987.225814,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Association Request",
+                "note": "Client requesting to join BSS",
+                "category": "assoc"
+              },
+              {
+                "frame": 593,
+                "timestamp": 1775650987.226778,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Association Response",
+                "status": 53,
+                "note": "Association REJECTED \u2014 Invalid Pairwise Master Key Identifier (PMKID)",
+                "category": "failure",
+                "is_terminal": true,
+                "status_code": 53,
+                "validated_reason": "Invalid PMKID \u2014 client attempted PMKSA-cached reconnection with Open auth (skipping SAE) but AP's PMKSA cache entry expired or was invalidated (AP reboot, cache timeout, or client roamed away too long)",
+                "evidence": [
+                  "AP rejected association with Status Code 53: Invalid PMKID",
+                  "Client used Open System authentication (auth_alg=0) before this Association Request \u2014 NOT SAE (auth_alg=3)",
+                  "Client likely included a cached PMKID in the RSN IE of the Association Request, attempting PMKSA caching to skip full SAE authentication",
+                  "The AP did not recognise the PMKID \u2014 the cached PMK is stale or invalid",
+                  "Root Cause: PMKSA cache mismatch \u2014 client attempted fast-reconnect with a stale/expired PMK instead of performing full SAE exchange"
+                ]
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 585,
+            "data_frames": 0,
+            "auth_protocol": "WPA2",
+            "diagnosis": {
+              "status_code": 53,
+              "status_text": "Invalid Pairwise Master Key Identifier (PMKID)",
+              "auth_protocol_used": "WPA2/Open",
+              "phase": "Failed at Association",
+              "recommended_action": "(1) Client should clear PMKSA cache and retry with full SAE (auth_alg=3 Commit/Confirm) authentication. (2) On AP: increase PMKSA cache lifetime if clients frequently roam back. (3) On client: reduce PMKSA cache timeout to avoid attempting stale entries. (4) If AP was recently rebooted, all clients must re-authenticate \u2014 this is expected behavior.",
+              "pmkid_analysis": {
+                "auth_method_used": "Open System (auth_alg=0)",
+                "expected_for_wpa3": "SAE (auth_alg=3)",
+                "pmksa_cache_hit": false,
+                "likely_cause": "Stale PMKSA cache \u2014 AP does not have matching PMK entry",
+                "mismatch_detail": "Client sent Open Auth + Association Request with SAE AKM and cached PMKID. This is valid for PMKSA-cached reconnection (IEEE 802.11-2020 \u00a712.7.2) but requires the AP to still hold the PMK. When AP rejects with status=53, the client must fall back to full SAE authentication."
+              },
+              "validated_reason": "Invalid PMKID \u2014 client attempted PMKSA-cached reconnection with Open auth (skipping SAE) but AP's PMKSA cache entry expired or was invalidated (AP reboot, cache timeout, or client roamed away too long)",
+              "evidence": [
+                "AP rejected association with Status Code 53: Invalid PMKID",
+                "Client used Open System authentication (auth_alg=0) before this Association Request \u2014 NOT SAE (auth_alg=3)",
+                "Client likely included a cached PMKID in the RSN IE of the Association Request, attempting PMKSA caching to skip full SAE authentication",
+                "The AP did not recognise the PMKID \u2014 the cached PMK is stale or invalid",
+                "Root Cause: PMKSA cache mismatch \u2014 client attempted fast-reconnect with a stale/expired PMK instead of performing full SAE exchange"
+              ]
+            }
+          },
+          {
+            "events": [
+              {
+                "frame": 1171,
+                "timestamp": 1775651016.14644,
+                "signal_dbm": -73,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1172,
+                "timestamp": 1775651016.146442,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1174,
+                "timestamp": 1775651016.147744,
+                "signal_dbm": -73,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1175,
+                "timestamp": 1775651016.147759,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1179,
+                "timestamp": 1775651016.220268,
+                "signal_dbm": -72,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1180,
+                "timestamp": 1775651016.220279,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1302,
+                "timestamp": 1775651022.076971,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1303,
+                "timestamp": 1775651022.078167,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1305,
+                "timestamp": 1775651022.079587,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1306,
+                "timestamp": 1775651022.07959,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1310,
+                "timestamp": 1775651022.151766,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              },
+              {
+                "frame": 1311,
+                "timestamp": 1775651022.151769,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1337,
+                "timestamp": 1775651023.372461,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Probe Request",
+                "note": "Scanning for \"HP_Connectivity_Test\"",
+                "category": "scan"
+              }
+            ],
+            "ap_bssid": "ff:ff:ff:ff:ff:ff",
+            "start_frame": 1171,
+            "data_frames": 0
+          },
+          {
+            "events": [
+              {
+                "frame": 1339,
+                "timestamp": 1775651023.372812,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "SAE Commit (Client \u2192 AP)",
+                "note": "WPA3-SAE Commit: client initiating Dragonfly handshake step 1",
+                "category": "auth",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 1341,
+                "timestamp": 1775651023.373677,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Probe Response",
+                "note": "AP responded (SSID: HP_Connectivity_Test)",
+                "category": "scan"
+              },
+              {
+                "frame": 1343,
+                "timestamp": 1775651023.382782,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "SAE Commit Response (AP \u2192 Client)",
+                "status": 0,
+                "note": "WPA3-SAE Commit accepted",
+                "category": "success",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 1345,
+                "timestamp": 1775651023.413715,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "SAE Confirm (Client \u2192 AP)",
+                "note": "WPA3-SAE Confirm: client initiating Dragonfly handshake step 2",
+                "category": "auth",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 1347,
+                "timestamp": 1775651023.415177,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "SAE Confirm Response (AP \u2192 Client)",
+                "status": 0,
+                "note": "WPA3-SAE Confirm accepted",
+                "category": "success",
+                "auth_protocol": "WPA3-SAE"
+              },
+              {
+                "frame": 1349,
+                "timestamp": 1775651023.41707,
+                "signal_dbm": -80,
+                "direction": "client\u2192AP",
+                "step": "Association Request",
+                "note": "Client requesting to join BSS",
+                "category": "assoc"
+              },
+              {
+                "frame": 1351,
+                "timestamp": 1775651023.419026,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "Association Response",
+                "status": 0,
+                "note": "Client joined BSS successfully",
+                "category": "success"
+              },
+              {
+                "frame": 1356,
+                "timestamp": 1775651023.505919,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "EAPOL Msg1 \u2014 ANonce",
+                "note": "AP sends random ANonce to start 4-way handshake",
+                "category": "eapol"
+              },
+              {
+                "frame": 1360,
+                "timestamp": 1775651023.507708,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "EAPOL Msg2 \u2014 SNonce+MIC",
+                "note": "Client sends SNonce + MIC derived from PSK. AP validates MIC to verify PSK.",
+                "category": "eapol"
+              },
+              {
+                "frame": 1362,
+                "timestamp": 1775651023.50955,
+                "signal_dbm": -33,
+                "direction": "AP\u2192client",
+                "step": "EAPOL Msg3 \u2014 PTK Install",
+                "note": "AP accepted client MIC \u2192 PSK is correct. Sends GTK and triggers PTK install.",
+                "category": "eapol"
+              },
+              {
+                "frame": 1366,
+                "timestamp": 1775651023.511932,
+                "signal_dbm": -81,
+                "direction": "client\u2192AP",
+                "step": "EAPOL Msg4 \u2014 Confirm",
+                "note": "Client confirms PTK installed. Session keys now active.",
+                "category": "eapol"
+              }
+            ],
+            "ap_bssid": "90:3c:b3:bb:1c:8c",
+            "start_frame": 1339,
+            "data_frames": 338,
+            "auth_protocol": "WPA3-SAE"
+          }
+        ]
+      }
+    },
+    "weak_signal_coverage": {
+      "detected": true,
+      "severity": "medium",
+      "weak_frame_count": 479,
+      "weak_ratio": 0.471,
+      "message": "Weak signal coverage: 47.1% of frames below -75 dBm (479 frames)",
+      "weak_bssids": {
+        "90:3c:b3:bb:1c:8c": 379,
+        "ff:ff:ff:ff:ff:ff": 6
+      }
+    },
+    "wpa3_sae_failures": {
+      "detected": true,
+      "severity": "medium",
+      "sae_sessions": [],
+      "issues": [
+        "WPA3-SAE + 4-way EAPOL handshake completed successfully (Msg1\u2013Msg4 all seen, 2 SAE Confirm(s) with status=0).",
+        "2 auth frame(s) used Open/WPA2 auth (auth_alg=0) while SAE (WPA3) is also advertised in the BSS RSN IE. This indicates the BSS is running in WPA3 Transition Mode (mixed WPA2+WPA3). Ensure WPA3-only clients connect with SAE; legacy WPA2 clients will use PSK. To enforce WPA3-only: disable WPA2-PSK on the AP once all clients support SAE. Additionally, 1 association(s) were rejected with Status Code 53 (Invalid PMKID). This is directly caused by the transition-mode behavior: the client used Open auth (auth_alg=0) and included a stale SAE-derived PMKID in the Association Request, attempting PMKSA-cached fast reconnection. The AP rejected it because the cached PMK entry had expired. The client should have performed a full SAE exchange (auth_alg=3) instead of relying on the stale cache."
+      ],
+      "failure_counts": {
+        "WPA3 transition mode \u2014 some clients using WPA2": 1
+      },
+      "wpa3_network_detected": true,
+      "sae_akm_advertised": true,
+      "owe_advertised": false,
+      "message": "WPA3-SAE analysis: 1 failure event(s) \u2014 1\u00d7 WPA3 transition mode \u2014 some clients using WPA2"
+    },
+    "power_save_issues": {
+      "detected": true,
+      "severity": "medium",
+      "power_save_summary": {
+        "null_frames": 0,
+        "qos_null_frames": 298,
+        "total_null_frames": 298,
+        "real_data_frames": 108,
+        "null_to_data_ratio": 0.734,
+        "top_null_senders": {
+          "f8:ed:fc:fe:00:e9": 297,
+          "90:3c:b3:bb:1c:8c": 1
+        },
+        "pm_transitions_by_client": {
+          "f8:ed:fc:fe:00:e9": {
+            "transitions": 301,
+            "frames_in_ps": 183,
+            "frames_active": 226,
+            "total_frames": 409
+          }
+        }
+      },
+      "issues": [
+        {
+          "category": "Null Data",
+          "issue": "Null/QoS-Null frames dominate data traffic",
+          "severity": "medium",
+          "null_count": 298,
+          "data_count": 108,
+          "null_ratio": 0.734,
+          "description": "Null/QoS-Null frames are 73.4% of all data-type frames (298 null vs 108 real data). Excessive null frames indicate clients are in power-save most of the time, spending more time on PS signaling than data transfer.",
+          "impact": "Network overhead from PS management; indicates idle or poorly-configured clients wasting airtime.",
+          "remediation": "Review client power-save configuration. Adjust DTIM interval on AP (longer DTIM = fewer wakeups). For active clients: disable aggressive power-save in driver."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for f8:ed:fc:fe:00:e9",
+          "severity": "low",
+          "client": "f8:ed:fc:fe:00:e9",
+          "transitions": 301,
+          "transition_rate": 0.736,
+          "transitions_per_sec": 4.17,
+          "description": "Client f8:ed:fc:fe:00:e9 had 301 power-save mode transitions across 409 frames (73.6% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        }
+      ],
+      "message": "Power management analysis: 2 issue(s) \u2014 298 null frame(s), 108 data frame(s)"
+    }
+  }
+}

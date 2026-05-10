@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Analysis Report - WLAN [MAC: f8:ed:fc:fe:00:e9]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6; color: #333; background: #f5f5f5;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 30px; border-radius: 10px;
+            margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+
+        .report-meta {
+            display: flex; gap: 30px; font-size: 0.95em; opacity: 0.9; flex-wrap: wrap;
+        }
+        .report-meta div { display: flex; align-items: center; gap: 8px; }
+
+        section {
+            background: white; padding: 30px; margin-bottom: 20px;
+            border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        section h2 {
+            font-size: 1.8em; margin-bottom: 20px; color: #667eea;
+            border-bottom: 3px solid #667eea; padding-bottom: 10px;
+        }
+
+        /* Summary cards */
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px; margin-bottom: 20px;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px; border-radius: 10px; text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s;
+        }
+        .summary-card:hover { transform: translateY(-5px); }
+        .card-label {
+            font-size: 0.85em; color: #666; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 8px;
+        }
+        .card-value { font-size: 2.2em; font-weight: bold; color: #333; }
+        .card-value.critical { color: #dc3545; }
+        .card-value.warning  { color: #fd7e14; }
+        .card-value.high     { color: #dc3545; }
+        .card-value.medium   { color: #e6a800; }
+        .card-value.low      { color: #28a745; }
+
+        /* Alerts */
+        .alert { padding: 15px 20px; border-radius: 5px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+
+        /* Issue / threat cards */
+        .critical-issues-list, .threats-list { display: flex; flex-direction: column; gap: 20px; }
+        .issue-card, .threat-card {
+            border-left: 5px solid #ffc107; border-radius: 5px;
+            padding: 20px; background: #f8f9fa;
+        }
+        .issue-card.critical, .threat-card.critical { border-left-color: #dc3545; background: #fff5f5; }
+        .issue-card.high, .threat-card.high         { border-left-color: #fd7e14; background: #fff8f0; }
+        .issue-card.medium, .threat-card.medium      { border-left-color: #ffc107; background: #fffdf0; }
+        .issue-card.low, .threat-card.low            { border-left-color: #28a745; background: #f0fff0; }
+        .issue-card.info, .threat-card.info          { border-left-color: #6c757d; background: #f8f9fa; }
+
+        .issue-header, .threat-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .severity-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: 0.75em;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+            display: inline-block;
+        }
+        .severity-badge.critical { background: #dc3545; color: white; }
+        .severity-badge.high     { background: #fd7e14; color: white; }
+        .severity-badge.medium   { background: #ffc107; color: #333; }
+        .severity-badge.low      { background: #28a745; color: white; }
+        .severity-badge.info     { background: #6c757d; color: white; }
+
+        .protocol-badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 0.75em;
+            font-weight: bold; background: #667eea; color: white;
+            letter-spacing: 1px;
+        }
+
+        .issue-card h3, .threat-card h3 { margin: 0; font-size: 1.2em; color: #333; }
+        .issue-body, .threat-body { color: #555; }
+        .threat-message { font-size: 1.05em; }
+
+        .issue-details {
+            margin-top: 15px; padding: 15px; background: white;
+            border-radius: 5px; border: 1px solid #e9ecef;
+        }
+        .detail-item { padding: 5px 0; border-bottom: 1px solid #eee; }
+        .detail-item:last-child { border-bottom: none; }
+
+        /* Remediation box */
+        .remediation-box {
+            margin-top: 15px; padding: 15px 20px; background: #e8f4fd;
+            border-left: 4px solid #2196F3; border-radius: 5px;
+        }
+        .remediation-box h4 { color: #1565C0; margin-bottom: 8px; }
+        .remediation-box ol { margin-left: 20px; }
+        .remediation-box li { margin-bottom: 4px; }
+
+        /* Protocol sections */
+        .proto-section {
+            margin-bottom: 30px; padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .proto-section:last-child { border-bottom: none; }
+        .proto-heading {
+            font-size: 1.3em; color: #764ba2; margin-bottom: 12px;
+        }
+        .pkt-count { font-size: 0.75em; color: #888; font-weight: normal; }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px; margin-bottom: 20px;
+        }
+        .stat-item {
+            padding: 12px 15px; background: #f8f9fa; border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .stat-label { font-size: 0.8em; color: #666; margin-bottom: 3px; }
+        .stat-value { font-size: 1.3em; font-weight: bold; color: #333; }
+
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 10px; }
+        .data-table th {
+            background: #667eea; color: white; padding: 10px 12px;
+            text-align: left; font-weight: 600; font-size: 0.9em;
+        }
+        .data-table td { padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 0.92em; }
+        .data-table tr:hover { background: #f8f9fa; }
+        .data-table code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+
+        /* Charts */
+        .charts-section {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        .chart-container { text-align: center; }
+        .chart-container h3 { margin-bottom: 15px; color: #667eea; }
+        .chart-container img {
+            max-width: 100%; border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        footer { text-align: center; padding: 20px; color: #666; font-size: 0.9em; }
+
+        @media print {
+            body { background: white; }
+            section { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+            .summary-card:hover { transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>&#128737; Network Analysis Report - WLAN [MAC: f8:ed:fc:fe:00:e9]</h1>
+            <div class="report-meta">
+                <div>&#128193; File: 5g_only_sea-mixed_pcap.pcap</div>
+                <div>&#128197; Date: 2026-04-30 17:58:01</div>
+                <div>&#128269; Protocol: WLAN [MAC: f8:ed:fc:fe:00:e9]</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>&#128202; Executive Summary</h2>
+            
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-label">Total Packets Captured</div>
+                <div class="card-value">1,018</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Protocols Analyzed</div>
+                <div class="card-value">1</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Threats Detected</div>
+                <div class="card-value warning">4</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Risk Level</div>
+                <div class="card-value medium">MEDIUM RISK</div>
+            </div>
+        </div>
+        
+        
+            <div style="margin-top:20px">
+                <h3 style="color:#667eea;margin-bottom:10px">Per-Protocol Analyzer Results</h3>
+                <table class="data-table"><thead><tr><th>Analyzer</th><th>Packets Analyzed</th><th>Threats Found</th></tr></thead><tbody><tr><td>WLAN</td><td>1,018</td><td>4</td></tr></tbody></table></div>
+        
+        </section>
+
+        <section>
+            <h2>&#128680; Critical Issues &amp; Remediation</h2>
+            <div class="critical-issues-list">
+            <div class="issue-card medium">
+                <div class="issue-header">
+                    <span class="severity-badge medium">MEDIUM</span>
+                    <span class="protocol-badge">WLAN</span>
+                    <h3>Connection Failures</h3>
+                </div>
+                <div class="issue-body">
+                    <p class="threat-message">1 connection failure event(s): 1× Invalid PMKID — stale PMKSA cache</p>
+            <h4 style="margin-top:14px">Failure Breakdown by Root Cause</h4><table class="data-table"><thead><tr><th>Root Cause</th><th>Count</th></tr></thead><tbody><tr><td>Invalid PMKID — stale PMKSA cache</td><td>1</td></tr></tbody></table><h4 style="margin-top:14px">&#128736; Recommended Remediations per Root Cause</h4><table class="data-table"><thead><tr><th>Root Cause</th><th>Recommended Action</th></tr></thead><tbody><tr><td><strong>Invalid PMKID — stale PMKSA cache</strong></td><td>Client presented a cached Pairwise Master Key Identifier (PMKID) in the Association Request RSN IE, but the AP does not recognise it. This occurs when: (1) the AP rebooted and lost its PMKSA cache, (2) the client roamed away for too long and the PMKSA entry expired on the AP, (3) the client used Open System auth (auth_alg=0) but included an SAE-derived PMKID — skipping SAE Commit/Confirm — hoping to fast-reconnect via PMKSA caching. Recovery: client should clear its PMKSA cache and retry with a full SAE (auth_alg=3) Commit/Confirm exchange (WPA3) or fresh 4-way handshake (WPA2). On the AP side: increase PMKSA cache lifetime if clients frequently roam back.</td></tr></tbody></table><h4 style="margin-top:14px">Per-Client Failure Timeline</h4><div style="margin-bottom:12px"><strong>Device / AP: <code>90:3c:b3:bb:1c:8c</code></strong><table class="data-table" style="margin-top:4px"><thead><tr><th>Frame #</th><th>Type</th><th>Root Cause</th><th>Code</th><th>IEEE Reason</th><th>Signal (dBm)</th></tr></thead><tbody><tr><td>593</td><td>Association Response Failure</td><td>Invalid PMKID — stale PMKSA cache</td><td>53</td><td>Invalid Pairwise Master Key Identifier (PMKID)</td><td>-33 dBm</td></tr></tbody></table></div><h4 style="margin-top:14px">&#128273; EAPOL 4-Way Handshake Analysis</h4><div style="background:#e8f5e9;border-left:4px solid #43a047;padding:12px 16px;border-radius:4px;margin-top:8px"><p><strong>&#9989; Pattern:</strong> 4-way handshake progressed to Msg3 (association likely succeeded)</p><table class="data-table" style="margin-top:8px"><thead><tr><th>Message</th><th>Direction</th><th>Count</th></tr></thead><tbody><tr><td>Msg 1 (ANonce)</td><td>AP &#8594; Client</td><td>1</td></tr><tr><td>Msg 2 (SNonce + MIC)</td><td>Client &#8594; AP</td><td>1</td></tr><tr><td>Msg 3 (PTK Install)</td><td>AP &#8594; Client</td><td><strong>1</strong></td></tr></tbody></table><p style="margin-top:10px">&#128203; <em>Handshake reached Msg3 — passphrase appears correct. Disconnection may be due to GTK renewal or other reason.</em></p></div><h4 style="margin-top:20px">&#128196; Connection Flow Analysis (per Client)</h4><details style="margin-bottom:12px;border:1px solid #ddd;border-radius:4px"><summary style="padding:8px 12px;cursor:pointer;font-weight:bold;background:#f5f5f5">&#128100; Client: <code>f8:ed:fc:fe:00:e9</code> &mdash; 4 connection session(s)</summary><div style="padding:10px 14px"><h5 style="margin-top:14px;color:#1565c0">Session 1 &mdash; Unknown phase</h5><p style="margin:2px 0"><strong>AP BSSID:</strong> <code>90:3c:b3:bb:1c:8c</code></p><table class="data-table" style="margin-top:8px;font-size:0.88em"><thead><tr><th>Frame</th><th>Time</th><th>Direction</th><th>Step</th><th>Details</th><th>Signal</th></tr></thead><tbody><tr style="background:#f5f5f5"><td>422</td><td style="white-space:nowrap">17:53:00.024</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-72 dBm</td></tr><tr style="background:#f5f5f5"><td>423</td><td style="white-space:nowrap">17:53:00.024</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-73 dBm</td></tr><tr style="background:#f5f5f5"><td>425</td><td style="white-space:nowrap">17:53:00.049</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-73 dBm</td></tr><tr style="background:#f5f5f5"><td>426</td><td style="white-space:nowrap">17:53:00.098</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-72 dBm</td></tr><tr style="background:#f5f5f5"><td>550</td><td style="white-space:nowrap">17:53:06.041</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-81 dBm</td></tr><tr style="background:#f5f5f5"><td>551</td><td style="white-space:nowrap">17:53:06.041</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>553</td><td style="white-space:nowrap">17:53:06.042</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-81 dBm</td></tr><tr style="background:#f5f5f5"><td>554</td><td style="white-space:nowrap">17:53:06.042</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>558</td><td style="white-space:nowrap">17:53:06.114</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-81 dBm</td></tr><tr style="background:#f5f5f5"><td>559</td><td style="white-space:nowrap">17:53:06.114</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>583</td><td style="white-space:nowrap">17:53:07.221</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-80 dBm</td></tr></tbody></table><h5 style="margin-top:14px;color:#b71c1c">Session 2 &mdash; Failed at Association</h5><p style="margin:2px 0"><strong>AP BSSID:</strong> <code>90:3c:b3:bb:1c:8c</code></p><table class="data-table" style="margin-top:8px;font-size:0.88em"><thead><tr><th>Frame</th><th>Time</th><th>Direction</th><th>Step</th><th>Details</th><th>Signal</th></tr></thead><tbody><tr style="background:#e3f2fd"><td>585</td><td style="white-space:nowrap">17:53:07.221</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128274; Auth Request (Open/WPA2)</strong></td><td>Client requesting 802.11 Open/WPA2 authentication</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#f5f5f5"><td>587</td><td style="white-space:nowrap">17:53:07.222</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#e8f5e9"><td>589</td><td style="white-space:nowrap">17:53:07.224</td><td style="white-space:nowrap">AP→client</td><td><strong>&#9989; Auth Response</strong></td><td>Authentication accepted</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#e3f2fd"><td>591</td><td style="white-space:nowrap">17:53:07.225</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128279; Association Request</strong></td><td>Client requesting to join BSS</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#ffebee"><td>593</td><td style="white-space:nowrap">17:53:07.226</td><td style="white-space:nowrap">AP→client</td><td><strong>&#10060; Association Response</strong></td><td><strong>Association REJECTED — Invalid Pairwise Master Key Identifier (PMKID)</strong><br><span style="color:#b71c1c">&#128161; Validated: Invalid PMKID — client attempted PMKSA-cached reconnection with Open auth (skipping SAE) but AP's PMKSA cache entry expired or was invalidated (AP reboot, cache timeout, or client roamed away too long)</span></td><td style="white-space:nowrap">-33 dBm</td></tr></tbody></table><h5 style="margin-top:14px;color:#1565c0">Session 3 &mdash; Unknown phase</h5><p style="margin:2px 0"><strong>AP BSSID:</strong> <code>ff:ff:ff:ff:ff:ff</code></p><table class="data-table" style="margin-top:8px;font-size:0.88em"><thead><tr><th>Frame</th><th>Time</th><th>Direction</th><th>Step</th><th>Details</th><th>Signal</th></tr></thead><tbody><tr style="background:#f5f5f5"><td>1171</td><td style="white-space:nowrap">17:53:36.146</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-73 dBm</td></tr><tr style="background:#f5f5f5"><td>1172</td><td style="white-space:nowrap">17:53:36.146</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1174</td><td style="white-space:nowrap">17:53:36.147</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-73 dBm</td></tr><tr style="background:#f5f5f5"><td>1175</td><td style="white-space:nowrap">17:53:36.147</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1179</td><td style="white-space:nowrap">17:53:36.220</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-72 dBm</td></tr><tr style="background:#f5f5f5"><td>1180</td><td style="white-space:nowrap">17:53:36.220</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1302</td><td style="white-space:nowrap">17:53:42.076</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-81 dBm</td></tr><tr style="background:#f5f5f5"><td>1303</td><td style="white-space:nowrap">17:53:42.078</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1305</td><td style="white-space:nowrap">17:53:42.079</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#f5f5f5"><td>1306</td><td style="white-space:nowrap">17:53:42.079</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1310</td><td style="white-space:nowrap">17:53:42.151</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#f5f5f5"><td>1311</td><td style="white-space:nowrap">17:53:42.151</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#f5f5f5"><td>1337</td><td style="white-space:nowrap">17:53:43.372</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128269; Probe Request</strong></td><td>Scanning for "HP_Connectivity_Test"</td><td style="white-space:nowrap">-80 dBm</td></tr></tbody></table><h5 style="margin-top:14px;color:#1565c0">Session 4 &mdash; Unknown phase</h5><p style="margin:2px 0"><strong>AP BSSID:</strong> <code>90:3c:b3:bb:1c:8c</code></p><table class="data-table" style="margin-top:8px;font-size:0.88em"><thead><tr><th>Frame</th><th>Time</th><th>Direction</th><th>Step</th><th>Details</th><th>Signal</th></tr></thead><tbody><tr style="background:#e3f2fd"><td>1339</td><td style="white-space:nowrap">17:53:43.372</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128274; SAE Commit (Client → AP)</strong></td><td>WPA3-SAE Commit: client initiating Dragonfly handshake step 1</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#f5f5f5"><td>1341</td><td style="white-space:nowrap">17:53:43.373</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128269; Probe Response</strong></td><td>AP responded (SSID: HP_Connectivity_Test)</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#e8f5e9"><td>1343</td><td style="white-space:nowrap">17:53:43.382</td><td style="white-space:nowrap">AP→client</td><td><strong>&#9989; SAE Commit Response (AP → Client)</strong></td><td>WPA3-SAE Commit accepted</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#e3f2fd"><td>1345</td><td style="white-space:nowrap">17:53:43.413</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128274; SAE Confirm (Client → AP)</strong></td><td>WPA3-SAE Confirm: client initiating Dragonfly handshake step 2</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#e8f5e9"><td>1347</td><td style="white-space:nowrap">17:53:43.415</td><td style="white-space:nowrap">AP→client</td><td><strong>&#9989; SAE Confirm Response (AP → Client)</strong></td><td>WPA3-SAE Confirm accepted</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#e3f2fd"><td>1349</td><td style="white-space:nowrap">17:53:43.417</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128279; Association Request</strong></td><td>Client requesting to join BSS</td><td style="white-space:nowrap">-80 dBm</td></tr><tr style="background:#e8f5e9"><td>1351</td><td style="white-space:nowrap">17:53:43.419</td><td style="white-space:nowrap">AP→client</td><td><strong>&#9989; Association Response</strong></td><td>Client joined BSS successfully</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#fff8e1"><td>1356</td><td style="white-space:nowrap">17:53:43.505</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128273; EAPOL Msg1 — ANonce</strong></td><td>AP sends random ANonce to start 4-way handshake</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#fff8e1"><td>1360</td><td style="white-space:nowrap">17:53:43.507</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128273; EAPOL Msg2 — SNonce+MIC</strong></td><td>Client sends SNonce + MIC derived from PSK. AP validates MIC to verify PSK.</td><td style="white-space:nowrap">-81 dBm</td></tr><tr style="background:#fff8e1"><td>1362</td><td style="white-space:nowrap">17:53:43.509</td><td style="white-space:nowrap">AP→client</td><td><strong>&#128273; EAPOL Msg3 — PTK Install</strong></td><td>AP accepted client MIC → PSK is correct. Sends GTK and triggers PTK install.</td><td style="white-space:nowrap">-33 dBm</td></tr><tr style="background:#fff8e1"><td>1366</td><td style="white-space:nowrap">17:53:43.511</td><td style="white-space:nowrap">client→AP</td><td><strong>&#128273; EAPOL Msg4 — Confirm</strong></td><td>Client confirms PTK installed. Session keys now active.</td><td style="white-space:nowrap">-81 dBm</td></tr></tbody></table></div></details></div></div>
+            <div class="issue-card medium">
+                <div class="issue-header">
+                    <span class="severity-badge medium">MEDIUM</span>
+                    <span class="protocol-badge">WLAN</span>
+                    <h3>Weak Signal Coverage</h3>
+                </div>
+                <div class="issue-body">
+                    <p class="threat-message">Weak signal coverage: 47.1% of frames below -75 dBm (479 frames)</p>
+            <p style="margin-top:8px"><strong>What is this?</strong> A significant portion of wireless frames have weak signal strength, indicating coverage gaps or distance issues.</p><p style="margin-top:4px"><strong>Impact:</strong> Poor application performance, high packet loss, increased retransmissions, and client disconnections.</p><div class="remediation-box"><h4>&#128736; Recommended Remediation</h4><ol><li>Conduct a wireless site survey to identify coverage gaps</li><li>Add or reposition access points in weak areas</li><li>Increase AP transmit power if within regulatory limits</li><li>Check for sources of RF interference (microwaves, Bluetooth, neighboring APs)</li></ol></div></div></div>
+            <div class="issue-card medium">
+                <div class="issue-header">
+                    <span class="severity-badge medium">MEDIUM</span>
+                    <span class="protocol-badge">WLAN</span>
+                    <h3>Wpa3 Sae Failures</h3>
+                </div>
+                <div class="issue-body">
+                    <p class="threat-message">WPA3-SAE analysis: 1 failure event(s) — 1× WPA3 transition mode — some clients using WPA2</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0"><span style="background:#e8f5e9;color:#1b5e20;padding:4px 12px;border-radius:12px;font-weight:600;font-size:0.85em">&#128274; WPA3-SAE Advertised (AKM=8)</span></div><h4 style="margin-top:14px">&#128221; Advisory Notices</h4><div style="background:#e8f5e9;border-left:4px solid #43a047;padding:10px 16px;border-radius:4px;margin:8px 0"><p style="margin:0">WPA3-SAE + 4-way EAPOL handshake completed successfully (Msg1–Msg4 all seen, 2 SAE Confirm(s) with status=0).</p></div><div style="background:#e8f5e9;border-left:4px solid #43a047;padding:10px 16px;border-radius:4px;margin:8px 0"><p style="margin:0">2 auth frame(s) used Open/WPA2 auth (auth_alg=0) while SAE (WPA3) is also advertised in the BSS RSN IE. This indicates the BSS is running in WPA3 Transition Mode (mixed WPA2+WPA3). Ensure WPA3-only clients connect with SAE; legacy WPA2 clients will use PSK. To enforce WPA3-only: disable WPA2-PSK on the AP once all clients support SAE. Additionally, 1 association(s) were rejected with Status Code 53 (Invalid PMKID). This is directly caused by the transition-mode behavior: the client used Open auth (auth_alg=0) and included a stale SAE-derived PMKID in the Association Request, attempting PMKSA-cached fast reconnection. The AP rejected it because the cached PMK entry had expired. The client should have performed a full SAE exchange (auth_alg=3) instead of relying on the stale cache.</p></div><h4 style="margin-top:14px">Failure Summary</h4><table class="data-table"><thead><tr><th>Failure Type</th><th>Count</th></tr></thead><tbody><tr><td>WPA3 transition mode — some clients using WPA2</td><td><strong>1</strong></td></tr></tbody></table><p style="font-size:0.82em;color:#777;margin-top:12px">&#128214; WPA3-SAE (Simultaneous Authentication of Equals) uses the Dragonfly key exchange (IEEE 802.11-2020 §12.4). Auth frames use algorithm=3 (SAE), seq=1 = SAE Commit, seq=2 = SAE Confirm. After SAE, a standard 4-way EAPOL/PTK handshake completes the session setup. Status codes 72–78 are SAE-specific.</p></div></div>
+            <div class="issue-card medium">
+                <div class="issue-header">
+                    <span class="severity-badge medium">MEDIUM</span>
+                    <span class="protocol-badge">WLAN</span>
+                    <h3>Power Save Issues</h3>
+                </div>
+                <div class="issue-body">
+                    <p class="threat-message">Power management analysis: 2 issue(s) — 298 null frame(s), 108 data frame(s)</p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin:14px 0"><div style="background:#f5f5f5;padding:12px 20px;border-radius:6px;text-align:center;min-width:150px"><div style="font-size:1.8em;font-weight:bold;color:#1565c0">298</div><div style="font-size:0.85em;color:#555">Null / QoS-Null Frames</div></div><div style="background:#f5f5f5;padding:12px 20px;border-radius:6px;text-align:center;min-width:150px"><div style="font-size:1.8em;font-weight:bold;color:#1565c0">108</div><div style="font-size:0.85em;color:#555">Real Data Frames</div></div><div style="background:#f5f5f5;padding:12px 20px;border-radius:6px;text-align:center;min-width:150px"><div style="font-size:1.8em;font-weight:bold;color:#b71c1c">73.4%</div><div style="font-size:0.85em;color:#555">Null-to-Data Ratio</div></div></div><h4 style="margin-top:14px">&#128100; Per-Client Null Frame Activity</h4><table class="data-table"><thead><tr><th>Client MAC</th><th>Null Frames Sent</th></tr></thead><tbody><tr><td><code>f8:ed:fc:fe:00:e9</code></td><td>297</td></tr><tr><td><code>90:3c:b3:bb:1c:8c</code></td><td>1</td></tr></tbody></table><h4 style="margin-top:14px">&#9889; Power Management Transitions per Client</h4><table class="data-table"><thead><tr><th>Client MAC</th><th>PM Transitions</th><th>Frames in PS</th><th>Frames Active</th><th>Total Frames</th></tr></thead><tbody><tr><td><code>f8:ed:fc:fe:00:e9</code></td><td><strong style="color:#b71c1c">301</strong> (73.6%)</td><td>183</td><td>226</td><td>409</td></tr></tbody></table><h4 style="margin-top:14px">&#9888; Detected Issues</h4><div style="background:#fff8e1;border-left:4px solid #e65100;padding:12px 18px;border-radius:4px;margin:10px 0"><p style="margin:0 0 6px"><span class="severity-badge medium">MEDIUM</span> <strong>Null Data</strong> — Null/QoS-Null frames dominate data traffic</p><p style="margin:4px 0;color:#333">Null/QoS-Null frames are 73.4% of all data-type frames (298 null vs 108 real data). Excessive null frames indicate clients are in power-save most of the time, spending more time on PS signaling than data transfer.</p><p style="margin:4px 0"><strong>Impact:</strong> Network overhead from PS management; indicates idle or poorly-configured clients wasting airtime.</p><p style="margin:2px 0;font-size:0.9em"><strong>Null Frames:</strong> 298</p><p style="margin:2px 0;font-size:0.9em"><strong>Real Data Frames:</strong> 108</p><p style="margin:2px 0;font-size:0.9em"><strong>Null Ratio:</strong> 73.4%</p><div class="remediation-box" style="margin:8px 0 0"><p><strong>&#128736; Fix:</strong> Review client power-save configuration. Adjust DTIM interval on AP (longer DTIM = fewer wakeups). For active clients: disable aggressive power-save in driver.</p></div></div><div style="background:#e8f5e9;border-left:4px solid #2e7d32;padding:12px 18px;border-radius:4px;margin:10px 0"><p style="margin:0 0 6px"><span class="severity-badge low">LOW</span> <strong>Power Management</strong> — Excessive PS transitions for f8:ed:fc:fe:00:e9</p><p style="margin:4px 0;color:#333">Client f8:ed:fc:fe:00:e9 had 301 power-save mode transitions across 409 frames (73.6% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.</p><p style="margin:4px 0"><strong>Impact:</strong> Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.</p><p style="margin:6px 0"><strong>Client:</strong> <code>f8:ed:fc:fe:00:e9</code></p><p style="margin:2px 0;font-size:0.9em"><strong>PM Transitions:</strong> 301</p><p style="margin:2px 0;font-size:0.9em"><strong>Transition Rate:</strong> 73.6%</p><p style="margin:2px 0;font-size:0.9em"><strong>Transitions/sec:</strong> 4.2</p><div class="remediation-box" style="margin:8px 0 0"><p><strong>&#128736; Fix:</strong> Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely.</p></div></div><p style="font-size:0.82em;color:#777;margin-top:12px">&#128214; Null (0x0024) and QoS-Null (0x002c) frames carry no payload and are used for power-save signaling. The PM bit in the Frame Control field indicates whether the STA is entering (1) or exiting (0) power-save mode. Excessive PS cycling increases latency and wastes airtime. WMM-PS (U-APSD) is preferred over legacy PS-Poll for efficient buffered frame delivery.</p></div></div></div>
+        </section>
+
+        <section>
+            <h2>&#9888;&#65039; Threat Overview</h2>
+            <table class="data-table"><thead><tr><th>#</th><th>Protocol</th><th>Threat</th><th>Severity</th><th>Summary</th></tr></thead><tbody><tr><td>1</td><td>WLAN</td><td>Connection Failures</td><td><span class="severity-badge medium">MEDIUM</span></td><td>1 connection failure event(s): 1× Invalid PMKID — stale PMKSA cache</td></tr><tr><td>2</td><td>WLAN</td><td>Weak Signal Coverage</td><td><span class="severity-badge medium">MEDIUM</span></td><td>Weak signal coverage: 47.1% of frames below -75 dBm (479 frames)</td></tr><tr><td>3</td><td>WLAN</td><td>Wpa3 Sae Failures</td><td><span class="severity-badge medium">MEDIUM</span></td><td>WPA3-SAE analysis: 1 failure event(s) — 1× WPA3 transition mode — some clients using WPA2</td></tr><tr><td>4</td><td>WLAN</td><td>Power Save Issues</td><td><span class="severity-badge medium">MEDIUM</span></td><td>Power management analysis: 2 issue(s) — 298 null frame(s), 108 data frame(s)</td></tr></tbody></table>
+        </section>
+
+        <section>
+            <h2>&#128200; Traffic Statistics (Per Protocol)</h2>
+            <div class="proto-section"><h3 class="proto-heading">WLAN Statistics <span class="pkt-count">(1,018 packets)</span></h3><div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Management Frames</div>
+                        <div class="stat-value">40</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Control Frames</div>
+                        <div class="stat-value">572</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Data Frames</div>
+                        <div class="stat-value">406</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Unique BSSIDs</div>
+                        <div class="stat-value">2</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Unique SSIDs</div>
+                        <div class="stat-value">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Retry Rate (%)</div>
+                        <div class="stat-value">0.79</div>
+                    </div></div><h4 style="margin-top:15px">Frame Type Distribution</h4><table class="data-table"><thead><tr><th>Frame Type</th><th>Count</th></tr></thead><tbody><tr><td>ACK</td><td>382</td></tr><tr><td>QoS Null</td><td>298</td></tr><tr><td>QoS Data</td><td>91</td></tr><tr><td>RTS</td><td>87</td></tr><tr><td>CTS</td><td>84</td></tr><tr><td>Data</td><td>17</td></tr><tr><td>Probe Request</td><td>15</td></tr><tr><td>Block Ack</td><td>13</td></tr><tr><td>Probe Response</td><td>11</td></tr><tr><td>Authentication</td><td>6</td></tr><tr><td>Block Ack Request</td><td>6</td></tr><tr><td>Action</td><td>4</td></tr><tr><td>Association Request</td><td>2</td></tr><tr><td>Association Response</td><td>2</td></tr></tbody></table><h4 style="margin-top:15px">Channel Distribution</h4><table class="data-table"><thead><tr><th>Channel</th><th>Frames</th></tr></thead><tbody><tr><td>36</td><td>1,018</td></tr></tbody></table><h4 style="margin-top:15px">Detected SSIDs</h4><table class="data-table"><thead><tr><th>SSID</th><th>Beacons/Probes</th></tr></thead><tbody><tr><td>HP_Connectivity_Test</td><td>28</td></tr></tbody></table><h4 style="margin-top:15px">PHY Type Distribution</h4><table class="data-table"><thead><tr><th>PHY</th><th>Frames</th></tr></thead><tbody><tr><td>802.11n (HT)</td><td>984</td></tr><tr><td>802.11ax (HE)</td><td>34</td></tr></tbody></table></div>
+        </section>
+
+        <section>
+            <h2>&#128201; Visualizations</h2>
+            <p>Matplotlib not available. Install it to see charts.</p>
+        </section>
+
+        <footer>
+            <p>Generated by AI-Wireshark-Analyzer | Network Security Analysis Tool</p>
+            <p>Report generated on 2026-04-30 17:58:01</p>
+        </footer>
+    </div>
+</body>
+</html>

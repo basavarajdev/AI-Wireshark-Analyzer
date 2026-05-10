@@ -1,0 +1,1839 @@
+{
+  "total_packets": 50356,
+  "mac_filter": null,
+  "statistics": {
+    "total_frames": 50356,
+    "frame_type_distribution": {
+      "Beacon": 15433,
+      "Probe Response": 5848,
+      "ACK": 5696,
+      "QoS Data": 5456,
+      "CTS": 5244,
+      "RTS": 2850,
+      "QoS Null": 2661,
+      "Block Ack": 1872,
+      "Data": 1744,
+      "Unknown (unknown)": 1375,
+      "Null (No Data)": 922,
+      "Probe Request": 877,
+      "Block Ack Request": 68,
+      "CF-End": 39,
+      "Action": 19,
+      "Unknown (0x003e)": 13,
+      "Authentication": 12,
+      "Unknown (0x0034)": 10,
+      "VHT/HE NDP Announcement": 9,
+      "Unknown (0x000f)": 8,
+      "Unknown (0x002b)": 8,
+      "Unknown (0x0030)": 8,
+      "Unknown (0x0032)": 8,
+      "ATIM": 7,
+      "Unknown (0x0038)": 7,
+      "Unknown (0x002f)": 6,
+      "Unknown (0x0023)": 6,
+      "Unknown (0x0035)": 6,
+      "Disassociation": 6,
+      "Association Response": 6,
+      "Unknown (0x003f)": 6,
+      "Unknown (0x0012)": 6,
+      "Unknown (0x0039)": 6,
+      "Unknown (0x0014)": 6,
+      "Reassociation Request": 5,
+      "Unknown (0x0025)": 5,
+      "Unknown (0x0029)": 5,
+      "Action No Ack": 5,
+      "Unknown (0x0010)": 5,
+      "Unknown (0x003c)": 5,
+      "Association Request": 4,
+      "Data + CF-Poll": 4,
+      "Unknown (0x0011)": 4,
+      "Data + CF-Ack": 4,
+      "Unknown (0x003d)": 4,
+      "Timing Advertisement": 4,
+      "Reassociation Response": 4,
+      "Deauthentication": 4,
+      "Unknown (0x003a)": 4,
+      "Unknown (0x0037)": 3,
+      "Unknown (0x0013)": 3,
+      "Unknown (0x002a)": 3,
+      "Unknown (0x0033)": 3,
+      "PS-Poll": 3,
+      "CF-End + CF-Ack": 3,
+      "Unknown (0x002e)": 3,
+      "Unknown (0x002d)": 3,
+      "Unknown (0x0007)": 3,
+      "Unknown (0x003b)": 2,
+      "Unknown (0x0026)": 2,
+      "Unknown (0x0027)": 2,
+      "Unknown (0x0036)": 2,
+      "Unknown (0x0165)": 1,
+      "Unknown (0x0164)": 1,
+      "Unknown (0x016d)": 1,
+      "Unknown (0x0169)": 1,
+      "Unknown (0x0166)": 1,
+      "Unknown (0x0161)": 1,
+      "Unknown (0x016b)": 1
+    },
+    "management_frames": 22234,
+    "control_frames": 15775,
+    "data_frames": 10791,
+    "unknown_frames": 1556,
+    "unique_bssids": 460,
+    "top_bssids": {
+      "54:af:97:40:7f:1a": 11420,
+      "fa:90:f2:48:e0:75": 2528,
+      "2a:56:5a:04:cb:47": 1812,
+      "70:4f:57:de:4d:50": 1457,
+      "b8:8d:12:64:e2:c9": 1442,
+      "00:19:e3:33:41:71": 1347,
+      "34:0a:33:88:24:d6": 1341,
+      "f8:1e:df:ff:b5:97": 1318,
+      "56:af:97:20:7f:1a": 1200,
+      "04:f0:21:54:2f:b8": 1118
+    },
+    "unique_ssids": 188,
+    "detected_ssids": {
+      "Nothing": 1829,
+      "TP-Link_prakash_2_4": 1782,
+      "DIRECT-47-HP M507 LaserJet": 1779,
+      "<MISSING>": 1590,
+      "New_BCT": 1414,
+      "TP-Link_IO_TEAM": 1340,
+      "AirPortX": 1334,
+      "Apollo_Airprint_AP": 1311,
+      "dlink-24D2_2g": 1311,
+      "MyWiFiAP": 1105,
+      "ANUSHA": 1026,
+      "DIRECT-9F-HP OfficeJet Pro 8030": 961,
+      "dlink-D088": 951,
+      "dlink-1A61": 844,
+      "DIRECT-1F-HP Envy 6100e series": 843,
+      "DIRECT-IDDESKTOP-AUE0T0R4QPL": 709,
+      "Dune-CNX-BILLION-2ghz": 443,
+      "DIRECT-": 379,
+      "DIRECT-51-HP MFP DesignJet": 114,
+      "DIRECT-1F-HP MFP DesignJet XL PS": 54,
+      "TP-Link_D1F0": 35,
+      "70mai_Pro Plus+_8eed": 35,
+      "raspap": 31,
+      "Sirius-test_5G": 30,
+      "vinu": 29,
+      "NETGEAR86": 22,
+      "TP-LINK_9268": 21,
+      "Sirius-test": 20,
+      "LS16085_2G": 20,
+      "cSET_RFO_2.4G": 19,
+      "CDA001": 18,
+      "hpinc": 14,
+      "DIRECT-E8-HP DHANA": 14,
+      "LS16085_5G": 14,
+      "linksys": 12,
+      "DIRECT-08-HP DDDD": 11,
+      "DIRECT-AF-HP DHANA123": 11,
+      "DIRECT-E8-HP LaserJet MFP": 10,
+      "DIRECT-E8-HP DHANA123": 10,
+      "MR36-Open": 9,
+      "TP-Link_315C": 8,
+      "HPI_ZoomRoom": 8,
+      "moto g85 5G_4093": 8,
+      "TP-Link_046C": 8,
+      "D-Link_LFP": 6,
+      "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000": 5,
+      "DIRECT-DE-HP ENVY Inspire 7900": 4,
+      "DIRECT-37-HP ENVY Inspire 7200": 4,
+      "TP-Link_315C_5G": 4,
+      "hpguest": 2,
+      "TP-Link_8271_5G": 2,
+      "TP-Link_ABE5": 2,
+      "D-Link\ufffd\u0004\ufffdT": 1,
+      "\t\u0000\u0010\tJ\u000e\ufffd,\u0004~e\u0001\tI.\ufffd": 1,
+      "DIRECT-\ufffd\ufffd,HP M507 LaserJet": 1,
+      "TP-Link_prakash}3_4": 1,
+      "DIRECT-47-HP M507\ufffdc\ufffd\ufffdn\ufffd\ufffd\ufffd4": 1,
+      "hpinternet": 1,
+      "DIRECT-1F-HP MFP DesignJet\ufffd\ufffd\ufffd\u0007\u0001\ufffd": 1,
+      "DIRECT-47\u0000\ufffdQ M5\ufffd\ufffdW\ufffdlY6+\ufffd\u0012E": 1,
+      "DIRECT-1Fm\f\ufffd\ufffdz\ufffd\ufffdy\u001d\ufffd\ufffd](x\ufffdu,r(\ufffd\ufffdW": 1,
+      "zS-Link_IO_TEAM\u0001\b\ufffd\ufffd\ufffd\ufffd\u0012$Hl\u0003\u0001\u00012\u0004\f\u00180`\u0005\u0004\u0000\u0001\u0000\u00000\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0002\u0000\u000f\ufffd\u0004\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000\ufffd\u0018\u0000P\ufffd\u0004\u0010J\u0000\u0001\u0010\u0010D\u0000\u0001\u0002\u0010I\u0000\u0006\u00007*\u0000\u0001 *\u0001\u0004-\u001an\u0010\u0017\ufffd\ufffd\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0001\u0005\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000": 1,
+      "DY[ECT-4\u0015,HP M5\u00126 La\ufffdWzJet": 1,
+      "RNU\ufffdm\ufffd\u0004\u0014\ufffd&\u06df$\u0010k\ufffd\u001d\n\u0002": 1,
+      "Airprint_NW": 1,
+      "w\ufffdU4KA\u0001\b\ufffd\ufffd\ufffd\ufffd$tJl\u0003\u0001\u0002\ufffd>\ufffdD\ufffd\u0005\ufffd\u0000(\u0010\ufffdH\u0012\ufffd`\u0792L\ufffd\u0003b\u0016\ufffd\ufffd~$4\u000f\ufffd\u0002\u0001\u0000\u0000\u000f\ufffd\u0002\f\u00002\u0004\f\u0012\u0018`-\u001a,\u0019\u0017\ufffd\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0002\b\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000J\u000e\u0014\u0000\n\u0000,\u0001\ufffd\u0000\u0014\u0000\u0005\u0000": 1,
+      "d[RECT-u\u0015-H\ufffdhMF\ufffd,FesignJet": 1,
+      "TP-Link_4768": 1,
+      "DIRECT-47-HP M507 Lase\ufffd2\u000b\ufffd": 1,
+      "TP-Link_IO_TEa\ufffd": 1,
+      "DIRECT-\ufffd\ufffd\u0000\u0001\ufffd\u0007\ufffd\ufffd\ufffdh\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd*\u0015Z\ufffda\ufffd\ufffd\u0463": 1,
+      "hpi\ufffd\u0016\ufffd0\ufffd\u000ep": 1,
+      "\ufffd\u0000\u0000BC^\u0000b2/\u0000\ufffd\u001e\u0000\ufffdL3\ufffd\u0019\u001f\ufffd\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0018": 1,
+      "\ufffd\ufffd\ufffd\ufffd\ufffd\u007f\ufffd\u001f\ufffd\ufffdhx\ufffd\u001f\ufffd\ufffdhx n\ufffd\u0000q\u0013D\u0000\u0000\u00002\ufffd\b\u0006\u0000\ufffd\u0000\u0004A\ufffdEK\t\u0012$\ufffd\ufffd\ufffd\ufffd\u0002\u0002\ufffd\u0000\u0000\ufffd\u0019\u0004\ufffd\u0000\ufffd\u0001\ufffd\u0002\ufffd\u0003\ufffd\u0000\u0002\u0019\u0002\u0006\f\u0018\ufffdn\u000b\u0000(\ufffd\ufffd\u0000\u0000\u0000(y\ufffd\u0000\u0000\u0000(y\ufffd\u0000\u0000\u0000(y\u0001\u0018\ufffd\u0000\u0000\ufffd\u0007V\ufffd\u0000\u0000\ufffd\u0007V\ufffd\u0000\u0000\ufffd\u0007V\u0001\u0000\ufffd\ufffd\u0002\u0000\u0000\u0000\t\ufffd\u0016\ufffd\ufffd": 1,
+      "DIRECT-51-HP MFP Desig\ufffdNG\ufffd": 1,
+      "DIRECT\ufffdr0-HP MFP DesignJet": 1,
+      "DIRECT-51-HP MFP DeS{gnJet": 1,
+      "GET\ufffdAAR86\u0001H\ufffd\ufffd\u000b\ufffdl0Hl!\u0000\ufffd\u0013\u0004\u0010": 1,
+      "DIRECT-C3-HP M455 LaserJet": 1,
+      "TP-(_\u000b\\)Z:!\ufffd\ufffd^\ufffd": 1,
+      "\ufffd\u0000\u0000BC^\u0000b2/\u0000\ufffd\u0007\u0000\u0003\ufffd\u0001u\u0003 \ufffd\u000e\u0000\u0017\ufffd\u0007\u0000\u0001\u0001\u0006\ufffd\ufffd\u0012d\ufffd\ufffd\ufffd\u000b\u0000": 1,
+      "e\ufffdollo_\ufffd!Pqri.\ufffd\ufffd\ufffdrD\ufffd\ufffd\u0004C\u079d\u0012\u0018$C\ufffdI\ufffd\u0004\u0002\u0003\u0000\u0000\u0007\u0006US0(\u0019\u001e\ufffdI\u00002\u0004pl`l04\u0013\u0000\u0000\ufffd\ufffd&\u0000\u0000\u0000\u000f\ufffd\u0005\u0001\u0000\u0000K\ufffd\u000b\u0000\u0000-\u001a\ufffdA\u0017n": 1,
+      "DIRECT-1\ufffd-HP MF\u0617\u0001\u0007\ufffds\u7993et\ufffd^L PS": 1,
+      "\ufffd\ufffdW\u0001:\ufffdT\u001eI8\u0012\u001b\ufffd\ufffdg\ufffd\ufffd\t\ufffd\u0002u\ufffd\ufffd\u0602\ufffd\ufffd\u0141\u0000\ufffd\u0006vI\ufffd\ufffd!@\u0768\u0000P\ufffd\u0004\u0010J\u0000\u0001\u0010\u0010:\u0000\u0001\u0000\u0010\b\u0000\u0002B\ufffd\u0010G\u0000\u0010]\u001e\ufffdX\u0010FKm\ufffd\u0001\ufffd\ufffd\ufffd\u0005\ufffd\ufffd\u0010T\u0000\b\u0000\u0003\u0000P\ufffd\u0004\u0000\u0001\u0010<\u0000\u0001\u0003\u0010\u0002\u0000\u0002\u0000\u0000\u0010\t\u0000\u0002\u0000\u0000\u0010\u0012\u0000\u0002\u0000\u0000\u0010!\u0000\u0002HP\u0010#\u0000\u001cHP OfficeJet Pro 8030 series\u0010$\u0000\u00063UC66A\u0010\u0011\u0000\u001fDIRECT-9F-HP OfficeJet Pro 8030\u0010": 1,
+      "h[n.D-\ufffd": 1,
+      "\ufffdDr\n]-1A61": 1,
+      " ": 1,
+      "dl\ufffd/k-1\ufffd61": 1,
+      "LP\ufffdI\u0010\u0011\u0000\u0007\ufffdM\u00ec": 1,
+      "DIB\\hU-1F\rZP MFP\ufffdf\ufffdsignJet\u0002\ufffdE PS": 1,
+      "\ufffdl\u0006\u00007z\ufffd\u0001 Pm\u0000\u0017\u0000\u00017": 1,
+      "dlin\ufffdn\ufffdr\ufffd": 1,
+      "\ufffd\u0001\ufffd\rCT-51-HP MFP DesignJet\u0001\b\ufffd\u0012\ufffd$\ufffdH`l\u0003\u0001\u0001 \u0001\u0000#\u0002\u0011\u0000*\u0001\u0000/\u0001\u00000\u0014\u0001\u0000\u0000\u000f\ufffd\u0004\u0001\u0000\u0000\u000f\ufffd$\u0013\u0000\ufffd\u0002,J\f\u0000K\u007f\ufffd\u0001\u001b\ufffd\ufffd\u0000\u0000\"\u0001\u0010\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000": 1,
+      "\b\ufffd\u0001sBCT\u0001\b\ufffd\ufffd\ufffd\ufffd\f\u0012\u0018$\u0003\u0001\u0001\u0007\u0006IN \u0001\r\u001e*\u0001\u00002\u00040H`l0\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0004\u0000\u000f\ufffd\u0002\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000-\u001a\ufffdQ\u001b\ufffd\ufffd\ufffd": 1,
+      "fHRECT-1F-HP MFP TlsignJet XL PS": 1,
+      "DIREC\ufffd^\ufffdn\ufffd\ufffd\ufffd\ufffd@\ufffd\ufffda+\ufffd\ufffd\ufffd\ufffd\u0001\u0014\ufffd\ufffd": 1,
+      "DIRECT-1F-HP ]OP DesignJet XL PS": 1,
+      "DIRECT-E8-\ufffdAxTaserJet MFP": 1,
+      "N\ufffd/V\u0006AT": 1,
+      "DIRECT-1F-HP MFP DesignJe +X\\)rR": 1,
+      "DIRECT-ID\ufffd\ufffdPKTOP-AUE0T0R4QPL": 1,
+      "<n\ufffd\ufffd\u0000\ufffd2\ufffd\t\u000bK\ufffd\ufffd\ufffdD\ufffd\u001aM\r\ufffd*\ufffdHl\u0003\u0001\u0001*\u0001\u00042\u0004\f\u00180`-\u001an\u0010\u0017\ufffd\ufffd\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0001\u0005\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00000\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0002\u0000\u000f\ufffd\u0004\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000\u007f\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u000b\u0005\u0001\u0000\u0000\u0012z\ufffd\u0018\u0000P\ufffd\u0002\u0001\u0001\u0000\u0000\u0003\ufffd\u0000\u0000'\ufffd\u0000\u0000BC^\u0000b2/\u0000": 1,
+      "DIR\ufffdz&/IDD\u0005\ufffdOTO\ufffd\ufffd/VEp\ufffdP4QPL": 1,
+      "\ufffd\u0004\u0000\u000f\ufffd\u0002\u0001\u0000\u0000\u000f\ufffd\u0002\f\u00002": 1,
+      "\u0014\ufffd0\ufffdGT-1F-H\u0000\u00116nvy \u0006\ufffdR~e seri5B": 1,
+      "Bhavs": 1,
+      "\u0000`D\ufffd\u0007\ufffd\ufffd@\u0000\u0000\u0000\u0000`\u0006\u0001$@`\ufffd\ufffd\ufffd\ufffd@%\ufffd@\ufffd\ufffd\u0001\u0003\u0006\f\ufffd\"\u0000\u0000": 1,
+      " \ufffd\ufffd)\ufffd\ufffd\u0000\u0004A\ufffdEK\u0012\u0018$\ufffd\ufffd\u0000\ufffd\u0002\u0002\ufffd\u0000\u0000\u0000\ufffd\u0000\ufffd\ufffd\u0000\u0000\u0018\ufffd\u0000\u0000\ufffd\u0007V\u0001\u0001\u0000\ufffd\u0007V\u0002\ufffd\u0007V\ufffd\u0000\u0000\ufffd\u0007V\u0001\u0006\u0000\u0019\u0002\u0006\t\f\ufffd\u0016\r\ufffd\ufffd\ufffd\ufffd\u007f\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\ufffd\u001e\u000b\u0001\u0004\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000%\u0007\n\u0000\u0005\u0000\ufffd\u0000d\u0000\n\ufffd\u0002\ufffd\f\ufffd": 1,
+      "\ufffd\u0002\u0000\u0000-\u001a\ufffdQ\u001b\ufffd\ufffd\ufffd\u0000\u0000\u0000": 1,
+      "MIREC\ufffd-1F-hB Mf\ufffd\"UTrI\ufffdGxwt X\ufffd PS\u0001\b\ufffd\ufffd\ufffd$\ufffdja|\ufffd\u0001\u0001 \ufffd\u0000": 1,
+      "DIRECT-51-HP MFP D!(\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd": 1,
+      "\u0000\u0000F\u00053\u0000\u0000\u0000\u0000-\u001a\ufffd\u0019\u0017\ufffdO\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\ufffd$ \u0012\u0000D\ufffdYfJl\u007f\ufffd\u0010\ufffd\ufffd\u04a1oO\ufffd": 1,
+      "TP-Link_pr\ufffdoash_2_\ufffd": 1,
+      "dl\ufffdj\ufffd!F\u01ea\ufffd": 1,
+      "A\ufffdEK": 1,
+      "TP-Lin{VD1F0": 1,
+      "dliL\ufffd}\ufffd\ufffd?1": 1,
+      "\u001a\f\u0010\u001b\ufffd\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000D\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016E\u0002\u0019\u0000\u0000\u0000\u0000\u0000D\u0002\u0000\ufffd\ufffd\u0000\u0000\u0000": 1,
+      "dlink-D08|": 1,
+      "DIRECT-47-HP M507 LaserJ\u0016\ufffd": 1,
+      "\ufffd>\ufffd\ufffd\ufffd\u001c\ufffd\ufffdF\u022b\u07fa\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u03da\u07cc\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffds\ufffdg\ufffdO\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdS\ufffd\ufffd\ufffd\ufffd\ufffdS\ufffd\ufffd\ufffd\ufffd\ufffdS\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0000\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdi\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\"\ufffd\ufffd\ufffd\r\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd[\ufffd\ufffd\ufffd[\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\"H\ufffd\ufffd\r\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd": 1,
+      "DIRECT\ufffd}1-HP MFP DesignJet": 1,
+      "TP\ufffd\ufffdin{\ufffdp6c{\ufffdsxV2_\ufffd": 1,
+      "\ufffd\ufffds_B\ufffd\u001c\u0003\u001b\ufffd.\ufffd\ufffd\f\u0012\u0018$\u0003\u0001\u0001\u0007\u0006IN \u0001\r\u001e*\u0001\u00002\u00040H`l0\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0004\u0000\u000f\ufffd\u0002\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000-\u001a\ufffdQ\u001b\ufffd\ufffd\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0001\u0000\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000D\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000F\u0005\u0002\u0000\u0001\u0000\ufffd\ufffd\ufffdHP\ufffd7\u0001\u0000\u0000P\ufffd\u0002\u0001\u0000\u0000P\ufffd\u0002\u0001\u0000\u0000P\ufffd\u0002\ufffd\u0018\u0000P\ufffd\u0002\u0001\u0001\u0001\u0000\u0003\ufffd\u0000\u0000'\ufffd\u0000\u0000BC^\u0000b2/\u0000\ufffd\u0007\u0000\u0003\ufffd\u0001u\u0003 \ufffd\u000e\u0000\u0017\ufffd\u0007\u0000\u0001\u0001\u0006\ufffd\ufffd\u0012d": 1,
+      "TP-Link_prakash_\ufffd\u007f\ufffd": 1,
+      "N!u_BCT": 1,
+      "DIRECT-1\ufffd\ufffdiB\u0002L\ufffd\ufffd\u0010f\ufffd^unZLF\"q|!P\ufffd": 1,
+      "\ufffdERECT-51-HP MFP DesignJet": 1,
+      "DIRE\ufffd\ufffd\ufffd-1-HP MFP DesignJet": 1,
+      "70mai_Pro Plu\ufffd-_8eed": 1,
+      "YP-Li\ufffdt_IO_TEAM\u0001\b\ufffd\ufffd\ufffd\ufffd\u0012$Hl\u0003\u0001\u00012\u0004\f\u00180`\u0005\u0004\u0000\u0001\u0000\u00000\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0002\u0000\u000f\ufffd\u0004\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000\ufffd\u0018\u0000P\ufffd\u0004\u0010J\u0000\u0001\u0010\u0010D\u0000\u0001\u0002\u0010I\u0000\u0006\u00007*\u0000\u0001 *\u0001\u0004-\u001an\u0010\u0017\ufffd\ufffd\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0001\u0005\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000J\u000e\u0014\u0000": 1,
+      "P Des\ufffdgnJet\u0000\ufffdAc10db9fGP\u0000\u0010\ufffd2\u0012\u0010B\u0000\u000bC\ufffd95M\"H\u0012\u0002C\u0000\u0010T\ufffd\u0001\ufffd\u0003\u0000P\ufffd$\ufffd\u0017\u0010\u0011\u0000\u001afHRECT": 1,
+      "L\ufffd4\ufffdpQT\u0001\bN\ufffd\ufffd\ufffd\ufffd\u000b\ufffdo\u0001\u065bd2\ufffd\u0001\u0001\u0010.\u0014Y\u0007\ufffd\ufffdP:;\b\u0000r \u0012I\ufffd\ufffdx\u0018\u0001\ufffd\u0007\ufffd\ufffd\u0010K\u0004\u0012\u000f\ufffd\ufffdL\ufffd\ufffd0\ufffd\u000f\t\u007f\ufffdr": 1,
+      "DIRECT-1F/[P MFP DesignJet XL PS": 1,
+      "DIRECT-47-HP M%\u001b\u06f9\ufffd\"\u0e66\ufffdk\ufffd": 1,
+      "\ufffd\ufffd{\u0002": 1,
+      "70mai_Pro Plus+_\ufffdaed": 1,
+      "70mai_Pro P\ufffdxs\u000bM8ee\ufffd": 1,
+      "TP-Link_prakash_2\ufffd0": 1,
+      "\u0001": 1,
+      "dlink\u000f0A61": 1,
+      "\ufffdY\ufffd8WT-51-HP\u0000\ufffdFP D\u0553hgnJet\u0001\b\ufffd\u0012\ufffd$\ufffdH`l\u0003\u0001\u0001 \u0001\u0000#\u0002\u0011\u0000*\ufffd\u000b/\u0001\u0000 \ufffd\u0001\u0000\u0000\u000f": 1,
+      "DIRECT-5Q\u001bHP MFP DesignJet": 1,
+      "C^\u0000b2/\u0000\ufffdQ\b\u0000\t\u0000\u0004\ufffd\ufffd\f\u0000\u0003\u0019HP DesignJet T2600dr MFP\u0000\u0005\u000bCN95O1H01K\u0000\u0006\u0010(\ufffdNQW\ufffd": 1,
+      "DIRECT-1F-HP Envy \ufffd\u0007\r\ufffd\u0007\ufffd\fV\ufffd\n\ufffd": 1,
+      "ANUSH\ufffd": 1,
+      "\u0013\u0010": 1,
+      "DIRECT-1F-HP MFP t^aignJet X\ufffd$PS": 1,
+      "\u0000\ufffd\u0000\ufffd\u0000\u0014\u0000\u0005\u0000\u0019": 1,
+      "TP-L\u0257\ufffd_m\ufffd=\ufffd": 1,
+      "TP-Link_\ufffd\ufffd\ufffd\u0010\u001f`\ufffd": 1,
+      "DIRECT-1F-XI)\ufffdVq8o\ufffdj`g\ufffdCet XL PS": 1,
+      "dySECT-1F-HP MFP \ufffdlsignJetdZL\u0000\ufffdS": 1,
+      "TP-LINK_BC": 1,
+      "DIRE\u0007V-51-HP MFP Designhd0": 1,
+      "646c696e6b2d31413631,<MISSING>,<MISSING>": 1,
+      "DIRECT-51\ufffdHP MFP DesignJet": 1,
+      "54502d4c696e6b5f494f5f5445414d,ac020200000fac02000fac04010000": 1,
+      "New_rXT": 1,
+      "TP-Link_IO_T\ufffd\ufffd\u001e": 1,
+      "TP-HoNK_9268": 1,
+      "New_B\u0003p": 1,
+      "d\u06f2SCT-E\u0018\ufffd\ufffd\u001e);\u0018\u0018NA": 1,
+      "\ufffd\u0000\u0000": 1,
+      "UP-Link_315C\u0001\b\u0002\u0004\u000b\f\u0012\u0016\u0018$\u0003\u0001\u0002-zX\ufffd\u0003\u00000\ufffd\ufffd\u0010\u0000\u0000\u0013\ufffd\ufffd\u0004\u0000\u0000\u0011`N": 1,
+      "MyWiFia\u0013": 1,
+      "\u0006I\ufffd-\u0001/\u001f": 1,
+      "Dune-\ufffd\"X-BILLION-2ghz": 1,
+      "\u042c\ufffd\ufffd\ufffdCT\u0001\b\u001a\ufffd\ufffd\ufffd\f\ufffdY$\u0003\u0001\u0001\u0007\u0006IN \u0001\r\u001e*\u0001\u00002\u00040H`l0\u0018\u0001\u0000\u0000\u000f\ufffd\u0002\u0002\u0000\u0000\u000f\ufffd\u0004\u0000\u000f\ufffd\u0002\u0001\u0000\u0000\u000f\ufffd\u0002\u0000\u0000-\u001a\ufffdQ\u001b\ufffd\ufffd\ufffd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\u0016\u0001\u0000\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000F\u0005\u0002\u0000\u0001\u0000\u0000\ufffd\u0016\u0000P\ufffd\u0001\u0001\u0000\u0000P\ufffd\u0002\u0001\u0000\u0000P\ufffd\u0002\u0001\u0000\u0000P\ufffd\u0002\ufffd\u0018\u0000P\ufffd\u0002\u0001\u0001\u0001\u0000\u0003\ufffd\u0000\u0000'\ufffd\u0000\u0000BC^\u0000b2/\u0000\ufffd\u0007\u0000": 1,
+      "a\ufffdINiber-iL9A\ufffdw": 1,
+      "chrPort\u0018": 1,
+      "\u0000\u0005\u0000\u0019p\ufffd\u0006\ufffdN\ufffd\ufffd\u0005\u0001QP\ufffd \u0004 N": 1,
+      "\ufffd\u0010\ufffd`\ufffd\u001b\u001dilE\ufffdA\r\ufffd": 1,
+      "TP-LINK_\ufffd?68": 1,
+      "DIRECT-1F-HP Envy 6100e seri\ufffdy": 1,
+      "TPS_Assus_2G": 1,
+      "\ufffd\u0641\"_199101\u0001\ufffd%S": 1,
+      "DIRECt\ufffd\ufffdV\u0004\ufffdP MFp\ufffdDesign\ufffd|\u007f>XL PS": 1,
+      "Tr\ufffdNINK_9268": 1,
+      "DIRECT-51-HP MFP Desig5a\u0006q": 1,
+      "TP-\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd": 1,
+      "DIRECT-1F-H\ufffdj\ufffdZ\ufffd\ufffd1\ufffd\ufffd&\ufffdM\ufffdya\ufffd\u0007\ufffd*": 1,
+      "DIRECT-!m,HP\ufffdF\ufffd\b\ufffd\f\rsignJet XL PS": 1,
+      "mdw_BCT\u0001\b\ufffd\ufffd\ufffd\ufffd\f\u0012\u0018$\u0003\u0001\u0001\u0007\u0006\ufffdN \u0001\r\u001e*\u0001\u00002\u00040H`l": 1,
+      "DIRECT-47-HP M507 Las5\ufffd\ufffd#^": 1,
+      "\ufffd\ufffdaZ\ufffd\ufffd\ufffd\u0007\u05ed\ufffd\ufffd\ufffdLl\u0003!2+\u0011\ufffdC\u0001\u0000p\ufffd\u0005\ufffd\ufffdF,(\ufffd&\ufffd": 1,
+      "\u000eKt`%ng": 1,
+      "dlink-1A61_5G": 1,
+      "A\u000eqSXH\u0001\b\ufffd\ufffd\u001a\ufffd\u0328\ufffd/\ufffd\u007f\ufffd\ufffd\u007f\ufffd\u0005Jo\ufffd\ufffd.=\u0001\u0000\ufffd\u001c\u0011\t\u0000\u000f\ufffd\u0002`#\ufffd\ufffd\ufffdH\u0000\ufffd\ufffdF\u0003\u0000\u0000-\ufffd \ufffdX\ufffd=\u0002\u007f@\ufffd?\u001b\ufffd\ufffd~\ufffd\ufffd\t\u0000\"\ufffd\ufffd4{'M\ufffdvH\u0010@`\u0002\u0000\u0000\u0000\u0000 /\u0016\u0002\u0018\r\u0000\u0000\u0000\u0000\u0000\ufffd\"\u0001\u0010\t\u0000\ufffd9\ufffd\ufffdx#e\ufffd^\ufffd\u0006\u0014G\ufffdwH\ufffdf\ufffd\ufffd\u007f\ufffd\u001c\u0011`\".\t\u0000\"\ufffd\u0007\ufffd\ufffd\ufffd\ufffd\ufffd\u0011\ufffd\u001f\u0010\ufffdZ\u0000": 1,
+      "dlink-D\u001298": 1,
+      "W\n\ufffd\ufffd\ufffd\ufffd\u0012$Hl\u0003\u0001\u0001\u0005\u0004\u0000\u0001\u0000\u0000\u0007\u0006US \u0001\u000b\u001e3\b \u0001\u0002": 1,
+      "h\ufffdP\ufffd\ufffd": 1,
+      "DIRECT-\u0469-HP MFP DesignJnj XL\u0012\ufffd+": 1,
+      "VP-Link_prakas({2_4\u0001\b\ufffd\ufffd\ufffd\ufffd\u0012$Hl\ufffd\u0001\u0001\u0005\u0004\u0000\u0001\u0001\u0000\ufffdNUS \u0001\u000b\u000e)\u0001\u0000#\u0002?\u0000F\u0005\u0002\u0000\u0000@$3\b \u0001\u0002\u0003\u0004\u0005&\u0015*\u0001\u00042\u0004\f\u0018 i\ufffd\u0016\u0000P\ufffd\u0001\u0001\u0000": 1
+    },
+    "unique_transmitters": 831,
+    "top_transmitters": {
+      "e4:b3:18:a2:63:13": 5629,
+      "54:af:97:40:7f:1a": 2001,
+      "fa:90:f2:48:e0:75": 1843,
+      "2a:56:5a:04:cb:47": 1813,
+      "b8:8d:12:64:e2:c9": 1446,
+      "70:4f:57:de:4d:50": 1430,
+      "00:19:e3:33:41:71": 1335,
+      "84:25:19:be:ef:30": 1318,
+      "f8:1e:df:ff:b5:97": 1313,
+      "34:0a:33:88:24:d6": 1313
+    },
+    "unique_receivers": 859,
+    "broadcast_frames": 16283,
+    "channels_used": [
+      1
+    ],
+    "channel_distribution": {
+      "1": 50356
+    },
+    "signal_min_dbm": -128,
+    "signal_max_dbm": 127,
+    "signal_mean_dbm": -30.4,
+    "signal_std_dbm": 18.7,
+    "noise_mean_dbm": -81.0,
+    "data_rate_min_mbps": 1.0,
+    "data_rate_max_mbps": 127.5,
+    "data_rate_mean_mbps": 11.1,
+    "phy_distribution": {
+      "802.11ac (VHT)": 25938,
+      "802.11g": 24418
+    },
+    "retry_frames": 7108,
+    "retry_rate": 14.12,
+    "protected_frames": 7160,
+    "unprotected_data_frames": 3774,
+    "avg_frame_size": 227.4,
+    "max_frame_size": 4116,
+    "min_frame_size": 31
+  },
+  "connection_events": {
+    "association_requests": 4,
+    "association_responses": 6,
+    "associating_clients": 3,
+    "association_by_client": {
+      "34:5d:9a:01:80:a1": 1,
+      "77:88:fe:42:e0:8d": 1,
+      "00:04:ea:23:46:8c": 1
+    },
+    "reassociation_requests": 5,
+    "reassociation_responses": 4,
+    "roaming_clients": 5,
+    "roaming_details": {
+      "49:f8:02:cb:b7:43": [
+        "48:f8:f3:fd:b7:d2"
+      ],
+      "82:ce:28:ad:58:c1": [
+        "9e:15:19:53:7c:a4"
+      ],
+      "89:09:fb:83:d9:96": [
+        "8f:82:bf:90:3c:6d"
+      ],
+      "99:62:97:b0:18:72": [
+        "fe:af:87:02:6d:f9"
+      ],
+      "d3:67:6a:d4:1d:32": [
+        "6c:a8:ff:56:5a:f6"
+      ]
+    },
+    "deauthentication_frames": 4,
+    "disassociation_frames": 6,
+    "total_disconnections": 10,
+    "disconnect_sources": {
+      "db:f0:30:1b:44:06": 1,
+      "15:69:93:fe:0d:92": 1,
+      "54:af:97:40:7f:1a": 1,
+      "48:d0:d2:35:45:3e": 1,
+      "ba:82:8c:2c:07:a6": 1,
+      "26:0e:09:31:02:b7": 1,
+      "6f:42:bf:e0:05:c4": 1,
+      "04:a8:c8:eb:35:d5": 1,
+      "d3:3d:c5:a4:45:99": 1
+    },
+    "authentication_frames": 12,
+    "auth_clients": 9,
+    "channel_switch_clients": 0,
+    "channel_switch_details": {},
+    "band_switch_clients": 0,
+    "band_switch_details": {}
+  },
+  "threats": {
+    "connection_failures": {
+      "detected": true,
+      "severity": "medium",
+      "eapol_handshake_analysis": {
+        "pattern": "4-way handshake progressed to Msg3 (association likely succeeded)",
+        "msg1_count": 1,
+        "msg2_count": 1,
+        "msg3_count": 2,
+        "wrong_psk_likely": false,
+        "note": "Handshake reached Msg3 \u2014 passphrase appears correct. Disconnection may be due to GTK renewal or other reason."
+      },
+      "total_failures": 4,
+      "failure_breakdown": {
+        "Status code 17891": 1,
+        "Status code 65289": 1,
+        "Status code 59285": 1,
+        "Reason code 3008": 1
+      },
+      "message": "4 connection failure event(s): 1\u00d7 Status code 17891, 1\u00d7 Status code 65289, 1\u00d7 Status code 59285",
+      "remediations": {
+        "Status code 17891": "Refer to IEEE 802.11 status code 17891",
+        "Status code 65289": "Refer to IEEE 802.11 status code 65289",
+        "Status code 59285": "Refer to IEEE 802.11 status code 59285",
+        "Reason code 3008": "Refer to IEEE 802.11 reason code 3008"
+      },
+      "client_timelines": {
+        "98:55:25:4c:1e:9a": [
+          {
+            "frame": 2049,
+            "type": "Authentication Failure",
+            "root_cause": "Status code 17891",
+            "code": 17891,
+            "reason": "Status code 17891",
+            "timestamp": 1773634221.51784,
+            "signal_dbm": -34
+          }
+        ],
+        "5c:28:04:6a:82:6c": [
+          {
+            "frame": 16151,
+            "type": "Authentication Failure",
+            "root_cause": "Status code 65289",
+            "code": 65289,
+            "reason": "Status code 65289",
+            "timestamp": 1773634238.315159,
+            "signal_dbm": -33
+          }
+        ],
+        "05:07:3b:3f:ed:25": [
+          {
+            "frame": 39647,
+            "type": "Authentication Failure",
+            "root_cause": "Status code 59285",
+            "code": 59285,
+            "reason": "Status code 59285",
+            "timestamp": 1773634301.056155,
+            "signal_dbm": -33
+          }
+        ],
+        "04:a8:c8:eb:35:d5": [
+          {
+            "frame": 23281,
+            "type": "Disassociation",
+            "root_cause": "Reason code 3008",
+            "code": 3008,
+            "reason": "Reason code 3008",
+            "timestamp": 1773634255.697836,
+            "signal_dbm": -38
+          }
+        ]
+      },
+      "failure_details": [
+        {
+          "type": "Authentication Failure",
+          "root_cause": "Status code 17891",
+          "remediation": "Refer to IEEE 802.11 status code 17891",
+          "code": 17891,
+          "reason": "Status code 17891",
+          "frame": 2049,
+          "timestamp": 1773634221.51784,
+          "sa": "98:55:25:4c:1e:9a",
+          "bssid": "ed:8e:89:ae:fc:f9",
+          "signal_dbm": -34
+        },
+        {
+          "type": "Authentication Failure",
+          "root_cause": "Status code 65289",
+          "remediation": "Refer to IEEE 802.11 status code 65289",
+          "code": 65289,
+          "reason": "Status code 65289",
+          "frame": 16151,
+          "timestamp": 1773634238.315159,
+          "sa": "5c:28:04:6a:82:6c",
+          "bssid": "63:9f:95:1b:20:27",
+          "signal_dbm": -33
+        },
+        {
+          "type": "Disassociation",
+          "root_cause": "Reason code 3008",
+          "remediation": "Refer to IEEE 802.11 reason code 3008; collect AP syslog and client debug logs at time of failure.",
+          "code": 3008,
+          "reason": "Reason code 3008",
+          "frame": 23281,
+          "timestamp": 1773634255.697836,
+          "sa": "04:a8:c8:eb:35:d5",
+          "bssid": "c0:41:b6:bf:35:3a",
+          "signal_dbm": -38,
+          "evidence": [],
+          "connection_phase": "Failed at Association"
+        },
+        {
+          "type": "Authentication Failure",
+          "root_cause": "Status code 59285",
+          "remediation": "Refer to IEEE 802.11 status code 59285",
+          "code": 59285,
+          "reason": "Status code 59285",
+          "frame": 39647,
+          "timestamp": 1773634301.056155,
+          "sa": "05:07:3b:3f:ed:25",
+          "bssid": "f6:27:8a:3a:14:9c",
+          "signal_dbm": -33
+        }
+      ],
+      "connection_flows": {
+        "04:a8:c8:eb:35:d5": [
+          {
+            "events": [
+              {
+                "frame": 23281,
+                "timestamp": 1773634255.697836,
+                "signal_dbm": -38,
+                "direction": "client\u2192AP",
+                "step": "Disassociation",
+                "reason_code": 3008,
+                "reason_text": "Reason code 3008",
+                "note": "Client terminated connection \u2014 Reason code 3008",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 3008",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "c0:41:b6:bf:35:3a",
+            "start_frame": 23281,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 3008; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 3008",
+              "evidence": []
+            }
+          }
+        ],
+        "15:69:93:fe:0d:92": [
+          {
+            "events": [
+              {
+                "frame": 33629,
+                "timestamp": 1773634285.76319,
+                "signal_dbm": -56,
+                "direction": "client\u2192AP",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "ed:ff:ff:df:ed:ff",
+            "start_frame": 33629,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "15:ed:90:57:8f:27": [
+          {
+            "events": [
+              {
+                "frame": 23281,
+                "timestamp": 1773634255.697836,
+                "signal_dbm": -38,
+                "direction": "AP\u2192client",
+                "step": "Disassociation",
+                "reason_code": 3008,
+                "reason_text": "Reason code 3008",
+                "note": "AP terminated connection \u2014 Reason code 3008",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 3008",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "c0:41:b6:bf:35:3a",
+            "start_frame": 23281,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 3008; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 3008",
+              "evidence": []
+            }
+          }
+        ],
+        "25:42:47:0b:78:41": [
+          {
+            "events": [
+              {
+                "frame": 6220,
+                "timestamp": 1773634224.357975,
+                "signal_dbm": -34,
+                "direction": "AP\u2192client",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "55:4f:97:30:9e:89",
+            "start_frame": 6220,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "26:0e:09:31:02:b7": [
+          {
+            "events": [
+              {
+                "frame": 12182,
+                "timestamp": 1773634229.906546,
+                "signal_dbm": -34,
+                "direction": "client\u2192AP",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "f6:f7:59:e1:48:b9",
+            "start_frame": 12182,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "48:d0:d2:35:45:3e": [
+          {
+            "events": [
+              {
+                "frame": 39199,
+                "timestamp": 1773634299.497529,
+                "signal_dbm": -32,
+                "direction": "client\u2192AP",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "89:bd:ed:44:1d:1d",
+            "start_frame": 39199,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "4f:d0:01:11:68:8c": [
+          {
+            "events": [
+              {
+                "frame": 12973,
+                "timestamp": 1773634230.609258,
+                "signal_dbm": -56,
+                "direction": "AP\u2192client",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "9a:13:de:10:a5:38",
+            "start_frame": 12973,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "6f:42:bf:e0:05:c4": [
+          {
+            "events": [
+              {
+                "frame": 12973,
+                "timestamp": 1773634230.609258,
+                "signal_dbm": -56,
+                "direction": "client\u2192AP",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "9a:13:de:10:a5:38",
+            "start_frame": 12973,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "78:6e:70:0e:e9:7e": [
+          {
+            "events": [
+              {
+                "frame": 47180,
+                "timestamp": 1773634325.363311,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "f2:aa:e3:ed:87:1a",
+            "start_frame": 47180,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "ba:82:8c:2c:07:a6": [
+          {
+            "events": [
+              {
+                "frame": 6220,
+                "timestamp": 1773634224.357975,
+                "signal_dbm": -34,
+                "direction": "client\u2192AP",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "55:4f:97:30:9e:89",
+            "start_frame": 6220,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "c4:62:02:03:70:ef": [
+          {
+            "events": [
+              {
+                "frame": 12182,
+                "timestamp": 1773634229.906546,
+                "signal_dbm": -34,
+                "direction": "AP\u2192client",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "f6:f7:59:e1:48:b9",
+            "start_frame": 12182,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "c5:92:e8:60:2b:c4": [
+          {
+            "events": [
+              {
+                "frame": 39199,
+                "timestamp": 1773634299.497529,
+                "signal_dbm": -32,
+                "direction": "AP\u2192client",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "89:bd:ed:44:1d:1d",
+            "start_frame": 39199,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "c8:e6:d0:26:5e:44": [
+          {
+            "events": [
+              {
+                "frame": 22096,
+                "timestamp": 1773634253.526923,
+                "signal_dbm": -59,
+                "direction": "AP\u2192client",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "16:5e:41:54:52:e8",
+            "start_frame": 22096,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "d3:3d:c5:a4:45:99": [
+          {
+            "events": [
+              {
+                "frame": 47180,
+                "timestamp": 1773634325.363311,
+                "signal_dbm": -32,
+                "direction": "client\u2192AP",
+                "step": "Disassociation",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "f2:aa:e3:ed:87:1a",
+            "start_frame": 47180,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "db:f0:30:1b:44:06": [
+          {
+            "events": [
+              {
+                "frame": 22096,
+                "timestamp": 1773634253.526923,
+                "signal_dbm": -59,
+                "direction": "client\u2192AP",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "Client terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "16:5e:41:54:52:e8",
+            "start_frame": 22096,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "df:ed:ff:ff:ff:ff": [
+          {
+            "events": [
+              {
+                "frame": 33629,
+                "timestamp": 1773634285.76319,
+                "signal_dbm": -56,
+                "direction": "AP\u2192client",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "ed:ff:ff:df:ed:ff",
+            "start_frame": 33629,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ],
+        "ff:bf:db:ff:ff:ff": [
+          {
+            "events": [
+              {
+                "frame": 37277,
+                "timestamp": 1773634296.291204,
+                "signal_dbm": -46,
+                "direction": "AP\u2192client",
+                "step": "Deauthentication",
+                "reason_code": 0,
+                "reason_text": "Reason code 0",
+                "note": "AP terminated connection \u2014 Reason code 0",
+                "category": "disconnect",
+                "is_terminal": true,
+                "validated_reason": "Reason code 0",
+                "evidence": []
+              }
+            ],
+            "ap_bssid": "40:3b:7b:e5:d9:f0",
+            "start_frame": 14779,
+            "data_frames": 0,
+            "diagnosis": {
+              "authenticated": true,
+              "associated": false,
+              "eapol_stats": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0
+              },
+              "data_frames": 0,
+              "auth_protocol": "WPA2",
+              "sae_commit_ok": null,
+              "sae_confirm_ok": null,
+              "phase": "Failed at Association",
+              "recommended_action": "Refer to IEEE 802.11 reason code 0; collect AP syslog and client debug logs at time of failure.",
+              "validated_disconnect": "Reason code 0",
+              "evidence": []
+            }
+          }
+        ]
+      }
+    },
+    "beacon_loss": {
+      "detected": true,
+      "severity": "high",
+      "affected_bssid_count": 26,
+      "total_loss_events": 330,
+      "max_gap_sec": 73.636,
+      "message": "Beacon loss on 26 BSSID(s): 330 gap event(s), largest gap 73.64s",
+      "bssid_detail": {
+        "60:03:47:50:90:bc": {
+          "loss_events": 83,
+          "max_gap_sec": 4.052,
+          "avg_gap_sec": 0.942,
+          "total_beacons": 322
+        },
+        "5e:60:ba:51:09:1f": {
+          "loss_events": 31,
+          "max_gap_sec": 8.704,
+          "avg_gap_sec": 1.299,
+          "total_beacons": 530
+        },
+        "40:3f:8c:f3:d1:f0": {
+          "loss_events": 26,
+          "max_gap_sec": 23.857,
+          "avg_gap_sec": 4.643,
+          "total_beacons": 33
+        },
+        "42:3f:8c:a3:d1:f0": {
+          "loss_events": 22,
+          "max_gap_sec": 22.634,
+          "avg_gap_sec": 5.297,
+          "total_beacons": 25
+        },
+        "ae:e2:d3:ff:c6:9f": {
+          "loss_events": 19,
+          "max_gap_sec": 3.579,
+          "avg_gap_sec": 1.196,
+          "total_beacons": 746
+        },
+        "04:f0:21:54:2f:b8": {
+          "loss_events": 18,
+          "max_gap_sec": 1.639,
+          "avg_gap_sec": 0.78,
+          "total_beacons": 815
+        },
+        "34:0a:33:88:1a:65": {
+          "loss_events": 16,
+          "max_gap_sec": 0.82,
+          "avg_gap_sec": 0.602,
+          "total_beacons": 814
+        },
+        "98:de:d0:f9:92:68": {
+          "loss_events": 13,
+          "max_gap_sec": 45.271,
+          "avg_gap_sec": 9.046,
+          "total_beacons": 16
+        },
+        "86:69:93:cf:53:de": {
+          "loss_events": 12,
+          "max_gap_sec": 38.298,
+          "avg_gap_sec": 5.436,
+          "total_beacons": 17
+        },
+        "b8:8d:12:64:e2:c9": {
+          "loss_events": 12,
+          "max_gap_sec": 0.918,
+          "avg_gap_sec": 0.64,
+          "total_beacons": 783
+        }
+      }
+    },
+    "scan_failures": {
+      "detected": true,
+      "severity": "medium",
+      "scan_only_devices": 130,
+      "total_probing_devices": 131,
+      "message": "Scan-only behaviour: 130/131 device(s) sent Probe Requests but never attempted to authenticate or associate",
+      "scan_only_details": [
+        {
+          "client": "4c:cf:7c:1c:23:c2",
+          "probe_requests": 8,
+          "power_save_scanning": false,
+          "responding_aps": [],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "68:54:5a:bb:b4:58",
+          "probe_requests": 1,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 5
+            },
+            {
+              "bssid": "60:03:47:50:90:bc",
+              "ssid": "Dune-CNX-BILLION-2ghz",
+              "responses": 5
+            },
+            {
+              "bssid": "70:4f:57:de:4d:50",
+              "ssid": "TP-Link_IO_TEAM",
+              "responses": 2
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 4
+            },
+            {
+              "bssid": "f8:1e:df:ff:b5:97",
+              "ssid": "Apollo_Airprint_AP",
+              "responses": 2
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 2
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "fa:06:91:82:86:a0",
+          "probe_requests": 1,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "00:19:e3:33:41:71",
+              "ssid": "AirPortX",
+              "responses": 2
+            },
+            {
+              "bssid": "04:f0:21:54:2f:b8",
+              "ssid": "MyWiFiAP",
+              "responses": 2
+            },
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 6
+            },
+            {
+              "bssid": "42:5b:d8:e3:0c:51",
+              "ssid": "DIRECT-51-HP MFP DesignJet",
+              "responses": 3
+            },
+            {
+              "bssid": "b8:59:c8:0b:8e:ed",
+              "ssid": "",
+              "responses": 1
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 2
+            },
+            {
+              "bssid": "e6:b3:18:a2:63:13",
+              "ssid": "DIRECT-IDDESKTOP-AUE0T0R4QPL",
+              "responses": 3
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 2
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "46:d8:58:e4:68:c3",
+          "probe_requests": 6,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "00:19:e3:33:41:71",
+              "ssid": "AirPortX",
+              "responses": 2
+            },
+            {
+              "bssid": "04:f0:21:54:2f:b8",
+              "ssid": "MyWiFiAP",
+              "responses": 1
+            },
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 6
+            },
+            {
+              "bssid": "2a:76:58:2f:ca:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 1
+            },
+            {
+              "bssid": "54:af:97:40:7f:1a",
+              "ssid": "TP-Link_prakash_2_4",
+              "responses": 4
+            },
+            {
+              "bssid": "5e:60:ba:51:09:1f",
+              "ssid": "DIRECT-1F-HP Envy 6100e series",
+              "responses": 1
+            },
+            {
+              "bssid": "70:4f:57:de:4d:50",
+              "ssid": "TP-Link_IO_TEAM",
+              "responses": 2
+            },
+            {
+              "bssid": "ae:e2:d3:ff:c6:9f",
+              "ssid": "DIRECT-9F-HP OfficeJet Pro 8030",
+              "responses": 1
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 2
+            },
+            {
+              "bssid": "e6:b3:18:a2:63:13",
+              "ssid": "DIR\ufffdz&/IDD\u0005\ufffdOTO\ufffd\ufffd/VEp\ufffdP4QPL",
+              "responses": 3
+            },
+            {
+              "bssid": "f8:1e:df:ff:b5:97",
+              "ssid": "Apollo_Airprint_AP",
+              "responses": 2
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 4
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "00:00:00:00:66:03",
+          "probe_requests": 1,
+          "power_save_scanning": false,
+          "responding_aps": [],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "94:b6:09:dc:aa:7d",
+          "probe_requests": 2,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "00:19:e3:33:41:71",
+              "ssid": "AirPortX",
+              "responses": 2
+            },
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 3
+            },
+            {
+              "bssid": "54:af:97:40:7f:1a",
+              "ssid": "TP-Link_prakash_2_4",
+              "responses": 2
+            },
+            {
+              "bssid": "ae:e2:d3:ff:c6:9f",
+              "ssid": "DIRECT-9F-HP OfficeJet Pro 8030",
+              "responses": 1
+            },
+            {
+              "bssid": "e6:b3:18:a2:63:13",
+              "ssid": "DIRECT-IDDESKTOP-AUE0T0R4QPL",
+              "responses": 3
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 4
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "e6:64:a3:6a:3c:88",
+          "probe_requests": 1,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 1
+            },
+            {
+              "bssid": "70:4f:57:de:4d:50",
+              "ssid": "TP-Link_IO_TEAM",
+              "responses": 2
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 4
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "70:08:10:45:00:b0",
+          "probe_requests": 1,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 6
+            },
+            {
+              "bssid": "42:5b:d8:e3:05:1f",
+              "ssid": "DIRECT-1F-HP MFP DesignJet XL PS",
+              "responses": 1
+            },
+            {
+              "bssid": "42:5b:d8:e3:0c:51",
+              "ssid": "<MISSING>",
+              "responses": 1
+            },
+            {
+              "bssid": "ae:e2:d3:ff:c6:9f",
+              "ssid": "DIRECT-9F-HP OfficeJet Pro 8030",
+              "responses": 3
+            },
+            {
+              "bssid": "b8:59:c8:0b:8e:ed",
+              "ssid": "70mai_Pro Plus+_8eed",
+              "responses": 2
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 4
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 2
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "f0:a7:31:29:b6:a5",
+          "probe_requests": 4,
+          "power_save_scanning": false,
+          "responding_aps": [
+            {
+              "bssid": "00:19:e3:33:41:71",
+              "ssid": "AirPortX",
+              "responses": 7
+            },
+            {
+              "bssid": "04:f0:21:54:2f:b8",
+              "ssid": "MyWiFiAP",
+              "responses": 3
+            },
+            {
+              "bssid": "2a:56:5a:04:cb:47",
+              "ssid": "DIRECT-47-HP M507 LaserJet",
+              "responses": 2
+            },
+            {
+              "bssid": "34:0a:33:88:1a:65",
+              "ssid": "dlink-1A61",
+              "responses": 1
+            },
+            {
+              "bssid": "70:4f:57:de:4d:50",
+              "ssid": "TP-Link_IO_TEAM",
+              "responses": 13
+            },
+            {
+              "bssid": "ae:e2:d3:ff:c6:9f",
+              "ssid": "DIRECT-9F-HP OfficeJet Pro 8030",
+              "responses": 7
+            },
+            {
+              "bssid": "b8:8d:12:64:e2:c9",
+              "ssid": "New_BCT",
+              "responses": 11
+            },
+            {
+              "bssid": "fa:90:f2:48:e0:75",
+              "ssid": "Nothing",
+              "responses": 6
+            }
+          ],
+          "interpretation": "Client scanned for networks but did not attempt to connect"
+        },
+        {
+          "client": "40:e1:a2:8b:c5:b8",
+          "probe_requests": 1,
+          "power_save_scanning": true,
+          "responding_aps": [],
+          "interpretation": "Client woke from power-save to scan then returned to sleep without connecting"
+        }
+      ]
+    },
+    "ip_connectivity_failure": {
+      "detected": true,
+      "severity": "high",
+      "affected_sessions": 1,
+      "sessions": [
+        {
+          "client": "00:04:ea:23:46:8c",
+          "ap_bssid": "fa:90:f2:48:e0:75",
+          "eapol_msg4_frame": 28609,
+          "from_client_frames": 304,
+          "to_client_frames": 14,
+          "null_polls": 372,
+          "multicast_only_client": true,
+          "observations": [
+            "Client sent 304 protected data frame(s) \u2014 ALL non-unicast: 223 IPv6 multicast (33:33:*/DAD/RS/mDNS), 60 IPv4 multicast (01:*/mDNS/SSDP), 21 broadcast (ff:ff:*/ARP/DHCP). Zero unicast data sent by client = DHCP/IP assignment failed",
+            "AP sent 14 protected unicast frame(s) to client after handshake ",
+            "372 QoS-Null power-save poll(s) from client \u2014 AP repeatedly has no downlink data queued for client",
+            "Non-unicast-only traffic pattern (IPv6 DAD/RS/mDNS + ARP/DHCP broadcasts) confirms client never received an IP address \u2014 typical L3 connectivity failure after successful 802.11+WPA2 auth"
+          ]
+        }
+      ],
+      "message": "1 session(s) where WPA2 handshake succeeded but AP sent no unicast data \u2014 likely DHCP/IP connectivity failure (client: 00:04:ea:23:46:8c, AP: fa:90:f2:48:e0:75)",
+      "root_cause_candidates": [
+        "DHCP server not responding or unreachable from AP",
+        "AP has no uplink / internet gateway is down",
+        "Client IP address pool exhausted on AP",
+        "VLAN or firewall policy blocking client after auth",
+        "AP in isolated BSS mode (no L3 routing)"
+      ],
+      "recommended_actions": [
+        "Check DHCP server status and available lease pool on AP",
+        "Verify AP uplink/WAN port and gateway connectivity",
+        "Check for VLAN assignment or firewall rules applied post-auth",
+        "Test by connecting another device to the same SSID",
+        "Review AP system logs for DHCP relay or IP assignment errors"
+      ]
+    },
+    "wpa3_sae_failures": {
+      "detected": true,
+      "severity": "medium",
+      "sae_sessions": [],
+      "issues": [
+        "WPA3-SAE + 4-way EAPOL handshake completed successfully (Msg1\u2013Msg4 all seen, 2 SAE Confirm(s) with status=0).",
+        "5 auth frame(s) used Open/WPA2 auth (auth_alg=0) while SAE (WPA3) is also advertised in the BSS RSN IE. This indicates the BSS is running in WPA3 Transition Mode (mixed WPA2+WPA3). Ensure WPA3-only clients connect with SAE; legacy WPA2 clients will use PSK. To enforce WPA3-only: disable WPA2-PSK on the AP once all clients support SAE."
+      ],
+      "failure_counts": {
+        "WPA3 transition mode \u2014 some clients using WPA2": 1
+      },
+      "wpa3_network_detected": true,
+      "sae_akm_advertised": true,
+      "owe_advertised": true,
+      "message": "WPA3-SAE analysis: 1 failure event(s) \u2014 1\u00d7 WPA3 transition mode \u2014 some clients using WPA2"
+    },
+    "high_retry_rate": {
+      "detected": true,
+      "severity": "medium",
+      "retry_rate": 0.3566,
+      "retry_count": 3520,
+      "total_data_frames": 9872,
+      "message": "High retry rate: 35.7% of data frames are retries (threshold: 15%)"
+    },
+    "control_frame_issues": {
+      "detected": true,
+      "severity": "medium",
+      "control_frame_summary": {
+        "rts_frames": 2850,
+        "cts_frames": 5244,
+        "ack_frames": 5696,
+        "ps_poll_frames": 3,
+        "block_ack_requests": 68,
+        "block_ack_responses": 1872,
+        "cf_end_frames": 42,
+        "top_rts_senders": {
+          "e4:b3:18:a2:63:13": 1572,
+          "54:af:97:40:7f:1a": 737,
+          "f8:ed:fc:fe:80:7f": 240,
+          "00:04:ea:23:46:8c": 216,
+          "84:25:19:be:ef:30": 56
+        },
+        "avg_duration_us": 455.4,
+        "max_duration_us": 32690
+      },
+      "issues": [
+        {
+          "category": "NAV/Duration",
+          "issue": "Excessive NAV duration values",
+          "severity": "medium",
+          "count": 346,
+          "max_duration_us": 32690,
+          "sources": {
+            "f8:ed:fc:fe:80:7f": 7,
+            "00:04:ea:23:46:8c": 5,
+            "34:0a:33:88:1a:65": 2,
+            "48:f8:b3:d9:b7:43": 2,
+            "1e:ce:db:bd:91:be": 1
+          },
+          "description": "346 frame(s) with NAV > 5ms (max: 32690 \u03bcs). Excessively large Duration/NAV values can starve other stations from accessing the medium (virtual carrier sense abuse).",
+          "impact": "Other stations defer transmission for the NAV duration, causing unfair medium access and throughput starvation.",
+          "remediation": "Identify source of excessive NAV values (check TA field). Update driver/firmware. If intentional: possible NAV attack \u2014 enable AP-side protection."
+        }
+      ],
+      "message": "Control frame analysis: 1 issue(s) \u2014 2850 RTS, 5244 CTS, 3 PS-Poll, 68 BAR"
+    },
+    "power_save_issues": {
+      "detected": true,
+      "severity": "medium",
+      "power_save_summary": {
+        "null_frames": 922,
+        "qos_null_frames": 2661,
+        "total_null_frames": 3583,
+        "real_data_frames": 7208,
+        "null_to_data_ratio": 0.332,
+        "top_null_senders": {
+          "84:25:19:be:ef:30": 884,
+          "e4:b3:18:a2:63:13": 840,
+          "00:04:ea:23:46:8c": 707,
+          "f8:ed:fc:fe:80:7f": 654,
+          "00:04:ea:2c:58:b1": 416,
+          "5c:60:ba:51:09:1f": 27,
+          "48:f8:b3:d9:b7:43": 9,
+          "84:a3:60:c9:66:09": 1,
+          "54:d9:ed:05:0d:47": 1,
+          "ec:2e:ac:51:93:74": 1
+        },
+        "pm_transitions_by_client": {
+          "e4:b3:18:a2:63:13": {
+            "transitions": 768,
+            "frames_in_ps": 413,
+            "frames_active": 5216,
+            "total_frames": 5629
+          },
+          "00:04:ea:23:46:8c": {
+            "transitions": 404,
+            "frames_in_ps": 270,
+            "frames_active": 993,
+            "total_frames": 1263
+          },
+          "f8:ed:fc:fe:80:7f": {
+            "transitions": 359,
+            "frames_in_ps": 224,
+            "frames_active": 1031,
+            "total_frames": 1255
+          },
+          "00:04:ea:2c:58:b1": {
+            "transitions": 131,
+            "frames_in_ps": 227,
+            "frames_active": 292,
+            "total_frames": 519
+          },
+          "5c:60:ba:51:09:1f": {
+            "transitions": 6,
+            "frames_in_ps": 11,
+            "frames_active": 18,
+            "total_frames": 29
+          },
+          "48:f8:b3:d9:b7:43": {
+            "transitions": 2,
+            "frames_in_ps": 1,
+            "frames_active": 1042,
+            "total_frames": 1043
+          }
+        }
+      },
+      "issues": [
+        {
+          "category": "Null Data",
+          "issue": "Client polling with no AP data response",
+          "severity": "medium",
+          "client": "00:04:ea:2c:58:b1",
+          "null_polls": 416,
+          "ap_data_to_client": 0,
+          "description": "Client 00:04:ea:2c:58:b1 sent 416 Null/QoS-Null poll(s) but AP sent no data frames back. Client is repeatedly waking from power-save to check for buffered data, but AP has nothing queued.",
+          "impact": "Wasted airtime and client battery on futile PS-poll cycles.",
+          "remediation": "If client expects data: check AP uplink connectivity and DHCP/IP status. If client is idle: increase DTIM period to reduce wakeup frequency. Check AP is correctly buffering multicast/broadcast for PS clients."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for e4:b3:18:a2:63:13",
+          "severity": "low",
+          "client": "e4:b3:18:a2:63:13",
+          "transitions": 768,
+          "transition_rate": 0.136,
+          "transitions_per_sec": 7.04,
+          "description": "Client e4:b3:18:a2:63:13 had 768 power-save mode transitions across 5629 frames (13.6% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for 00:04:ea:23:46:8c",
+          "severity": "low",
+          "client": "00:04:ea:23:46:8c",
+          "transitions": 404,
+          "transition_rate": 0.32,
+          "transitions_per_sec": 3.71,
+          "description": "Client 00:04:ea:23:46:8c had 404 power-save mode transitions across 1263 frames (32.0% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for f8:ed:fc:fe:80:7f",
+          "severity": "low",
+          "client": "f8:ed:fc:fe:80:7f",
+          "transitions": 359,
+          "transition_rate": 0.286,
+          "transitions_per_sec": 3.08,
+          "description": "Client f8:ed:fc:fe:80:7f had 359 power-save mode transitions across 1255 frames (28.6% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        },
+        {
+          "category": "Power Management",
+          "issue": "Excessive PS transitions for 00:04:ea:2c:58:b1",
+          "severity": "low",
+          "client": "00:04:ea:2c:58:b1",
+          "transitions": 131,
+          "transition_rate": 0.252,
+          "transitions_per_sec": 1.08,
+          "description": "Client 00:04:ea:2c:58:b1 had 131 power-save mode transitions across 519 frames (25.2% of frames are PS boundary changes). Rapid PS transitions cause latency spikes.",
+          "impact": "Each PS transition adds latency (50-200ms for buffered frames). Rapid cycling wastes battery and airtime.",
+          "remediation": "Configure client to use WMM-PS (U-APSD) instead of legacy PS-Poll. Adjust PS wake interval in client driver. For latency-sensitive apps: disable power-save entirely."
+        }
+      ],
+      "message": "Power management analysis: 5 issue(s) \u2014 3583 null frame(s), 7208 data frame(s)"
+    }
+  }
+}
