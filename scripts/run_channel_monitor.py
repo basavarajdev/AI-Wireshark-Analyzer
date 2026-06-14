@@ -14,6 +14,8 @@ Metrics (per rolling window and overall):
   - Frame-type breakdown    (mgmt / ctrl / data % share)
   - PHY mode distribution   (802.11b/g/n/ac/ax)
   - Per-BSSID summary       (frames, bytes, clients, avg RSSI, SSID)
+    * Client activity breakdown: Actively connected (>50 frames) vs
+      medium activity (6-50 frames) vs low activity (≤5 frames)
   - Per-client summary      (frames, bytes, retry rate, avg RSSI, role)
   - Overload flags          (util > 80%, retry > 15%, ctrl overhead > 20%)
 
@@ -258,6 +260,43 @@ def parse_output(raw: str) -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# MAC address utilities
+# ─────────────────────────────────────────────────────────────────────────────
+
+def is_unicast(mac: str) -> bool:
+    """Check if MAC is unicast (first octet LSB = 0)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 1) == 0
+    except (ValueError, IndexError):
+        return False
+
+
+def is_globally_administered(mac: str) -> bool:
+    """Check if MAC is globally administered / OUI-assigned (bit 1 = 0)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 2) == 0  # bit 1 = 0 means globally administered
+    except (ValueError, IndexError):
+        return False
+
+
+def is_multicast_or_broadcast(mac: str) -> bool:
+    """Check if MAC is multicast/broadcast (first octet LSB = 1)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 1) == 1
+    except (ValueError, IndexError):
+        return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Statistics computation
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -307,6 +346,7 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
     n_ack = (df['type_subtype'] == ACK).sum()
     rts_per_data = n_rts / max(n_data, 1)
     cts_rts_ratio = n_cts / max(n_rts, 1)   # 1.0 = balanced, <1 = drops/hidden
+    rts_cts_overhead_pct = (n_rts + n_cts) / max(n_frames, 1) * 100  # overhead as % of all traffic
 
     # --- Block Ack ---
     n_bar = (df['type_subtype'] == BLOCK_ACK_R).sum()
@@ -355,17 +395,45 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
     for bssid, grp in df.groupby('bssid', dropna=True):
         ssid_vals = grp.loc[grp['ssid'].notna(), 'ssid']
         ssid = ssid_vals.mode()[0] if len(ssid_vals) else None
-        clients = set()
+        
+        # Count clients: unicast, globally-administered (real OUI) MACs only
+        clients_all = set()           # all unique MACs except bssid
+        clients_real = set()          # only real OUI-assigned MACs (no virtual)
+        client_frame_counts = defaultdict(int)  # per-client frame count
+        
         for col in ['sa', 'da', 'ta']:
             for addr in grp[col].dropna():
-                if addr != bssid:
-                    clients.add(addr)
+                addr_lower = addr.lower()
+                if addr_lower != bssid.lower() and is_unicast(addr_lower):
+                    clients_all.add(addr_lower)
+                    client_frame_counts[addr_lower] += 1
+                    if is_globally_administered(addr_lower):
+                        clients_real.add(addr_lower)
+        
+        # Breakdown by activity level (OUI devices only)
+        real_clients_by_activity = defaultdict(int)
+        for mac in clients_real:
+            frames = client_frame_counts[mac]
+            if frames <= 5:
+                real_clients_by_activity['low_activity'] += 1
+            elif frames <= 50:
+                real_clients_by_activity['medium_activity'] += 1
+            else:
+                real_clients_by_activity['actively_connected'] += 1
+        
         sig_vals = grp.loc[grp['signal_dbm'] < 0, 'signal_dbm']
         bssid_stats[bssid] = {
             'ssid': ssid,
             'frames': int(len(grp)),
             'bytes': int(grp['length'].sum()),
-            'clients': len(clients),
+            'clients': len(clients_real),  # real OUI clients
+            'clients_all_unicast': len(clients_all),  # including virtual MACs
+            'client_breakdown': {
+                'total_oui_devices': len(clients_real),
+                'low_activity_le5frames': int(real_clients_by_activity['low_activity']),
+                'medium_activity_6to50frames': int(real_clients_by_activity['medium_activity']),
+                'actively_connected_gt50frames': int(real_clients_by_activity['actively_connected']),
+            },
             'avg_signal_dbm': round(float(sig_vals.mean()), 1) if len(sig_vals) else None,
         }
 
@@ -377,8 +445,11 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
         sig_vals = grp.loc[grp['signal_dbm'] < 0, 'signal_dbm']
         # Determine role: AP if same address appears as bssid
         role = 'AP' if addr in df['bssid'].dropna().values else 'client'
+        # Check if this is a real OUI or virtual MAC
+        is_real_oui = is_globally_administered(addr.lower())
         client_stats[addr] = {
             'role': role,
+            'is_real_oui': is_real_oui,  # True if globally-administered, False if virtual
             'frames_tx': int(len(grp)),
             'bytes_tx': int(grp['length'].sum()),
             'data_frames': int(len(tx_data)),
@@ -434,6 +505,7 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
         'ack_count': int(n_ack),
         'rts_per_data_frame': round(rts_per_data, 4),
         'cts_rts_ratio': round(cts_rts_ratio, 3),
+        'rts_cts_overhead_pct': round(rts_cts_overhead_pct, 2),
         'block_ack_req': int(n_bar),
         'block_ack': int(n_ba),
         'ps_poll_count': int(n_pspoll),
@@ -1163,10 +1235,16 @@ def save_html(overall: Dict, windows: List[Dict], path: str,
     for bssid, b in sorted(
         overall.get('bssid_stats', {}).items(), key=lambda x: -x[1]['frames']
     ):
+        breakdown = b.get('client_breakdown', {})
+        actively = breakdown.get('actively_connected_gt50frames', 0)
+        medium = breakdown.get('medium_activity_6to50frames', 0)
+        low = breakdown.get('low_activity_le5frames', 0)
         bssid_rows += (
             f"<tr><td>{_esc(bssid)}</td><td>{_esc(b.get('ssid'))}</td>"
             f"<td>{b['frames']:,}</td><td>{b['bytes']:,}</td>"
             f"<td>{b['clients']}</td>"
+            f"<td title='Actively connected (>50 frames) / Medium (6-50) / Low (≤5)'>"
+            f"{actively} / {medium} / {low}</td>"
             f"<td>{_esc(b.get('avg_signal_dbm'))} dBm</td></tr>\n"
         )
 
@@ -1448,8 +1526,8 @@ def save_html(overall: Dict, windows: List[Dict], path: str,
 
 <h2>BSSIDs (APs on Channel)</h2>
 <table>
-  <tr><th>BSSID</th><th>SSID</th><th>Frames</th><th>Bytes</th><th>Clients</th><th>Avg Signal</th></tr>
-  {bssid_rows or '<tr><td colspan="6" style="color:var(--dim)">No BSSIDs detected</td></tr>'}
+  <tr><th>BSSID</th><th>SSID</th><th>Frames</th><th>Bytes</th><th>Total Clients</th><th>Activity Breakdown<br/>(Active/Medium/Low)</th><th>Avg Signal</th></tr>
+  {bssid_rows or '<tr><td colspan="7" style="color:var(--dim)">No BSSIDs detected</td></tr>'}
 </table>
 
 <h2>Client Summary (top 50 by TX frames)</h2>
@@ -1517,6 +1595,48 @@ makeChart('chartNav',   {chart_nav},    '#d29922', 'NAV µs',         null);
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
+
+def run(pcap: str, channel: int = None, bssid: str = None, mac: str = None,
+        station: str = None, interval: float = 10.0, out_prefix: str = None,
+        output_dir: str = 'results') -> dict:
+    """Callable entry point — usable from workers without subprocess."""
+    if not out_prefix:
+        stem = Path(pcap).stem
+        ch_suffix = f"_ch{channel}" if channel else ""
+        out_prefix = str(Path(output_dir) / f"ch_monitor_{stem}{ch_suffix}")
+
+    raw = run_tshark_file(pcap, channel, bssid, mac)
+    source_name = Path(pcap).name
+    df = parse_output(raw)
+
+    if df.empty:
+        logger.warning("No frames matched the given filters.")
+        return {'error': 'No frames matched', 'json_path': None, 'html_path': None}
+
+    t_span = df['timestamp'].max() - df['timestamp'].min()
+    station_profile = None
+    station_windows = None
+    if station:
+        station_mac = station.lower()
+        station_profile = compute_station_profile(df, station_mac, t_span if t_span > 0 else 1.0)
+        station_windows = compute_station_windows(df, station_mac, interval)
+
+    windows = compute_windows(df, interval)
+    overall = compute_stats(df, t_span if t_span > 0 else 1.0)
+    overall['window_start'] = datetime.fromtimestamp(
+        df['timestamp'].min(), tz=timezone.utc
+    ).strftime('%H:%M:%S')
+
+    out = Path(out_prefix)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    filters = {'channel': channel, 'bssid': bssid, 'mac': mac, 'station': station}
+    json_path = str(out) + '.json'
+    html_path = str(out) + '_report.html'
+    save_json(overall, windows, json_path, station_profile, station_windows)
+    save_html(overall, windows, html_path, source_name, filters, station_profile, station_windows)
+
+    return {'json_path': json_path, 'html_path': html_path, 'results': overall}
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(

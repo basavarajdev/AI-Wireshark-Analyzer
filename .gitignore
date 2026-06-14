@@ -1,14 +1,12 @@
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
-
-# Python Cache and Compiled Files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -29,36 +27,43 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# IDE and Editor
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-
-# Environment Variables
-.env
-.env.local
-.env.*.local
-
-# Logs and Runtime
-logs/
-*.log
-
-# Runtime Generated Data
-data/raw/*.pcap
-data/processed/
-results/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Windows NTFS Alternate Data Streams
-*:Zone.Identifier
+# Logs
+logs/
+*.log
+
+# Results and data
+results/
+data/raw/
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs
+build/
+dist/
+*.o
+*.a

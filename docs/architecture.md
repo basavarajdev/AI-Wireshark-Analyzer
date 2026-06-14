@@ -10,11 +10,15 @@ AI-Wireshark-Analyzer is a modular analysis platform for network packet captures
 └────────┬───────────────────────────────┬────────────────┘
          │                               │
          ▼ (PyShark path)                ▼ (tshark-native path)
-┌─────────────────┐             ┌────────────────────────┐
-│ Packet Parser   │             │ run_wlan_analysis.py   │
-│ packet_parser.py│             │ analyze_tcp_udp.py     │
-└────────┬────────┘             │ run_ipv6_analysis.py   │
-         │                      └──────────┬─────────────┘
+┌─────────────────┐             ┌────────────────────────────────┐
+│ Packet Parser   │             │ run_wlan_analysis.py           │
+│ packet_parser.py│             │ analyze_tcp_udp.py             │
+└────────┬────────┘             │ run_ipv6_analysis.py           │
+         │                      │ run_channel_monitor.py         │
+         │                      │   (--station spotlight)        │
+         │                      │ build_client_map_report.py     │
+         │                      │ build_combined_report.py       │
+         │                      └──────────┬─────────────────────┘
          │                                 │
          ▼                                 ▼
 ┌─────────────────┐             ┌────────────────────────┐
@@ -56,6 +60,14 @@ AI-Wireshark-Analyzer is a modular analysis platform for network packet captures
 - `scripts/run_wlan_analysis.py` — extracts 32 WLAN fields per packet directly via tshark subprocess
 - `scripts/analyze_tcp_udp.py` — extracts TCP/UDP analysis fields via targeted tshark display filters
 - `scripts/run_ipv6_analysis.py` — per-address IPv6 traffic analysis via targeted tshark queries
+- `scripts/run_channel_monitor.py` — extracts 19 radio/WLAN fields; supports `--station` spotlight with enhanced metrics:
+  - RTS/CTS overhead calculation (% of channel frames)
+  - Connection delay measurement (probe-response to auth frame)
+  - Scan cycle detection (group probe-reqs by >3s gaps)
+  - Accurate client counting (filters randomised/virtual MACs to real OUI devices only)
+  - Max NAV duration tracking with abuse flagging
+- `scripts/build_client_map_report.py` — post-processes per-channel JSON into client/network map HTML
+- `scripts/build_combined_report.py` — combines RF metrics + client map data into comprehensive dashboard
 - No PyShark overhead; suitable for large captures
 
 ### 2. Data Processing Layer
@@ -109,6 +121,13 @@ Each analyzer exposes `analyze(pcap_file) -> dict` with `total_packets`, `critic
 - High retry rate (data frames only)
 - Power-save scan pattern detection
 - Per-client connection flow reconstruction + diagnosis
+- **NEW Enhanced Metrics**:
+  - RTS/CTS overhead calculation: `(RTS + CTS) / total_frames × 100`
+  - Hidden-node indicator: CTS reply rate = `CTS_count / RTS_count`
+  - Connection delay: time from first probe-response to first auth frame (seconds)
+  - Scan cycle detection: grouping probe-requests by >3s gaps to count contiguous scan cycles
+  - Maximum NAV duration (µs) tracking with abuse flagging (>32 ms)
+  - Accurate connected client count: filters randomised/virtual MACs (IEEE bit 1 set) to real OUI devices
 
 **DHCP Analyzer** (`dhcp_analyzer.py`):
 - DHCP starvation / exhaustion
@@ -173,6 +192,36 @@ Each analyzer exposes `analyze(pcap_file) -> dict` with `total_packets`, `critic
 - Generates JSON results + self-contained HTML report
 - Usage: `python3 scripts/run_ipv6_analysis.py <pcap> <ipv6_address>`
 
+**`run_channel_monitor.py`**:
+- Quantifies channel utilisation, throughput, retry rate, RTS/CTS overhead (% of channel), per-BSSID/client load
+- Optional `--station MAC`: dedicated station performance spotlight with enhanced metrics:
+  - **RTS/CTS overhead**: `(RTS + CTS) / total_frames × 100` — percentage of channel consumed by control handshakes
+  - **CTS reply rate**: `CTS_count / RTS_count` — hidden-node indicator (<100% suggests unheard RTS)
+  - **Connection delay**: time from first probe-response to first auth frame (seconds)
+  - **Scan cycles**: count of contiguous scan cycles (groups probe-requests by >3s gaps)
+  - **Max NAV duration**: maximum Duration/NAV field value (µs) with abuse flag if >32 ms
+  - **Accurate client count**: filters randomised/virtual MACs (IEEE bit 1 set) to real OUI devices
+  - TX/RX, retry vs channel avg, signal, airtime share, roaming, per-window trend charts
+- Supports pcap file replay and live monitor-mode interface
+- Outputs JSON + self-contained HTML with Chart.js trend graphs
+- Usage: `python3 scripts/run_channel_monitor.py --pcap <file> [--channel N] [--bssid MAC] [--mac MAC] [--station MAC] [--out PREFIX]`
+
+**`build_client_map_report.py`**:
+- Reads per-channel JSON data (accepts path as argument; integrated into GUI)
+- Detects virtual BSSID clusters (same OUI, sequential MACs ≤ 8 apart)
+- Maps multi-channel SSIDs and cross-channel client duplicates
+- Generates per-channel AP/client tables
+- CLI: `python3 scripts/build_client_map_report.py <client_network_map.json> [--output-dir DIR]`
+- GUI: **Channel & Network Map** panel → "Build Client Map" button
+
+**`build_combined_report.py`**:
+- Dynamically extracts RF metrics from per-channel monitor JSON outputs
+- Merges RF/channel quality metrics with client map data into a single dashboard
+- Channel health scoring (0–100), spark bars, issue badges per channel
+- Per-channel metric cards, AP table, and client table
+- CLI: `python3 scripts/build_combined_report.py <client_network_map.json> [--channel-jsons-dir DIR] [--output-dir DIR]`
+- GUI: **Channel & Network Map** panel → "Build Combined Report" button
+
 ### 5. Evaluation Layer
 
 #### Metrics (`src/evaluation/metrics.py`)
@@ -192,6 +241,12 @@ Each analyzer exposes `analyze(pcap_file) -> dict` with `total_packets`, `critic
 - `analyze_tcp_udp.py` contains its own inline HTML generator with timeline bar charts
 
 ### 7. Interface Layer
+
+#### Desktop GUI (`app/`)
+- PyQt6 application with sidebar navigation and tabbed analysis panels
+- Panels: WLAN, WPA Decrypt, Channel & Network Map, TCP/UDP, IPv6, Protocol, Anomaly
+- `BaseAnalysisPanel` pattern: subclass provides inputs, validation, params; `AnalysisWorker` runs in background thread
+- Channel & Network Map panel integrates: channel monitor, client map builder, and combined report builder
 
 #### REST API (`src/api/rest.py`)
 - FastAPI + Uvicorn
@@ -227,6 +282,16 @@ Each analyzer exposes `analyze(pcap_file) -> dict` with `total_packets`, `critic
 
 1. PCAP file → targeted tshark display-filter queries → metric dicts
 2. `generate_html()` (inline) → self-contained HTML with timeline charts
+
+### Channel Monitor / Survey Pipeline (tshark-native)
+
+1. PCAP file → tshark extraction (19 radio/WLAN fields) → pandas DataFrame
+2. Per-rolling-window stats: utilisation, throughput, retry rate, RTS/CTS, PHY distribution
+3. (Optional) `--station MAC` → `compute_station_profile()` + `compute_station_windows()` → station spotlight section
+4. JSON + self-contained HTML report written to `results/`
+5. `build_client_map_report.py` accepts `client_network_map.json` path → device cluster detection → `client_network_map.html`
+6. `build_combined_report.py` dynamically reads RF metrics from per-channel JSONs + client map data → channel health scores → `comprehensive_network_report.html`
+7. Both report builders are integrated into the GUI: **Channel & Network Map** panel → "Network Map & Combined Report" section
 
 ### IPv6 Analysis Pipeline (tshark-native)
 

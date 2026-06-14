@@ -673,6 +673,16 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
 
 # ─── entry point ─────────────────────────────────────────────────────────────
 
+def run(pcap_file: str, output_html: str = None, output_dir: str = 'results') -> dict:
+    """Callable entry point — usable from workers without subprocess."""
+    if not output_html:
+        output_html = str(Path(output_dir) / (Path(pcap_file).stem + "_tcp_udp_report.html"))
+    Path(output_html).parent.mkdir(parents=True, exist_ok=True)
+    analysis = analyse(pcap_file)
+    generate_html(pcap_file, analysis, output_html)
+    return {'html_path': output_html, 'results': analysis}
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python analyze_tcp_udp.py <pcap_file> [output.html]")

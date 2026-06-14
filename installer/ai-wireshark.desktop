@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=AI-Wireshark Analyzer
+Comment=AI-powered network packet analysis tool
+Exec=ai-wireshark-gui
+Icon=ai-wireshark
+Terminal=false
+Type=Application
+Categories=Network;Security;Development;
+MimeType=application/vnd.tcpdump.pcap;application/x-pcapng;
+Keywords=wireshark;pcap;network;packet;analysis;
+StartupNotify=true

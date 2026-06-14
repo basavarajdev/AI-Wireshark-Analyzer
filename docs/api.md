@@ -259,6 +259,47 @@ python3 scripts/run_wlan_analysis.py capture.pcapng
 python3 scripts/run_wlan_analysis.py capture.pcapng c8:5a:cf:66:2e:1e
 ```
 
+#### WLAN Channel Monitor (NEW Enhanced Metrics)
+
+```bash
+python3 scripts/run_channel_monitor.py --pcap <pcap_file> [OPTIONS]
+```
+
+**Options:**
+- `--pcap, -r`: Input PCAP/PCAPNG file (required for file mode)
+- `--iface, -i`: Live capture interface in monitor mode (e.g. `wlan0mon`)
+- `--channel, -c`: Channel number to monitor (1–165)
+- `--station, -s`: Station MAC address for spotlight profile (NEW: includes RTS/CTS overhead, connection delay, scan cycles, accurate client count)
+- `--bssid, -b`: BSSID to filter (optional)
+- `--mac, -m`: Client MAC to filter (optional)
+- `--out, -o`: Output prefix for JSON/HTML files (default: `results/channel_monitor`)
+- `--quiet, -q`: Suppress terminal output
+- `--duration, -d`: Live capture duration in seconds (default: 300)
+
+**Examples:**
+```bash
+# Analyze a pcap file on channel 9
+python3 scripts/run_channel_monitor.py --pcap capture.pcapng --channel 9
+
+# Station spotlight with all enhanced metrics
+python3 scripts/run_channel_monitor.py \
+  --pcap capture.pcapng --channel 9 \
+  --station f8:ed:fc:7d:97:6f \
+  --out results/station_profile
+
+# Live capture on wlan0mon for 120 seconds, channel 6
+python3 scripts/run_channel_monitor.py --iface wlan0mon --channel 6 --duration 120
+```
+
+**NEW Output Metrics** (in JSON + HTML report):
+- `rts_cts_overhead_pct`: RTS+CTS frames as % of total channel traffic
+- `cts_reply_rate`: CTS_count / RTS_count (hidden-node indicator)
+- `connection_delay_seconds`: Time from first probe-response to first auth frame
+- `scan_cycles`: Number of contiguous probe-request groups (separated by >3s gaps)
+- `max_nav_us`: Maximum NAV/Duration field value in microseconds
+- `connected_clients_oui_only`: Real devices (filters randomised MACs to OUI-assigned devices)
+- `randomised_macs_filtered`: Count of locally-administered (virtual) MACs excluded from client count
+
 ## Protocol Analyzers
 
 Each protocol has a dedicated analyzer that can be run standalone:

@@ -19,20 +19,44 @@ from src.protocols.wlan_analyzer import (
     FRAME_SUBTYPES, MGMT_SUBTYPES, CTRL_SUBTYPES, DATA_SUBTYPES, WLANAnalyzer,
 )
 
-PCAP_FILE   = sys.argv[1] if len(sys.argv) > 1 else None
-MAC_FILTER  = sys.argv[2] if len(sys.argv) > 2 else None   # e.g. "C8:5A:CF:FF:71:6B"
+# ─────────────────────────────────────────────────────────────────────────────
+# MAC address utilities
+# ─────────────────────────────────────────────────────────────────────────────
 
-if not PCAP_FILE:
-    print("Usage: python scripts/run_wlan_analysis.py <pcap_file> [mac_filter]")
-    sys.exit(1)
+def is_unicast(mac: str) -> bool:
+    """Check if MAC is unicast (first octet LSB = 0)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 1) == 0
+    except (ValueError, IndexError):
+        return False
 
-# Auto-generate output paths from the pcap filename
-_pcap_stem = Path(PCAP_FILE).stem
-if MAC_FILTER:
-    _mac_slug = MAC_FILTER.replace(':', '_')
-    _pcap_stem = f"{_pcap_stem}_mac_{_mac_slug}"
-OUTPUT_JSON = f"results/{_pcap_stem}.json"
-OUTPUT_HTML = f"results/{_pcap_stem}_report.html"
+
+def is_globally_administered(mac: str) -> bool:
+    """Check if MAC is globally administered / OUI-assigned (bit 1 = 0)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 2) == 0  # bit 1 = 0 means globally administered
+    except (ValueError, IndexError):
+        return False
+
+
+def is_multicast_or_broadcast(mac: str) -> bool:
+    """Check if MAC is multicast/broadcast (first octet LSB = 1)."""
+    if not mac or ':' not in mac:
+        return False
+    try:
+        first = int(mac.split(':')[0], 16)
+        return (first & 1) == 1
+    except (ValueError, IndexError):
+        return False
+
+
+# Module-level argv parsing only happens when run directly (guarded below)
 
 TSHARK_FIELDS = [
     "frame.time_epoch",
@@ -200,33 +224,37 @@ def parse_tshark_output(raw_output):
     return df
 
 
-def main():
-    raw = run_tshark(PCAP_FILE, mac_filter=MAC_FILTER)
+def run(pcap_file: str, mac_filter: str = None, output_dir: str = 'results') -> dict:
+    """Callable entry point — usable from workers without subprocess."""
+    _stem = Path(pcap_file).stem
+    if mac_filter:
+        _mac_slug = mac_filter.replace(':', '_')
+        _stem = f"{_stem}_mac_{_mac_slug}"
+    output_json = str(Path(output_dir) / f"{_stem}.json")
+    output_html = str(Path(output_dir) / f"{_stem}_report.html")
+
+    raw = run_tshark(pcap_file, mac_filter=mac_filter)
     df = parse_tshark_output(raw)
     logger.info(f"Parsed {len(df)} WLAN frames via tshark")
 
     if df.empty:
         logger.warning("No frames matched the filter — check the MAC address.")
-        sys.exit(0)
+        return {'error': 'No frames matched', 'json_path': None, 'html_path': None}
 
-    # Use the WLANAnalyzer for statistics, connection events, and threat detection
     analyzer = WLANAnalyzer()
-
     results = {
         "total_packets": len(df),
-        "mac_filter": MAC_FILTER,
+        "mac_filter": mac_filter,
         "statistics": analyzer._calculate_statistics(df),
         "connection_events": analyzer._analyze_connection_events(df),
         "threats": analyzer._detect_threats(df),
     }
 
-    # Save JSON
-    Path(OUTPUT_JSON).parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_JSON, 'w') as f:
+    Path(output_json).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_json, 'w') as f:
         json.dump(results, f, indent=2, default=str)
-    logger.info(f"JSON results saved to {OUTPUT_JSON}")
+    logger.info(f"JSON results saved to {output_json}")
 
-    # Generate HTML report
     try:
         from src.reports.html_generator import HTMLReportGenerator
         generator = HTMLReportGenerator()
@@ -234,23 +262,35 @@ def main():
             'total_packets': results['total_packets'],
             'protocol_analysis': {'wlan': results},
         }
-        proto_label = f"WLAN [MAC: {MAC_FILTER}]" if MAC_FILTER else "WLAN"
-        report_path = generator.generate_report(
+        proto_label = f"WLAN [MAC: {mac_filter}]" if mac_filter else "WLAN"
+        generator.generate_report(
             results=report_data,
-            pcap_file=PCAP_FILE,
-            output_file=OUTPUT_HTML,
+            pcap_file=pcap_file,
+            output_file=output_html,
             protocol=proto_label,
         )
-        logger.info(f"HTML report saved to {report_path}")
+        logger.info(f"HTML report saved to {output_html}")
     except Exception as e:
         logger.error(f"Failed to generate HTML report: {e}")
-        import traceback
-        traceback.print_exc()
+
+    return {'json_path': output_json, 'html_path': output_html, 'results': results}
+
+
+def main():
+    pcap_file = sys.argv[1] if len(sys.argv) > 1 else None
+    mac_filter = sys.argv[2] if len(sys.argv) > 2 else None
+    if not pcap_file:
+        print("Usage: python scripts/run_wlan_analysis.py <pcap_file> [mac_filter]")
+        sys.exit(1)
+    out = run(pcap_file, mac_filter)
+    results = out.get('results', {})
+    if not results:
+        sys.exit(0)
 
     # Print summary
     print("\n=== WLAN ANALYSIS SUMMARY ===")
-    if MAC_FILTER:
-        print(f"MAC Filter: {MAC_FILTER}")
+    if mac_filter:
+        print(f"MAC Filter: {mac_filter}")
     stats = results['statistics']
     print(f"Total frames: {stats.get('total_frames', 0)}")
     print(f"Management: {stats.get('management_frames', 0)}")

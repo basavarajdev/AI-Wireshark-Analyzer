@@ -17,20 +17,7 @@ from loguru import logger
 
 # ─── CLI arguments ───────────────────────────────────────────────────────────
 
-PCAP_FILE = sys.argv[1] if len(sys.argv) > 1 else None
-IPV6_ADDR = sys.argv[2] if len(sys.argv) > 2 else None
-
-if not PCAP_FILE or not IPV6_ADDR:
-    print("Usage: python scripts/run_ipv6_analysis.py <pcap_file> <ipv6_address>")
-    print("  Example: python scripts/run_ipv6_analysis.py capture.pcapng 2408:8a04:e001:0:faed:fcff:fefe:10c1")
-    sys.exit(1)
-
-# Clean up IPv6 address (strip filter prefix if user passes it)
-IPV6_ADDR = IPV6_ADDR.replace("ipv6.addr==", "").replace("ipv6.addr == ", "").strip()
-
-_addr_slug = IPV6_ADDR.replace(":", "_")
-OUTPUT_JSON = f"results/ipv6_{_addr_slug}.json"
-OUTPUT_HTML = f"results/ipv6_{_addr_slug}_report.html"
+# Module-level argv parsing only when run directly (guarded in main())
 
 # ─── tshark helpers ──────────────────────────────────────────────────────────
 
@@ -794,24 +781,28 @@ def generate_html_report(pcap: str, ipv6: str, results: dict, output_path: str):
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
-def main():
-    logger.info(f"Analyzing IPv6 traffic for {IPV6_ADDR} in {PCAP_FILE}")
+def run(pcap_file: str, ipv6_addr: str, output_dir: str = 'results') -> dict:
+    """Callable entry point — usable from workers without subprocess."""
+    ipv6_addr = ipv6_addr.replace("ipv6.addr==", "").replace("ipv6.addr == ", "").strip()
+    addr_slug = ipv6_addr.replace(":", "_")
+    output_json = str(Path(output_dir) / f"ipv6_{addr_slug}.json")
+    output_html = str(Path(output_dir) / f"ipv6_{addr_slug}_report.html")
 
-    overview = analyse_overview(PCAP_FILE, IPV6_ADDR)
+    logger.info(f"Analyzing IPv6 traffic for {ipv6_addr} in {pcap_file}")
+
+    overview = analyse_overview(pcap_file, ipv6_addr)
     if overview["total_packets"] == 0:
         logger.warning("No packets found for this IPv6 address.")
-        sys.exit(0)
+        return {'error': 'No packets found', 'json_path': None, 'html_path': None}
 
-    logger.info(f"Found {overview['total_packets']} packets, analyzing...")
-
-    tcp = analyse_tcp(PCAP_FILE, IPV6_ADDR)
-    udp = analyse_udp(PCAP_FILE, IPV6_ADDR)
-    icmpv6_data = analyse_icmpv6(PCAP_FILE, IPV6_ADDR)
+    tcp = analyse_tcp(pcap_file, ipv6_addr)
+    udp = analyse_udp(pcap_file, ipv6_addr)
+    icmpv6_data = analyse_icmpv6(pcap_file, ipv6_addr)
     issues = detect_issues(overview, tcp, udp, icmpv6_data)
 
     results = {
-        "target_ipv6": IPV6_ADDR,
-        "pcap_file": str(PCAP_FILE),
+        "target_ipv6": ipv6_addr,
+        "pcap_file": str(pcap_file),
         "overview": overview,
         "tcp": tcp,
         "udp": udp,
@@ -819,20 +810,36 @@ def main():
         "issues": issues,
     }
 
-    # Save JSON
-    Path(OUTPUT_JSON).parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_JSON, "w") as f:
+    Path(output_json).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_json, "w") as f:
         json.dump(results, f, indent=2, default=str)
-    logger.info(f"JSON results saved to {OUTPUT_JSON}")
+    logger.info(f"JSON results saved to {output_json}")
 
-    # Generate HTML
-    generate_html_report(PCAP_FILE, IPV6_ADDR, results, OUTPUT_HTML)
+    generate_html_report(pcap_file, ipv6_addr, results, output_html)
+    logger.info(f"HTML report saved to {output_html}")
+
+    return {'json_path': output_json, 'html_path': output_html, 'results': results}
+
+
+def main():
+    pcap_file = sys.argv[1] if len(sys.argv) > 1 else None
+    ipv6_addr = sys.argv[2] if len(sys.argv) > 2 else None
+    if not pcap_file or not ipv6_addr:
+        print("Usage: python scripts/run_ipv6_analysis.py <pcap_file> <ipv6_address>")
+        sys.exit(1)
+    out = run(pcap_file, ipv6_addr)
+    results = out.get('results', {})
+    overview = results.get('overview', {})
+    output_json = out.get('json_path', '')
+    output_html = out.get('html_path', '')
+    if not results:
+        sys.exit(0)
 
     # Console summary
     print(f"\n{'='*60}")
     print(f"  IPv6 ANALYSIS SUMMARY")
     print(f"{'='*60}")
-    print(f"  Target:   {IPV6_ADDR}")
+    print(f"  Target:   {ipv6_addr}")
     print(f"  Packets:  {overview['total_packets']:,}")
     print(f"  Duration: {round(overview.get('duration_seconds', 0)/3600, 1)} hours")
     print(f"  Data:     {round(overview.get('total_bytes', 0)/1024, 1)} KB")
@@ -841,6 +848,10 @@ def main():
     for proto, count in list(overview.get("protocol_distribution", {}).items())[:6]:
         print(f"    {proto:15s} {count:>6,} packets")
     print(f"{'─'*60}")
+    tcp = results.get('tcp', {})
+    udp = results.get('udp', {})
+    icmpv6_data = results.get('icmpv6', {})
+    issues = results.get('issues', [])
     print(f"  TCP:     {tcp.get('total_tcp_packets', 0)} packets | "
           f"{tcp.get('connections_to_host', 0)} inbound connections | "
           f"{tcp.get('rst_sent', 0) + tcp.get('rst_received', 0)} RSTs")
@@ -866,8 +877,8 @@ def main():
         print("  No significant issues detected.")
 
     print(f"{'='*60}")
-    print(f"  Reports: {OUTPUT_JSON}")
-    print(f"           {OUTPUT_HTML}")
+    print(f"  Reports: {output_json}")
+    print(f"           {output_html}")
     print(f"{'='*60}")
 
 
