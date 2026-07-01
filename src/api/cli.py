@@ -150,7 +150,7 @@ def analyze(input, protocol, display_filter, visualize, output_dir):
         console.print(f"[red]✗[/red] HTML report generation failed: {e}")
 
 
-def _run_protocol_analysis(pcap_file: str, protocol: str, display_filter: str = None):
+def _run_protocol_analysis(pcap_file: str, protocol: str, display_filter: str = None, ip_filter: str = None, port_filter: str = None):
     """Run protocol-specific analysis"""
     analyzers = {
         'tcp': TCPAnalyzer,
@@ -164,7 +164,7 @@ def _run_protocol_analysis(pcap_file: str, protocol: str, display_filter: str = 
     
     if protocol in analyzers:
         analyzer = analyzers[protocol]()
-        return analyzer.analyze(pcap_file, display_filter=display_filter)
+        return analyzer.analyze(pcap_file, display_filter=display_filter, ip_filter=ip_filter, port_filter=port_filter)
     
     return {"error": f"Unsupported protocol: {protocol}"}
 

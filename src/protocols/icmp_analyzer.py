@@ -30,11 +30,18 @@ class ICMPAnalyzer:
         self.parser = PacketParser(config_path)
         self.cleaner = DataCleaner()
     
-    def analyze(self, pcap_file: str, display_filter: str = None) -> Dict:
+    def analyze(self, pcap_file: str, display_filter: str = None, ip_filter: str = None, port_filter: str = None) -> Dict:
         """Analyze ICMP traffic from PCAP file"""
         logger.info(f"Analyzing ICMP traffic in {pcap_file}")
         
-        proto_filter = f'icmp && ({display_filter})' if display_filter else 'icmp'
+        # Build comprehensive filter
+        filters = ['icmp']
+        if display_filter:
+            filters.append(f'({display_filter})')
+        if ip_filter:
+            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+        
+        proto_filter = ' && '.join(filters)
         df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
         
         if df.empty:

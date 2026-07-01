@@ -54,7 +54,7 @@ import math
 import re
 import subprocess
 import sys
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -93,6 +93,10 @@ PHY_NAME = {
     4: '802.11n', 5: '802.11ac', 6: '802.11ax', 7: '802.11ad',
     8: '802.11ah',
 }
+
+# WiFi Direct / P2P SSID identification patterns
+# Matches HP printers (DIRECT-XX-HP ...), Android P2P (DIRECT-XX), and HP setup SSIDs
+WIFI_DIRECT_SSID_PATTERNS = ('DIRECT-', 'DIRECT_', 'HP-Print-', 'HP=Setup', 'HP-Setup>')
 
 # Overload thresholds
 THRESH_UTIL_PCT   = 80.0    # channel utilisation %
@@ -422,6 +426,7 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
                 real_clients_by_activity['actively_connected'] += 1
         
         sig_vals = grp.loc[grp['signal_dbm'] < 0, 'signal_dbm']
+        is_wifi_direct = bool(ssid and any(p in ssid for p in WIFI_DIRECT_SSID_PATTERNS))
         bssid_stats[bssid] = {
             'ssid': ssid,
             'frames': int(len(grp)),
@@ -435,29 +440,46 @@ def compute_stats(df: pd.DataFrame, window_sec: float) -> Dict:
                 'actively_connected_gt50frames': int(real_clients_by_activity['actively_connected']),
             },
             'avg_signal_dbm': round(float(sig_vals.mean()), 1) if len(sig_vals) else None,
+            'is_wifi_direct': is_wifi_direct,
+            'ap_type': 'wifi_direct' if is_wifi_direct else 'regular',
         }
 
     # --- Per-client stats ---
     client_stats: Dict[str, Dict] = {}
+    all_bssid_macs = set(bssid_stats.keys())  # use bssid_stats for precise AP identification
     # Only stations (not AP BSSIDs appearing as TA for control frames)
     for addr, grp in df[df['sa'].notna()].groupby('sa'):
         tx_data = grp[grp['type_subtype'].isin(DATA_SET)]
+        tx_mgmt = grp[grp['type_subtype'].isin(MGMT_SET)]
         sig_vals = grp.loc[grp['signal_dbm'] < 0, 'signal_dbm']
-        # Determine role: AP if same address appears as bssid
-        role = 'AP' if addr in df['bssid'].dropna().values else 'client'
+        # Determine role: AP if same address appears in bssid_stats (beaconing AP)
+        is_ap = addr in all_bssid_macs
+        role = 'AP' if is_ap else 'STA'
+        # Associated BSSIDs — maps each AP this STA communicated with to frame count + SSID
+        assoc_bssids: Dict[str, Dict] = {}
+        if not is_ap:
+            for bssid_val, bgrp in grp[grp['bssid'].notna()].groupby('bssid'):
+                ssid_v = bgrp.loc[bgrp['ssid'].notna(), 'ssid']
+                assoc_bssids[bssid_val] = {
+                    'ssid': ssid_v.mode()[0] if len(ssid_v) else None,
+                    'frames': int(len(bgrp)),
+                }
         # Check if this is a real OUI or virtual MAC
         is_real_oui = is_globally_administered(addr.lower())
         client_stats[addr] = {
             'role': role,
             'is_real_oui': is_real_oui,  # True if globally-administered, False if virtual
             'frames_tx': int(len(grp)),
+            'total_frames': int(len(grp)),   # alias for frames_tx
             'bytes_tx': int(grp['length'].sum()),
             'data_frames': int(len(tx_data)),
+            'mgmt_frames': int(len(tx_mgmt)),
             'retry_count': int(tx_data['retry'].sum()),
             'retry_rate': round(float(tx_data['retry'].sum() / len(tx_data)), 3)
                           if len(tx_data) > 0 else 0.0,
             'avg_signal_dbm': round(float(sig_vals.mean()), 1) if len(sig_vals) else None,
             'ps_mode': int(grp['pwrmgt'].sum()) > 0,
+            'associated_bssids': assoc_bssids,
         }
 
     # --- Overload flags ---
@@ -853,9 +875,10 @@ def print_window(s: Dict, window_idx: int, top_n: int = 10) -> None:
             ssid = b['ssid'] or ''
             sig_str = (f"{b['avg_signal_dbm']} dBm"
                        if b['avg_signal_dbm'] is not None else '  —  ')
+            wd_tag = f"  {YEL}[WiFi-Direct]{RST}" if b.get('is_wifi_direct') else ""
             print(f"    {DIM}{bssid}{RST}  {BOLD}{ssid:<22}{RST}  "
                   f"frames {b['frames']:>5}  bytes {b['bytes']:>8,}  "
-                  f"clients {b['clients']:>3}  sig {sig_str}")
+                  f"clients {b['clients']:>3}  sig {sig_str}{wd_tag}")
 
     # Top-N clients by TX frames
     clients_sorted = sorted(
@@ -871,9 +894,10 @@ def print_window(s: Dict, window_idx: int, top_n: int = 10) -> None:
             sig_str = (f"{c['avg_signal_dbm']} dBm"
                        if c['avg_signal_dbm'] is not None else '—')
             ps_tag = f" {DIM}[PS]{RST}" if c['ps_mode'] else ''
-            role_tag = f" {CYN}[AP]{RST}" if c['role'] == 'AP' else ''
+            role_tag = f" {CYN}[AP]{RST}" if c['role'] == 'AP' else f" {GRN}[STA]{RST}"
+            mgmt_str = f"  mgmt {c.get('mgmt_frames', 0):>4}" if c['role'] != 'AP' else ""
             print(f"    {DIM}{addr}{RST}{role_tag}{ps_tag}  "
-                  f"tx {c['frames_tx']:>5}  data {c['data_frames']:>5}  "
+                  f"tx {c['frames_tx']:>5}  data {c['data_frames']:>5}{mgmt_str}  "
                   f"retry {rr_str}  sig {sig_str}")
 
     # Overload flags
@@ -1593,13 +1617,55 @@ makeChart('chartNav',   {chart_nav},    '#d29922', 'NAV µs',         null);
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Channel auto-detection
+# ─────────────────────────────────────────────────────────────────────────────
+
+def detect_channel_from_pcap(pcap: str) -> Optional[int]:
+    """Quick tshark pass to find the most common wlan_radio.channel in the capture.
+
+    Returns the dominant channel number, or None if the metadata is absent.
+    """
+    cmd = [
+        "tshark", "-r", pcap, "-Y", "wlan",
+        "-T", "fields", "-e", "wlan_radio.channel",
+        "-E", "header=n",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return None
+    channels = []
+    for line in proc.stdout.strip().split('\n'):
+        val = line.strip()
+        if val.isdigit():
+            channels.append(int(val))
+    if not channels:
+        return None
+    dominant, _ = Counter(channels).most_common(1)[0]
+    return dominant
+
+
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run(pcap: str, channel: int = None, bssid: str = None, mac: str = None,
         station: str = None, interval: float = 10.0, out_prefix: str = None,
         output_dir: str = 'results') -> dict:
-    """Callable entry point — usable from workers without subprocess."""
+    """Callable entry point — usable from workers without subprocess.
+
+    When *channel* is None the dominant channel is auto-detected from the
+    capture's wlan_radio.channel metadata before running the analysis.
+    """
+    # Auto-detect channel when not supplied
+    if channel is None:
+        detected = detect_channel_from_pcap(pcap)
+        if detected is not None:
+            channel = detected
+            logger.info(
+                f"Auto-detected channel {channel} from {Path(pcap).name}"
+            )
+
     if not out_prefix:
         stem = Path(pcap).stem
         ch_suffix = f"_ch{channel}" if channel else ""

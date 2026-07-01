@@ -2,360 +2,600 @@
 
 ## System Design
 
-AI-Wireshark-Analyzer is a modular analysis platform for network packet captures. The architecture follows a pipeline design with clear separation of concerns, supporting both tshark-native bulk extraction (for WLAN and TCP/UDP scripts) and PyShark-based structured parsing (for protocol analyzers and the ML pipeline).
+AI-Wireshark-Analyzer is a modular network analysis platform built in Python 3.12. It supports two parallel ingestion paths — **tshark-native** (high-performance subprocess extraction used by all GUI panels and CLI scripts) and **PyShark-based** structured parsing (used by the ML pipeline and protocol analyzers). All analysis is local; no data leaves the machine.
+
+**Version:** 1.5.0  
+**Stack:** Python 3.12 · PyQt6 · tshark · scikit-learn · TensorFlow (optional) · FastAPI · pandas · loguru · PyYAML
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  PCAP / PCAPNG Input                                    │
-└────────┬───────────────────────────────┬────────────────┘
-         │                               │
-         ▼ (PyShark path)                ▼ (tshark-native path)
-┌─────────────────┐             ┌────────────────────────────────┐
-│ Packet Parser   │             │ run_wlan_analysis.py           │
-│ packet_parser.py│             │ analyze_tcp_udp.py             │
-└────────┬────────┘             │ run_ipv6_analysis.py           │
-         │                      │ run_channel_monitor.py         │
-         │                      │   (--station spotlight)        │
-         │                      │ build_client_map_report.py     │
-         │                      │ build_combined_report.py       │
-         │                      └──────────┬─────────────────────┘
-         │                                 │
-         ▼                                 ▼
-┌─────────────────┐             ┌────────────────────────┐
-│ Data Cleaning   │             │ WLANAnalyzer /         │
-│ Feature Eng.    │             │ TCP/UDP Analyser        │
-└────────┬────────┘             └──────────┬─────────────┘
-         │                                 │
-         ├──────────────────────┐          │
-         ▼                      ▼          ▼
-┌────────────────┐   ┌──────────────┐  ┌─────────────────┐
-│   Protocol     │   │   Anomaly    │  │  HTML Generator │
-│   Analyzers    │   │  Detection   │  │  (inline/shared)│
-│  TCP, UDP,     │   │  Isolation   │  └─────────────────┘
-│  DNS, HTTP,    │   │  Forest /    │
-│  HTTPS, ICMP,  │   │  Autoencoder │
-│  DHCP, WLAN    │   └──────┬───────┘
-└───────┬────────┘          │
-        └──────────┬─────────┘
-                   ▼
-          ┌─────────────────┐
-          │ Results & Viz   │
-          └─────────────────┘
-          ▼         ▼       ▼
-        REST       CLI    HTML
-         API      Tool   Report
+┌──────────────────────────────────────────────────────────────────────┐
+│                        PCAP / PCAPNG Input                           │
+└──────────────┬───────────────────────────────────┬───────────────────┘
+               │                                   │
+               ▼  PyShark path                     ▼  tshark-native path
+   ┌───────────────────────┐           ┌───────────────────────────────┐
+   │   PacketParser        │           │  Analysis Scripts             │
+   │   packet_parser.py    │           │  ─────────────────────────    │
+   │   ─ PyShark parsing   │           │  run_wlan_analysis.py         │
+   │   ─ pandas DataFrame  │           │  analyze_tcp_udp.py           │
+   └───────────┬───────────┘           │  run_ipv6_analysis.py         │
+               │                       │  run_channel_monitor.py       │
+               ▼                       │  build_client_map_report.py   │
+   ┌───────────────────────┐           │  build_combined_report.py     │
+   │   DataCleaner         │           └───────────────┬───────────────┘
+   │   FeatureEngineer     │                           │
+   │   (50+ features)      │                           ▼
+   └───────────┬───────────┘           ┌───────────────────────────────┐
+               │                       │  Protocol / RF Analyzers      │
+               ├──────────┐            │  ─────────────────────────    │
+               ▼          ▼            │  WLANAnalyzer                 │
+   ┌──────────────┐  ┌──────────────┐  │  TCP/UDP Analyzer             │
+   │  Protocol    │  │  ML Models   │  │  IPv6 Analyzer                │
+   │  Analyzers   │  │  ──────────  │  └───────────────┬───────────────┘
+   │  TCP, UDP    │  │  Isolation   │                  │
+   │  DNS, HTTP   │  │  Forest      │                  │
+   │  HTTPS, ICMP │  │  Autoencoder │                  │
+   │  DHCP, WLAN  │  │  (optional)  │                  │
+   └──────┬───────┘  └──────┬───────┘                  │
+          └────────┬─────────┘                          │
+                   ▼                                    ▼
+         ┌─────────────────────┐          ┌─────────────────────────┐
+         │  HTMLReportGenerator│          │  Inline HTML generators  │
+         │  html_generator.py  │          │  (analyze_tcp_udp.py,   │
+         │  - severity badges  │          │   run_channel_monitor)  │
+         │  - remediation tips │          └─────────────────────────┘
+         │  - Base64 charts    │
+         └──────────┬──────────┘
+                    │
+        ┌───────────┴───────────────┐
+        ▼           ▼               ▼
+  ┌──────────┐ ┌─────────┐  ┌────────────┐
+  │ REST API │ │   CLI   │  │ Desktop GUI│
+  │ FastAPI  │ │ Click + │  │  PyQt6     │
+  │ /analyze │ │ Rich    │  │  9 panels  │
+  └──────────┘ └─────────┘  └────────────┘
+        │           │               │
+        └───────────┴───────────────┘
+                    ▼
+              results/   (HTML + JSON)
 ```
 
-## Components
+---
 
-### 1. Data Ingestion Layer
+## Layer-by-Layer Breakdown
+
+### 1. Ingestion Layer
+
+Two parallel paths feed data into the system. The choice of path depends on the analysis type:
+
+| Path | Used by | Why |
+|---|---|---|
+| **tshark-native** | All GUI panels, all CLI scripts | Zero PyShark overhead; supports large captures; bulk field extraction via subprocess |
+| **PyShark** | ML pipeline, `src/protocols/` analyzers, REST API | Structured per-packet object model; integrates with pandas for feature engineering |
 
 #### PacketParser (`src/parsers/packet_parser.py`)
-- Reads PCAP/PCAPNG files using PyShark
-- Extracts per-packet fields into a pandas DataFrame
-- Supports protocol filtering and flow aggregation
-- Used by the ML pipeline and `src/protocols/` analyzers
 
-#### tshark Bulk Extraction (scripts)
-- `scripts/run_wlan_analysis.py` — extracts 32 WLAN fields per packet directly via tshark subprocess
-- `scripts/analyze_tcp_udp.py` — extracts TCP/UDP analysis fields via targeted tshark display filters
-- `scripts/run_ipv6_analysis.py` — per-address IPv6 traffic analysis via targeted tshark queries
-- `scripts/run_channel_monitor.py` — extracts 19 radio/WLAN fields; supports `--station` spotlight with enhanced metrics:
-  - RTS/CTS overhead calculation (% of channel frames)
-  - Connection delay measurement (probe-response to auth frame)
-  - Scan cycle detection (group probe-reqs by >3s gaps)
-  - Accurate client counting (filters randomised/virtual MACs to real OUI devices only)
-  - Max NAV duration tracking with abuse flagging
-- `scripts/build_client_map_report.py` — post-processes per-channel JSON into client/network map HTML
-- `scripts/build_combined_report.py` — combines RF metrics + client map data into comprehensive dashboard
-- No PyShark overhead; suitable for large captures
+```python
+parser = PacketParser()
+df = parser.parse_pcap('capture.pcap')            # → raw DataFrame
+flow_df = parser.extract_flow_features(df, window=60)  # → flow-aggregated DataFrame
+```
+
+- Reads PCAP/PCAPNG via PyShark
+- Extracts: protocol, length, src/dst IP, src/dst port, TCP flags, TTL, window size, timestamp, ICMP type
+- Produces a pandas DataFrame used by `DataCleaner` → `FeatureEngineer` → ML models
+
+#### tshark Bulk Extraction (scripts path)
+
+Each script calls tshark via subprocess with a specific `-T fields` field list and optional display filter:
+
+| Script | tshark fields extracted | Purpose |
+|---|---|---|
+| `run_wlan_analysis.py` | 33 WLAN fields (frame type, subtype, SA, DA, TA, RA, BSSID, reason/status codes, RSSI, retry bit, EAPOL fields, SAE fields, CCMP PN (wlan.ccmp.extiv) …) | Full 802.11 diagnostics |
+| `analyze_tcp_udp.py` | TCP flags, seq/ack, window size, delta time, stream index | TCP/UDP health metrics |
+| `run_ipv6_analysis.py` | IPv6 src/dst, next header, ICMPv6 type, TCP/UDP ports | Per-address IPv6 analysis |
+| `run_channel_monitor.py` | 19 radio + WLAN fields (channel, data rate, signal dBm, retry bit, frame type, duration, RTS/CTS, BSSID, SA, DA) | RF channel metrics |
+
+---
 
 ### 2. Data Processing Layer
 
+Only used in the PyShark / ML path.
+
 #### DataCleaner (`src/preprocessing/cleaning.py`)
-- Removes duplicates
-- Handles missing / malformed values
-- Validates numeric ranges
-- Filters by protocol or time range
+
+```python
+cleaner = DataCleaner()
+df = cleaner.clean(df)
+```
+
+- Drops duplicate packets
+- Fills or drops missing/malformed values
+- Validates numeric ranges (ports 0–65535, TTL 0–255, etc.)
+- Supports optional time-range and protocol filtering
 
 #### FeatureEngineer (`src/preprocessing/feature_engineering.py`)
-- IP-based features (private/public, subnets)
-- Port-based features (privileged/ephemeral)
-- Protocol features (TCP flag decomposition, ICMP types)
-- Statistical features (sizes, rates)
-- Time-based features (business hours, inter-arrival times)
-- DNS-specific features (entropy, subdomain depth)
-- HTTP-specific features (URI analysis, suspicious patterns)
+
+```python
+engineer = FeatureEngineer()
+df_features = engineer.engineer_features(df)   # → 50+ feature columns
+X = engineer.get_ml_features(df_features)       # → numeric-only ML matrix
+```
+
+Feature categories produced:
+
+| Category | Examples |
+|---|---|
+| IP-based | `is_private_src`, `same_subnet`, `ip_class` |
+| Port-based | `is_privileged_src`, `is_ephemeral_dst`, `port_ratio` |
+| Protocol | TCP flag decomposition (`syn`, `ack`, `fin`, `rst`), ICMP type/code |
+| Statistical | `packet_size_zscore`, `bytes_per_second`, `inter_arrival_mean` |
+| Time-based | `is_business_hours`, `hour_of_day`, `day_of_week` |
+| DNS-specific | `domain_entropy`, `subdomain_depth`, `query_length` |
+| HTTP-specific | `has_sql_keywords`, `uri_depth`, `suspicious_ua` |
+
+---
 
 ### 3. Analysis Layer
 
 #### Protocol Analyzers (`src/protocols/`)
 
-Each analyzer exposes `analyze(pcap_file) -> dict` with `total_packets`, `critical_issues`, `statistics`, and `threats`.
+Uniform interface across all analyzers:
 
-**TCP Analyzer** (`tcp_analyzer.py`):
-- SYN flood detection (rate-based; guard logic corrected)
-- RST storm identification
-- Port scanning detection (port diversity)
-- Excessive retransmissions
-- Connection hijacking (sequence number anomalies)
-- Zero-window / window-full stall detection
-- Data transmission gap detection
+```python
+analyzer = TCPAnalyzer()
+results = analyzer.analyze(pcap_file, display_filter=None)
+# Returns: {total_packets, critical_issues, statistics, threats: [{type, severity, evidence, count}]}
+```
 
-**UDP Analyzer** (`udp_analyzer.py`):
-- Flood attack detection (packet rate)
-- Amplification attack detection (service abuse)
-- Port scanning
-- Fragmentation attacks
+| Analyzer | Key detections |
+|---|---|
+| `tcp_analyzer.py` | SYN flood, RST storm, port scan, excessive retransmissions, connection hijacking (seq anomalies), zero-window stalls, data gaps |
+| `udp_analyzer.py` | UDP flood, amplification (response/request size ratio), port scan, fragmentation attacks |
+| `wlan_analyzer.py` | 40+ IEEE 802.11 reason/status codes, EAPOL stalls, WPA3/SAE failures (anti-clogging, EC group mismatch, Status 30 AP state machine deadlock, stale PTK CCMP PN detection), beacon loss, high retry rate, power-save scans, unprotected data frames, RTS/CTS overhead, NAV abuse |
+| `dns_analyzer.py` | Tunneling (entropy + subdomain depth), DGA patterns, cache poisoning, NXDOMAIN flood, amplification |
+| `http_analyzer.py` | SQL injection, XSS, suspicious user agents, HTTP flood, directory traversal |
+| `https_analyzer.py` | TLS downgrade, cert anomalies, connection rate |
+| `icmp_analyzer.py` | ICMP flood, Ping of Death, Smurf, tunneling (payload analysis), network scanning |
+| `dhcp_analyzer.py` | Starvation/exhaustion, rogue DHCP server, lease anomalies |
 
-**WLAN Analyzer** (`wlan_analyzer.py`):
-- 802.11 connection failure detection with per-reason evidence (all 40+ IEEE reason/status codes)
-- EAPOL 4-way handshake stall detection (WPA2)
-- WPA3/SAE authentication failures: wrong-password loops, anti-clogging token, EC group mismatch, SAE Commit/Confirm tracking
-- WPA3-OWE detection
-- Beacon loss / AP disappearance detection
-- Probe request failures (no probe response)
-- Weak signal detection (RSSI/SNR)
-- Unprotected data frame detection (no encryption)
-- IP connectivity failure (multicast-only client pattern)
-- High retry rate (data frames only)
-- Power-save scan pattern detection
-- Per-client connection flow reconstruction + diagnosis
-- **NEW Enhanced Metrics**:
-  - RTS/CTS overhead calculation: `(RTS + CTS) / total_frames × 100`
-  - Hidden-node indicator: CTS reply rate = `CTS_count / RTS_count`
-  - Connection delay: time from first probe-response to first auth frame (seconds)
-  - Scan cycle detection: grouping probe-requests by >3s gaps to count contiguous scan cycles
-  - Maximum NAV duration (µs) tracking with abuse flagging (>32 ms)
-  - Accurate connected client count: filters randomised/virtual MACs (IEEE bit 1 set) to real OUI devices
+#### WPA Decryptor (`src/protocols/wlan_decryptor.py`)
 
-**DHCP Analyzer** (`dhcp_analyzer.py`):
-- DHCP starvation / exhaustion
-- Rogue DHCP server detection
-- Lease anomaly detection
+- Calls tshark with `-o wlan.enable_decryption:TRUE -o uat:80211_keys:"wpa-pwd,SSID:PASSWORD"` (or `wpa-psk:PMK`)
+- Supports WPA2 (4-way EAPOL) and WPA3-SAE (Commit/Confirm + EAPOL)
+- Post-decryption inner analysis: DNS queries, HTTP requests, IP endpoints, port summary
+- Validates handshake presence; reports security observations
 
-**DNS Analyzer** (`dns_analyzer.py`):
-- Tunneling detection (entropy, subdomain depth)
-- DGA detection (algorithmic domain patterns)
-- Cache poisoning indicators
-- Excessive NXDOMAIN rates, amplification attacks
+#### RF Channel Monitor (`src/protocols/wlan_rf_monitor.py`)
 
-**HTTP Analyzer** (`http_analyzer.py`):
-- SQL injection, XSS detection
-- Suspicious user agent identification
-- HTTP flood, directory traversal
+Core logic behind `run_channel_monitor.py`:
 
-**HTTPS Analyzer** (`https_analyzer.py`):
-- TLS downgrade detection
-- Certificate anomalies
-- Connection rate analysis
-
-**ICMP Analyzer** (`icmp_analyzer.py`):
-- ICMP flood, Ping of Death, Smurf attack detection
-- ICMP tunneling (payload analysis)
-- Network scanning
+- Extracts 19 radio+WLAN fields per frame into a pandas DataFrame
+- Computes per-rolling-window (default 10 s) metrics:
+  - `channel_utilization_pct` = active_time / window_duration × 100
+  - `throughput_mbps` = data_bytes × 8 / window_duration / 1e6
+  - `retry_rate_pct` = retry_frames / total_frames × 100
+  - `rts_cts_overhead_pct` = (RTS + CTS) / total_frames × 100
+  - `cts_reply_rate` = CTS_count / RTS_count (hidden-node indicator)
+- Station spotlight (`--station MAC`) adds:
+  - TX/RX throughput, per-window trend charts (Chart.js)
+  - Retry rate vs. channel average
+  - PHY mode distribution (802.11n/ac/ax)
+  - Roaming event detection (BSSID changes)
+  - `connection_delay_seconds` — time from first probe-response to first auth frame
+  - `scan_cycles` — probe-request groups separated by >3 s gaps
+  - `max_nav_us` — max NAV/Duration field (abuse flag if >32 000 µs)
+  - `connected_clients_oui_only` — real devices only (IEEE bit 1 = 0)
+  - `randomised_macs_filtered` — count of locally-administered MACs excluded
 
 #### ML Models (`src/core/model.py`)
 
-**Isolation Forest (Unsupervised Anomaly Detection):**
-- No labeled data required; contamination-based scoring
-- Fast training and inference
+```python
+# Isolation Forest (always available)
+detector = IsolationForestModel('config/default.yaml')
+detector.train(X)                        # or load from models/isolation_forest.pkl
+predictions = detector.predict(X)        # 1 = normal, -1 = anomaly
+scores = detector.score_samples(X)       # lower = more anomalous
 
-**Autoencoder (Deep Learning Anomaly Detection):**
-- Neural network reconstruction error
-- TensorFlow/Keras (gracefully disabled if not installed)
+# Autoencoder (requires TensorFlow)
+ae = AutoencoderModel('config/default.yaml')
+ae.train(X)
+recon_errors = ae.detect_anomalies(X)    # reconstruction error per sample
+ae.save('models/autoencoder.h5')
+```
 
-**Random Forest Classifier (Supervised):**
-- Multi-class attack type classification
-- Feature importance analysis
-- Requires labeled training data
+Model configuration from `config/default.yaml`:
 
-### 4. Analysis Scripts (`scripts/`)
+```yaml
+models:
+  isolation_forest:
+    n_estimators: 100
+    contamination: 0.1    # expected anomaly fraction
+    random_state: 42
 
-**`run_wlan_analysis.py`**:
-- Orchestrates tshark bulk extraction → `WLANAnalyzer` → `html_generator.py`
-- Outputs JSON results and self-contained HTML report
-- Optional MAC filter (2nd positional arg) restricts to a single client — matches SA, DA, TA, RA, BSSID
-- Usage: `python3 scripts/run_wlan_analysis.py <pcap> [mac]`
+  autoencoder:
+    encoding_dim: 32
+    epochs: 100
+    batch_size: 256
+    learning_rate: 0.001
+```
 
-**`analyze_tcp_udp.py`**:
-- Pure tshark subprocess analysis; no PyShark or pandas
-- Auto-detects application stream (port 9100/631/515)
-- Zero-window stall timeline, RST catalogue with burst detection, UDP flow analysis, QUIC detection
-- Generates self-contained HTML with embedded bar charts
-- Usage: `python3 scripts/analyze_tcp_udp.py <pcap> [out.html]`
+---
 
-**`run_ipv6_analysis.py`**:
-- Per-address IPv6 traffic analysis via targeted tshark queries
-- TCP connections, retransmissions, zero-window, RST events, port probes
-- UDP flows, SNMP community analysis, ICMPv6/NDP patterns
-- Generates JSON results + self-contained HTML report
-- Usage: `python3 scripts/run_ipv6_analysis.py <pcap> <ipv6_address>`
+### 4. Reporting Layer
 
-**`run_channel_monitor.py`**:
-- Quantifies channel utilisation, throughput, retry rate, RTS/CTS overhead (% of channel), per-BSSID/client load
-- Optional `--station MAC`: dedicated station performance spotlight with enhanced metrics:
-  - **RTS/CTS overhead**: `(RTS + CTS) / total_frames × 100` — percentage of channel consumed by control handshakes
-  - **CTS reply rate**: `CTS_count / RTS_count` — hidden-node indicator (<100% suggests unheard RTS)
-  - **Connection delay**: time from first probe-response to first auth frame (seconds)
-  - **Scan cycles**: count of contiguous scan cycles (groups probe-requests by >3s gaps)
-  - **Max NAV duration**: maximum Duration/NAV field value (µs) with abuse flag if >32 ms
-  - **Accurate client count**: filters randomised/virtual MACs (IEEE bit 1 set) to real OUI devices
-  - TX/RX, retry vs channel avg, signal, airtime share, roaming, per-window trend charts
-- Supports pcap file replay and live monitor-mode interface
-- Outputs JSON + self-contained HTML with Chart.js trend graphs
-- Usage: `python3 scripts/run_channel_monitor.py --pcap <file> [--channel N] [--bssid MAC] [--mac MAC] [--station MAC] [--out PREFIX]`
+#### HTMLReportGenerator (`src/reports/html_generator.py`)
 
-**`build_client_map_report.py`**:
-- Reads per-channel JSON data (accepts path as argument; integrated into GUI)
-- Detects virtual BSSID clusters (same OUI, sequential MACs ≤ 8 apart)
-- Maps multi-channel SSIDs and cross-channel client duplicates
-- Generates per-channel AP/client tables
-- CLI: `python3 scripts/build_client_map_report.py <client_network_map.json> [--output-dir DIR]`
-- GUI: **Channel & Network Map** panel → "Build Client Map" button
+Used by all `src/protocols/` analyzers and `run_wlan_analysis.py`:
 
-**`build_combined_report.py`**:
-- Dynamically extracts RF metrics from per-channel monitor JSON outputs
-- Merges RF/channel quality metrics with client map data into a single dashboard
-- Channel health scoring (0–100), spark bars, issue badges per channel
-- Per-channel metric cards, AP table, and client table
-- CLI: `python3 scripts/build_combined_report.py <client_network_map.json> [--channel-jsons-dir DIR] [--output-dir DIR]`
-- GUI: **Channel & Network Map** panel → "Build Combined Report" button
+```python
+generator = HTMLReportGenerator()
+path = generator.generate_report(
+    results=results,         # dict from analyzer.analyze()
+    pcap_file='capture.pcap',
+    output_file='results/report.html',
+    protocol='TCP',
+)
+```
 
-### 5. Evaluation Layer
+- Fully self-contained HTML (no external CDN/CSS)
+- Severity colour coding: `Critical` (red) / `High` (orange) / `Medium` (yellow) / `Low` (blue) / `Info` (grey)
+- Embedded Base64 matplotlib/seaborn charts
+- `REMEDIATION_GUIDE` — per-threat remediation steps keyed by threat name (covers 20+ threat types)
 
-#### Metrics (`src/evaluation/metrics.py`)
-- Accuracy, Precision, Recall, F1, Confusion matrix, ROC-AUC
+Inline HTML generators (used by tshark-native scripts):
+- `analyze_tcp_udp.py` — self-contained HTML with embedded SVG/bar timeline charts
+- `run_channel_monitor.py` — self-contained HTML with Chart.js trend graphs (inline JS, no CDN)
 
-#### Visualization (`src/evaluation/visualization.py`)
-- Protocol distribution, traffic timeline, anomaly score distributions
-- Confusion matrices, feature importance, packet size distributions
+---
 
-### 6. Reporting Layer (`src/reports/html_generator.py`)
-
-- Self-contained HTML reports (no external CSS/JS)
-- Severity badges: Critical / High / Medium / Low / Info
-- Embedded Base64 chart images
-- Remediation guidance (`REMEDIATION_GUIDE`) keyed by threat name
-- Used by all `src/protocols/` analyzers and `run_wlan_analysis.py`
-- `analyze_tcp_udp.py` contains its own inline HTML generator with timeline bar charts
-
-### 7. Interface Layer
+### 5. Interface Layer
 
 #### Desktop GUI (`app/`)
-- PyQt6 application with sidebar navigation and tabbed analysis panels
-- Panels: WLAN, WPA Decrypt, Channel & Network Map, TCP/UDP, IPv6, Protocol, Anomaly
-- `BaseAnalysisPanel` pattern: subclass provides inputs, validation, params; `AnalysisWorker` runs in background thread
-- Channel & Network Map panel integrates: channel monitor, client map builder, and combined report builder
+
+```
+app/
+├── main.py              Entry point; preflight checks (tshark, display, libxcb-cursor0)
+├── main_window.py       QMainWindow; sidebar + QStackedWidget panel router
+├── styles.py            Dark theme stylesheet (DARK_STYLESHEET constant)
+├── resources.py         get_resource_path() — resolves paths in dev + PyInstaller bundle
+├── workers.py           AnalysisWorker(QThread) — background task dispatcher
+└── panels/
+    ├── base_panel.py    BaseAnalysisPanel — common layout; calls AnalysisWorker
+    ├── wlan_panel.py    task="wlan"            → scripts.run_wlan_analysis.run()
+    ├── decrypt_panel.py task="decrypt"         → src.protocols.wlan_decryptor
+    ├── channel_panel.py task="channel_monitor" → scripts.run_channel_monitor.run()
+    │                    task="client_map"      → scripts.build_client_map_report.run()
+    │                    task="combined_report" → scripts.build_combined_report.run()
+    ├── tcp_udp_panel.py task="tcp_udp"         → scripts.analyze_tcp_udp.run()
+    ├── ipv6_panel.py    task="ipv6"            → scripts.run_ipv6_analysis.run()
+    ├── protocol_panel.py task="protocol"       → src.api.cli._run_protocol_analysis()
+    ├── anomaly_panel.py  task="anomaly"        → PacketParser → FeatureEngineer → IsolationForest/Autoencoder
+    ├── home_panel.py    Clickable feature cards; navigates sidebar
+    └── cli_info_panel.py In-app CLI command reference
+```
+
+**AnalysisWorker dispatch (`app/workers.py`):**
+
+```python
+worker = AnalysisWorker(task="wlan", params={"pcap": "/path/to/capture.pcap", "mac": None})
+worker.progress.connect(status_bar.showMessage)
+worker.finished.connect(panel.on_results)
+worker.error.connect(panel.on_error)
+worker.start()
+```
+
+Signal contract:
+- `progress(str)` — status message updates
+- `finished(dict)` — results dict containing `html_path`, `json_data`, `stdout`, `stderr`
+- `error(str)` — exception traceback as string
 
 #### REST API (`src/api/rest.py`)
-- FastAPI + Uvicorn
-- Endpoints: `/analyze`, `/detect-anomalies`, `/health`, `/models`, `/protocols`
-- File upload via multipart/form-data; temp file cleanup via BackgroundTasks
-- OpenAPI docs at `/docs` (Swagger) and `/redoc`
+
+```bash
+python src/api/rest.py        # starts on http://localhost:8000
+```
+
+Endpoints:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | Health check |
+| `GET` | `/health` | Health check with version |
+| `GET` | `/models` | List available ML models |
+| `GET` | `/protocols` | List supported protocols |
+| `POST` | `/analyze` | Upload PCAP + run protocol analysis |
+| `POST` | `/detect-anomalies` | Upload PCAP + run ML anomaly detection |
+
+Interactive docs: `http://localhost:8000/docs` (Swagger UI) · `http://localhost:8000/redoc`
 
 #### CLI (`src/api/cli.py`)
-- Click + Rich terminal formatting
-- Commands: `analyze`, `analyze-wlan`, `detect-anomalies`, `visualize`, `info`
-- `analyze` supports `-f` for Wireshark display filters (e.g. `ip.addr==`, `ip.src==`, `tcp.port==`)
-- `analyze-wlan` supports `-f` for WLAN display filters (e.g. `wlan.addr==`, `wlan.sa==`)
 
-## Data Flow
-
-### Analysis Pipeline (PyShark / ML path)
-
-1. PCAP file → `PacketParser.parse_pcap()` → raw DataFrame
-2. `DataCleaner.clean()` → cleaned DataFrame
-3. `FeatureEngineer.engineer_features()` → 50+ feature DataFrame
-4. `ProtocolAnalyzer.analyze()` → rule-based threat dict
-5. `IsolationForestModel.predict()` / `AutoencoderModel.detect_anomalies()` → anomaly scores
-6. Results → JSON / HTML report / API response
-
-### WLAN Analysis Pipeline (tshark-native)
-
-1. PCAP file + optional MAC filter → tshark bulk extraction (32 fields) → list of packet dicts
-2. MAC filter applied as tshark display filter: `wlan.sa == MAC || wlan.da == MAC || wlan.ta == MAC || wlan.ra == MAC || wlan.bssid == MAC`
-3. `WLANAnalyzer.analyze()` → connection flows + threat detection dicts
-4. `html_generator.py` → self-contained HTML report + JSON output
-
-### TCP/UDP Direct Analysis Pipeline (tshark-native)
-
-1. PCAP file → targeted tshark display-filter queries → metric dicts
-2. `generate_html()` (inline) → self-contained HTML with timeline charts
-
-### Channel Monitor / Survey Pipeline (tshark-native)
-
-1. PCAP file → tshark extraction (19 radio/WLAN fields) → pandas DataFrame
-2. Per-rolling-window stats: utilisation, throughput, retry rate, RTS/CTS, PHY distribution
-3. (Optional) `--station MAC` → `compute_station_profile()` + `compute_station_windows()` → station spotlight section
-4. JSON + self-contained HTML report written to `results/`
-5. `build_client_map_report.py` accepts `client_network_map.json` path → device cluster detection → `client_network_map.html`
-6. `build_combined_report.py` dynamically reads RF metrics from per-channel JSONs + client map data → channel health scores → `comprehensive_network_report.html`
-7. Both report builders are integrated into the GUI: **Channel & Network Map** panel → "Network Map & Combined Report" section
-
-### IPv6 Analysis Pipeline (tshark-native)
-
-1. PCAP file + IPv6 address → targeted tshark queries for TCP, UDP, ICMPv6, SNMP
-2. Per-protocol analysis: connections, retransmissions, RST events, port probes, NDP patterns
-3. Inline HTML generator renders report with charts
-4. JSON results + HTML report written to `results/`
-
-## Configuration
-
-All tunables in YAML files under `config/`:
-- `default.yaml` — production settings (thresholds, model params, visualization, API)
-- `dev.yaml` — development overrides
-
-## Storage
-
-```
-data/
-├── raw/          # PCAP/PCAPNG files
-├── processed/    # Feature CSVs
-└── external/     # Third-party datasets
-models/           # Trained ML models (.pkl, .h5)
-results/          # Analysis HTML reports and JSON outputs
-logs/             # Application logs
+```bash
+python -m src.api.cli [COMMAND] [OPTIONS]
 ```
 
-## Security Considerations
+| Command | Key options |
+|---|---|
+| `analyze` | `-i FILE` `-p PROTOCOL` `-f DISPLAY_FILTER` `-v` `--output-dir` |
+| `analyze-wlan` | `-i FILE` `-f WLAN_FILTER` |
+| `detect-anomalies` | `-i FILE` `-m MODEL` `-o OUTPUT_JSON` |
+| `visualize` | `-i FILE` `-o OUTPUT_DIR` |
+| `info` | (no options) — lists protocols and models |
 
-1. **File Upload:** Size limits enforced, file type validation, temporary file cleanup
+---
 
-2. **Model Security:** Models validated before loading, input sanitization, resource limits
+## Complete Data Flow Diagrams
 
-3. **Data Privacy:** No PII extraction from packets; local processing only; configurable data retention
+### GUI Panel → Analysis → Result
 
-## Scalability
+```
+User selects file + clicks Run
+        │
+        ▼
+BaseAnalysisPanel._validate() + _get_params()
+        │
+        ▼
+AnalysisWorker(task, params).start()     ← QThread (non-blocking)
+        │
+        ├── task="wlan"          → scripts.run_wlan_analysis.run(pcap, mac_filter)
+        │                              └─ tshark subprocess (32 fields)
+        │                              └─ WLANAnalyzer.analyze()
+        │                              └─ HTMLReportGenerator.generate_report()
+        │                              └─ returns {html_path, json_path}
+        │
+        ├── task="decrypt"       → wlan_decryptor.decrypt_and_analyze(pcap, key_type, key, ssid, mac)
+        │                              └─ tshark -o wlan.enable_decryption:TRUE ...
+        │                              └─ inner traffic analysis (DNS, HTTP, endpoints)
+        │
+        ├── task="channel_monitor" → run_channel_monitor.run(pcap, channel, bssid, mac, station, interval)
+        │                              └─ tshark (19 fields) → pandas → rolling windows
+        │                              └─ station spotlight (if --station)
+        │                              └─ Chart.js HTML + JSON
+        │
+        ├── task="tcp_udp"       → analyze_tcp_udp.run(pcap, output_html)
+        │                              └─ tshark targeted queries → metric dicts
+        │                              └─ inline HTML with timeline bar charts
+        │
+        ├── task="ipv6"          → run_ipv6_analysis.run(pcap, ipv6_address)
+        │                              └─ tshark per-protocol queries
+        │                              └─ ICMPv6/NDP/TCP/UDP/SNMP breakdown
+        │
+        ├── task="protocol"      → cli._run_protocol_analysis(pcap, protocol, display_filter)
+        │                              └─ ProtocolAnalyzer().analyze(pcap, display_filter)
+        │                              └─ HTMLReportGenerator → HTML + JSON
+        │
+        └── task="anomaly"       → PacketParser → DataCleaner → FeatureEngineer
+                                       └─ IsolationForestModel or AutoencoderModel
+                                       └─ anomaly scores per packet
+                                       └─ returns {json_data: {scores, anomalies, stats}}
+        │
+        ▼
+AnalysisWorker.finished.emit({html_path, json_data})
+        │
+        ▼
+BaseAnalysisPanel.on_results() → renders HTML in QWebEngineView or shows JSON summary
+```
 
-### Performance
+### ML Anomaly Detection Pipeline (detail)
 
-- Streaming packet parsing (memory efficient)
-- tshark bulk extraction for large captures (WLAN/TCP-UDP scripts)
-- Async API endpoints + background cleanup
-- Configurable packet limits and batch prediction
+```
+PCAP
+  │
+  ▼
+PacketParser.parse_pcap()
+  → protocol, length, src_ip, dst_ip, src_port, dst_port,
+    tcp_flags, ttl, window_size, timestamp  [raw DataFrame]
+  │
+  ▼
+DataCleaner.clean()
+  → deduplicate, fill missing, validate ranges  [cleaned DataFrame]
+  │
+  ▼
+FeatureEngineer.engineer_features()
+  → 50+ engineered columns
+  │
+FeatureEngineer.get_ml_features()
+  → numeric-only matrix X  [shape: n_packets × n_features]
+  │
+  ├─ IsolationForestModel
+  │    train(X) or load('models/isolation_forest.pkl')
+  │    predict(X)       → [-1, 1, 1, -1, …]   (-1 = anomaly)
+  │    score_samples(X) → [-0.3, 0.1, …]       (lower = more anomalous)
+  │
+  └─ AutoencoderModel  (requires TensorFlow)
+       train(X)
+       detect_anomalies(X) → reconstruction error per sample
+       threshold = mean + 2×std of training errors
+  │
+  ▼
+results/{pcap_stem}_anomaly.json
+  → {total_packets, anomalies_detected, anomaly_rate,
+     model_type, scores: {min, max, mean, std}, top_anomalies: […]}
+```
 
-### Resource Requirements
+### tshark-native Channel Survey Pipeline (detail)
 
-**Minimum:** 2 cores, 4 GB RAM, 10 GB storage  
-**Recommended:** 4+ cores, 8 GB+ RAM, 50 GB+ storage
+```
+PCAP + optional args (channel, bssid, mac, station, interval)
+  │
+  ▼
+tshark subprocess: -T fields -e wlan.fc.type -e wlan_radio.channel
+                   -e wlan_radio.signal_dbm -e wlan.sa -e wlan.da
+                   -e wlan.bssid -e wlan.fc.retry -e frame.len
+                   -e frame.time_epoch -e wlan.duration ... (19 fields)
+  │
+  ▼
+pandas DataFrame → filter by channel/bssid/mac if supplied
+  │
+  ▼
+Per-rolling-window (default 10 s) computation:
+  ├── channel_utilization_pct
+  ├── throughput_mbps
+  ├── retry_rate_pct
+  ├── rts_cts_overhead_pct   = (RTS + CTS) / total_frames × 100
+  ├── cts_reply_rate         = CTS_count / RTS_count
+  ├── per-BSSID frame counts
+  └── per-client frame counts  (OUI-assigned MACs only)
+  │
+  ├── [if --station MAC]
+  │     compute_station_profile()
+  │       → TX/RX throughput, retry vs avg, airtime share
+  │       → roaming events (BSSID changes)
+  │       → PHY mode distribution
+  │     compute_station_windows()
+  │       → per-window trend data for Chart.js
+  │     enhanced metrics:
+  │       → connection_delay_seconds
+  │       → scan_cycles
+  │       → max_nav_us + abuse_flag
+  │       → connected_clients_oui_only
+  │       → randomised_macs_filtered
+  │
+  ▼
+JSON output → results/{prefix}_channel_monitor.json
+HTML output → results/{prefix}_channel_monitor.html  (self-contained, Chart.js inline)
+  │
+  ▼ [optional report builders]
+build_client_map_report.py(client_network_map.json)
+  → BSSID cluster detection (same OUI, seq MACs ≤ 8 apart)
+  → multi-channel SSID mapping
+  → client_network_map.html
+
+build_combined_report.py(client_network_map.json, --channel-jsons-dir)
+  → channel health score (0–100) per channel
+  → spark bars + issue badges
+  → comprehensive_network_report.html
+```
+
+---
+
+## Directory Reference
+
+```
+AI-Wireshark-Analyzer/
+├── app/                     Desktop GUI (PyQt6)
+│   ├── main.py              Entry point + Linux preflight checks
+│   ├── main_window.py       Sidebar navigation + panel stack
+│   ├── workers.py           AnalysisWorker(QThread) — all task dispatch
+│   ├── styles.py            Dark stylesheet constant
+│   ├── resources.py         Bundle-safe path resolution
+│   ├── panels/              Nine analysis panels
+│   └── widgets/             FileSelector, MacAddressInput, ResultsView
+│
+├── src/                     Analysis engine
+│   ├── parsers/
+│   │   └── packet_parser.py PyShark-based ingestion → DataFrame
+│   ├── preprocessing/
+│   │   ├── cleaning.py      Dedup, validate, filter
+│   │   └── feature_engineering.py  50+ ML features
+│   ├── protocols/
+│   │   ├── wlan_analyzer.py         802.11 diagnostics
+│   │   ├── wlan_decryptor.py        WPA2/WPA3 decryption
+│   │   ├── wlan_rf_monitor.py       Channel RF metrics
+│   │   ├── tcp_analyzer.py
+│   │   ├── udp_analyzer.py
+│   │   ├── dns_analyzer.py
+│   │   ├── http_analyzer.py
+│   │   ├── https_analyzer.py
+│   │   ├── icmp_analyzer.py
+│   │   └── dhcp_analyzer.py
+│   ├── core/
+│   │   ├── model.py         IsolationForest, Autoencoder, RandomForest
+│   │   └── utils.py
+│   ├── preprocessing/
+│   ├── evaluation/
+│   │   ├── metrics.py       Accuracy, F1, ROC-AUC, confusion matrix
+│   │   └── visualization.py matplotlib/seaborn charts
+│   ├── reports/
+│   │   └── html_generator.py  Shared HTML report engine
+│   └── api/
+│       ├── rest.py          FastAPI server
+│       └── cli.py           Click + Rich CLI
+│
+├── scripts/                 tshark-native analysis scripts
+│   ├── run_wlan_analysis.py
+│   ├── run_channel_monitor.py
+│   ├── analyze_tcp_udp.py
+│   ├── run_ipv6_analysis.py
+│   ├── build_client_map_report.py
+│   ├── build_combined_report.py
+│   ├── train_model.py
+│   └── evaluate_model.py
+│
+├── config/
+│   ├── default.yaml         Model params, API settings, feature config
+│   └── dev.yaml             Development overrides
+│
+├── installer/
+│   ├── ai_wireshark_linux.spec   PyInstaller spec (Linux x86_64)
+│   ├── ai_wireshark.spec         PyInstaller spec (Windows/generic)
+│   ├── build.sh                  Linux build script
+│   └── app_icon.png / .ico
+│
+├── tests/
+│   ├── test_models.py
+│   ├── test_parser.py
+│   └── test_preprocessing.py
+│
+├── results/                 Generated HTML + JSON reports (runtime)
+├── data/raw/                PCAP capture files (not committed)
+└── models/                  Saved ML models — .pkl, .h5 (not committed)
+```
+
+---
+
+## Security Design
+
+| Concern | Implementation |
+|---|---|
+| File input validation | Extension check (`.pcap`, `.pcapng`); max upload size 100 MB in REST API |
+| Temp file cleanup | `BackgroundTasks.add_task(os.unlink, tmp_path)` after every API request |
+| No credential storage | WPA passwords are passed directly to tshark subprocess; never written to disk or logs |
+| Local-only processing | No telemetry; no network calls during analysis; all results written to `results/` only |
+| Input sanitization | Display filters passed to tshark as arguments, not shell-interpolated |
+| ML model loading | `joblib.load()` with path validation; no arbitrary deserialization |
+
+---
+
+## Runtime Requirements
+
+| Resource | Minimum | Recommended |
+|---|---|---|
+| CPU cores | 2 | 4+ |
+| RAM | 4 GB | 8 GB+ |
+| Disk | 10 GB | 50 GB+ |
+| Python | 3.10+ | 3.12 |
+| tshark | 3.x | 4.2+ |
+| OS (binary) | Linux x86_64 Ubuntu 20.04+ | same |
+
+---
 
 ## Extension Points
 
-1. **New Protocol Analyzer:** add `src/protocols/<name>_analyzer.py`, implement `analyze()`, register in CLI/API.
-2. **New ML Model:** add class in `src/core/model.py` with `train()` / `predict()` interface; update config.
-3. **New Script:** follow `run_wlan_analysis.py` pattern — tshark extraction → analysis class → `html_generator.py`.
+1. **Add a protocol analyzer** — create `src/protocols/<name>_analyzer.py` implementing `analyze(pcap_file, display_filter=None) -> dict`; register in `cli.py` `analyzers` dict and REST `/analyze` handler.
+
+2. **Add an ML model** — add class in `src/core/model.py` with `train(X)` / `predict(X)` / `save()` / `load()` interface; add config keys to `config/default.yaml`; wire up in `AnomalyPanel` and `workers.py`.
+
+3. **Add a GUI panel** — subclass `BaseAnalysisPanel`; implement `_build_inputs()`, `_validate()`, `_get_params()`; add a new task handler in `AnalysisWorker.run()`; register in `main_window.py` nav_items list.
+
+4. **Add a CLI script** — follow `run_wlan_analysis.py` pattern: tshark extraction → analysis → `html_generator.py`; expose a `run(pcap, ..., output_dir) -> dict` function for GUI worker integration.
+
+---
 
 ## Dependencies
 
-| Category      | Library                         |
-|---------------|----------------------------------|
-| Ingestion     | tshark (system), PyShark        |
-| Data          | Pandas, NumPy                    |
-| ML            | Scikit-learn, TensorFlow/Keras  |
-| API           | FastAPI, Uvicorn                 |
-| CLI           | Click, Rich                      |
-| Visualization | Matplotlib, Seaborn              |
-| Logging       | Loguru                           |
-| Config        | PyYAML                           |
-| Testing       | PyTest                           |
+| Category | Library | Version |
+|---|---|---|
+| GUI | PyQt6, PyQt6-WebEngine | 6.x |
+| Packet parsing | PyShark | 0.6 |
+| Data | pandas, numpy, scipy | latest |
+| ML | scikit-learn | 1.3+ |
+| ML (optional) | TensorFlow/Keras | 2.13+ |
+| API | FastAPI, uvicorn | latest |
+| CLI | Click, Rich | 8.x |
+| Visualization | matplotlib, seaborn | latest |
+| Logging | loguru | latest |
+| Config | PyYAML | latest |
+| Build | PyInstaller | 6.x |
+| Testing | pytest | latest |

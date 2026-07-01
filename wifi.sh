@@ -149,12 +149,6 @@ cmd_analyze() {
     header "Analyzing: $PCAP"
     divider
 
-    # Activate venv if available
-    if [[ -f "${SCRIPT_DIR}/.venv/bin/activate" ]]; then
-        source "${SCRIPT_DIR}/.venv/bin/activate"
-        log "Python venv activated"
-    fi
-
     # Derive output paths from pcap filename
     local BASENAME
     BASENAME=$(basename "$PCAP" .pcap)

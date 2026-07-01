@@ -6,6 +6,17 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
+# WiFi Direct / P2P SSID identification patterns
+# Matches HP printers (DIRECT-XX-HP ...), Android P2P (DIRECT-XX), HP setup SSIDs
+WIFI_DIRECT_SSID_PATTERNS = ('DIRECT-', 'DIRECT_', 'HP-Print-', 'HP=Setup', 'HP-Setup>')
+
+
+def _is_wifi_direct_ssid(ssid: str) -> bool:
+    """Return True if the SSID belongs to a WiFi Direct / P2P network."""
+    if not ssid:
+        return False
+    return any(p in ssid for p in WIFI_DIRECT_SSID_PATTERNS)
+
 
 def run(input_json: str, output_dir: str = 'results') -> dict:
     """Build client/network map HTML report from consolidated per-channel JSON.
@@ -66,6 +77,13 @@ def _build_report(data: dict, html_path: str):
             if bssid != "ff:ff:ff:ff:ff:ff":
                 global_bssid_ssid[bssid] = ssid
                 bssid_ch_seen[bssid].add(int(ch_str))
+
+    # WiFi Direct global count
+    total_wifi_direct_aps = sum(
+        1 for ch_data in data.values()
+        for bssid, ssid in ch_data["bssid_ssid"].items()
+        if _is_wifi_direct_ssid(ssid)
+    )
 
     # Device cluster detection (sequential MACs, same OUI, diff <= 8)
     all_bssids = sorted(global_bssid_ssid.keys())
@@ -223,7 +241,8 @@ def _build_report(data: dict, html_path: str):
 
         ap_rows = ""
         for mac, c in aps:
-            ssid = esc(c.get("primary_ssid") or bssid_ssid.get(mac,""))
+            ssid_raw = c.get("primary_ssid") or bssid_ssid.get(mac, "")
+            ssid = esc(ssid_raw)
             sig  = f"{c['avg_signal_dbm']} dBm" if c.get("avg_signal_dbm") is not None else "\u2014"
             assoc_cnt = sum(len(v["clients"]) for v in ssid_groups.values() if v.get("bssid")==mac)
             cid = bssid_cluster_id.get(mac)
@@ -235,10 +254,11 @@ def _build_report(data: dict, html_path: str):
                 cl_badge = f'<span class="tag-cluster" title="{esc(tip)}">cluster-{cid}</span> '
             ch_count = len(bssid_ch_seen.get(mac, set()))
             mc_badge = f'<span class="tag-multich">on {ch_count} CH</span>' if ch_count > 1 else ""
+            wd_badge = '<span class="tag-wifi-direct">WiFi-Direct</span> ' if _is_wifi_direct_ssid(ssid_raw) else ""
             ap_rows += (
                 f"<tr><td class='mono'>{esc(mac)}</td><td class='ssid-cell'>{ssid}</td>"
                 f"<td>{c['total_frames']:,}</td><td class='{sig_cls(c.get('avg_signal_dbm'))}'>{sig}</td>"
-                f"<td>{assoc_cnt}</td><td>{cl_badge}{mc_badge}</td></tr>\n"
+                f"<td>{assoc_cnt}</td><td>{wd_badge}{cl_badge}{mc_badge}</td></tr>\n"
             )
 
         def make_client_rows(client_list):
@@ -252,11 +272,20 @@ def _build_report(data: dict, html_path: str):
                 n_chs = len(multi_ch_clients.get(mac,[]))
                 xch_tag = f'<span class="tag-multich">seen {n_chs} CH</span>' if n_chs>1 else ""
                 tip = esc(build_assoc_tooltip(c.get("associations",{})))
+                # Show mgmt/data frame breakdown if available
+                data_frames = c.get("data_frames", 0)
+                mgmt_frames = c.get("mgmt_frames", c["total_frames"] - data_frames if data_frames else 0)
+                frames_detail = (
+                    f"<span title='Mgmt: {mgmt_frames:,}  Data: {data_frames:,}' "
+                    f"style='cursor:help'>{c['total_frames']:,}</span>"
+                    if data_frames or mgmt_frames
+                    else f"{c['total_frames']:,}"
+                )
                 rows += (
                     f"<tr><td class='mono'>{esc(mac)}</td>"
                     f"<td class='{retry_cls(rr)}'>{rr*100:.1f}%</td>"
                     f"<td class='{sig_cls(sig)}'>{sig_str}</td>"
-                    f"<td>{c['total_frames']:,}</td>"
+                    f"<td>{frames_detail}</td>"
                     f"<td>{ps_tag}{roam_tag}{xch_tag}</td>"
                     f"<td><span class='detail-link' title='{tip}'>details</span></td></tr>\n"
                 )
@@ -286,30 +315,57 @@ def _build_report(data: dict, html_path: str):
 
         sample_ssids = ", ".join(sorted(set(bssid_ssid.values()))[:5])
         if unique_ssid_count > 5: sample_ssids += "\u2026"
+        n_wifi_direct_ch = sum(1 for ssid in bssid_ssid.values() if _is_wifi_direct_ssid(ssid))
         ch_summary_rows += (
             f"<tr><td><a href='#' onclick=\"showTab({ch});return false\" class='ch-link'>"
             f"<strong>CH {ch}</strong></a></td>"
             f"<td>{n_ap}</td><td>{n_assoc_sta}</td><td>{n_unassoc}</td>"
             f"<td>{ch_data['n_clients']}</td><td>{unique_ssid_count}</td>"
+            f"<td>{n_wifi_direct_ch}</td>"
             f"<td>{esc(sample_ssids)}</td></tr>\n"
         )
         nav_tabs += (
             f'<button class="tab-btn" id="tab-btn-{ch}" onclick="showTab({ch})">'
             f'CH {ch} <span class="cnt">{ch_data["n_clients"]}</span></button>\n'
         )
+        # WiFi Direct section for this channel
+        wifi_direct_aps_on_ch = [
+            (mac, c) for mac, c in aps
+            if _is_wifi_direct_ssid(c.get("primary_ssid") or bssid_ssid.get(mac, ""))
+        ]
+        wd_section = ""
+        if wifi_direct_aps_on_ch:
+            wd_rows = ""
+            for wd_mac, wd_c in sorted(wifi_direct_aps_on_ch, key=lambda x: -(x[1]["total_frames"])):
+                wd_ssid_raw = wd_c.get("primary_ssid") or bssid_ssid.get(wd_mac, "")
+                wd_sig = f"{wd_c['avg_signal_dbm']} dBm" if wd_c.get("avg_signal_dbm") is not None else "\u2014"
+                wd_rows += (
+                    f"<tr><td class='mono'>{esc(wd_mac)}</td>"
+                    f"<td class='ssid-cell'>{esc(wd_ssid_raw)}</td>"
+                    f"<td>{wd_c['total_frames']:,}</td>"
+                    f"<td class='{sig_cls(wd_c.get('avg_signal_dbm'))}'>{wd_sig}</td></tr>\n"
+                )
+            wd_section = (
+                f"  <h3>WiFi Direct Networks ({len(wifi_direct_aps_on_ch)})"
+                f" &mdash; HP printers &amp; P2P devices</h3>\n"
+                f"  <table><tr><th>BSSID</th><th>SSID</th><th>Frames</th><th>Signal</th></tr>\n"
+                f"  {wd_rows}</table>\n"
+            )
         tab_panels += (
             f'\n<div class="tab-panel" id="tab-{ch}" style="display:none">\n'
-            f'  <h2>Channel {ch} &mdash; {ch_data["n_clients"]} unique MACs ({n_ap} APs&nbsp;+&nbsp;{n_sta} clients)</h2>\n'
+            f'  <h2>Channel {ch} &mdash; {ch_data["n_clients"]} unique MACs ({n_ap} APs&nbsp;+&nbsp;{n_sta} STAs)</h2>\n'
             f'  <div class="ch-meta-row">\n'
             f'    <span class="meta-pill meta-ssid">{unique_ssid_count} unique SSIDs'
             f'<span class="meta-sub"> ({len(bssid_ssid)} BSSIDs with identified SSID)</span></span>\n'
             f'    <span class="meta-pill meta-assoc">{n_assoc_sta} associated<span class="meta-sub"> (in {len(ssid_groups)} networks)</span></span>\n'
             f'    <span class="meta-pill meta-unassoc">{n_unassoc} scanning / unassociated</span>\n'
+            f'    <span class="meta-pill" style="border-color:#7a4500;color:#ff9f45">{len(wifi_direct_aps_on_ch)} WiFi-Direct APs</span>\n'
             f'  </div>\n'
-            f'  <h3>Access Points ({n_ap}) \u2014 <span class="tag-cluster" style="cursor:default">cluster-N</span> = virtual BSSID on same physical device &nbsp; <span class="tag-multich" style="cursor:default">on N CH</span> = AP visible on multiple channel captures</h3>\n'
+            f'  <h3>Access Points ({n_ap}) &mdash; <span class="tag-cluster" style="cursor:default">cluster-N</span> = virtual BSSID on same physical device &nbsp; <span class="tag-multich" style="cursor:default">on N CH</span> = AP visible on multiple channel captures &nbsp; <span class="tag-wifi-direct" style="cursor:default">WiFi-Direct</span> = P2P / printer AP</h3>\n'
             f'  <table><tr><th>BSSID</th><th>SSID / Network Name</th><th>TX Frames</th><th>Signal</th><th>Assoc. clients</th><th>Flags</th></tr>\n'
             f'  {ap_rows or "<tr><td colspan=6 class=dim>none</td></tr>"}</table>\n'
-            f'  <h3>Clients ({n_sta}) \u2014 {n_assoc_sta} associated + {n_unassoc} scanning/unassociated</h3>\n'
+            f'{wd_section}'
+            f'  <h3>Client STAs ({n_sta}) &mdash; {n_assoc_sta} associated + {n_unassoc} scanning/unassociated</h3>\n'
             f'  <table><tr><th>MAC Address</th><th>Retry Rate</th><th>Avg Signal</th><th>TX Frames</th><th>Tags</th><th>Tooltip</th></tr>\n'
             f'  {client_rows or "<tr><td colspan=6 class=dim>none</td></tr>"}</table>\n'
             f'</div>\n'
@@ -391,6 +447,7 @@ def _build_report(data: dict, html_path: str):
         f"  <div class='card'><div class='card-label'>Unique MACs (global)</div><div class='card-value'>{unique_macs:,}</div><div class='card-sub'>distinct devices across all channels</div></div>\n"
         f"  <div class='card'><div class='card-label'>Total APs</div><div class='card-value'>{total_aps:,}</div><div class='card-sub'>BSSIDs acting as AP (incl. virtual)</div></div>\n"
         f"  <div class='card'><div class='card-label'>Physical AP clusters</div><div class='card-value'>{len(device_clusters):,}</div><div class='card-sub'>devices with multiple virtual BSSIDs</div></div>\n"
+        f"  <div class='card' style='border-color:#7a4500'><div class='card-label'>WiFi Direct APs</div><div class='card-value' style='color:#ff9f45'>{total_wifi_direct_aps:,}</div><div class='card-sub'>HP printers &amp; P2P devices</div></div>\n"
         f"  <div class='card'><div class='card-label'>Multi-channel SSIDs</div><div class='card-value'>{len(multi_ch_ssids):,}</div><div class='card-sub'>networks on &gt;1 channel</div></div>\n"
         f"  <div class='card'><div class='card-label'>Roaming / multi-CH clients</div><div class='card-value'>{len(multi_ch_clients):,}</div><div class='card-sub'>+{dup_inflation:,} inflated per-ch rows</div></div>\n"
         f"</div>\n"
@@ -401,7 +458,7 @@ def _build_report(data: dict, html_path: str):
         f"<p style='color:var(--dm);font-size:0.8rem;margin-bottom:10px'>Enterprise or mesh deployments. A <span class='tag-cluster'>cluster-N</span> tag means both BSSIDs are virtual interfaces on the same physical device.</p>\n"
         f"{multich_html or '<p class=\"dim\">None detected.</p>'}\n"
         f"<h2>Channel Summary</h2>\n"
-        f"<table>\n  <tr><th>Channel</th><th>APs</th><th>Associated Clients</th><th>Scanning / Unassoc.</th><th>Total MACs</th><th>Unique SSIDs on channel</th><th>Sample Networks</th></tr>\n"
+        f"<table>\n  <tr><th>Channel</th><th>APs</th><th>Associated STAs</th><th>Scanning / Unassoc.</th><th>Total MACs</th><th>Unique SSIDs</th><th>WiFi Direct APs</th><th>Sample Networks</th></tr>\n"
         f"  {ch_summary_rows}\n</table>\n"
         f"<h2>MAC Address Search</h2>\n"
         f"<div class='search-wrap'><input id='mac-search' type='text' placeholder='Search MAC address (e.g. 5c:5a:c7 or partial)...' oninput='searchMac(this.value)'><div id='search-results'></div></div>\n"

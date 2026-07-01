@@ -85,6 +85,7 @@ STATUS_CODES = {
     53: 'Invalid Pairwise Master Key Identifier (PMKID)',
     54: 'Invalid MDE (Mobility Domain Element)',
     55: 'Invalid FTE (Fast BSS Transition Element)',
+    30: 'Refused temporarily — AP state machine busy or STA still associated',
     72: 'SAE authentication rejected',
     73: 'SAE commit rejected',
     74: 'SAE confirm rejected',
@@ -151,6 +152,10 @@ def _sae_status_root_cause(status: int) -> str:
     return {
         1:  'SAE authentication rejected — unspecified failure',
         15: 'SAE Confirm MIC verification failed — wrong passphrase',
+        30: ('AP state machine deadlock — stale association entry: AP returned '
+             'REFUSED_TEMPORARILY (Status 30) because it believes the STA is '
+             'still associated from a prior session. No deauthentication was '
+             'sent to clear the stale entry (IEEE 802.11-2020 §11.3.5.5 violation).'),
         72: 'SAE authentication rejected by AP',
         73: 'SAE Commit rejected — configuration/group mismatch',
         74: 'SAE Confirm rejected — wrong passphrase or MIC failure',
@@ -170,6 +175,20 @@ def _sae_remediation(status: int) -> str:
              'the AP\'s configured WPA3 passphrase. '
              'Recovery: re-enter the correct WPA3 passphrase on the client. '
              'Ensure the passphrase is UTF-8 normalised (RFC 8265 PRECIS).'),
+        30: ('AP returned REFUSED_TEMPORARILY (Status 30) to the SAE Commit — '
+             'the AP state machine has a stale association entry for this STA from a previous '
+             'session. Per IEEE 802.11-2020 §11.3.5.5, after SA Query timeout the AP MUST '
+             'send a Disassociation frame to clear the stale entry, but it did not (firmware bug). '
+             'Recovery steps: '
+             '(1) STA: transmit a Deauthentication frame (Reason 3 = Leaving IBSS or ESS) '
+             'to force the AP to purge its state, then retry the SAE Commit. '
+             '(2) AP: apply firmware update that implements §11.3.5.5 Disassociation on '
+             'SA Query timeout. '
+             '(3) If AP is in WPA3 Transition Mode (WPA2-PSK + SAE), confirm it handles '
+             'cross-mode PTK/PMF state: a prior WPA2 session PTK should not be used for '
+             'PMF-encrypted SA Query after the STA attempts a new SAE Commit. '
+             '(4) If issue persists: disable PMKSA caching on the STA to eliminate '
+             'stale-cache fast-reconnect attempts, then force a full SAE exchange.'),
         72: ('AP explicitly rejected the SAE authentication request. '
              'Recovery: check AP for WPA3-SAE support; verify passphrase; check client '
              'driver/firmware supports SAE commit/confirm exchange (auth_alg=3).'),
@@ -222,9 +241,16 @@ def is_globally_administered(mac: str) -> bool:
 class WLANAnalyzer:
     """Analyze WLAN/WiFi traffic for wireless-specific issues"""
 
-    def __init__(self, config_path: str = "config/default.yaml"):
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+    def __init__(self, config_path: str = None):
+        if config_path is None:
+            # Resolve relative to this file so it works from any cwd
+            _here = Path(__file__).resolve().parent.parent.parent
+            config_path = str(_here / "config" / "default.yaml")
+        try:
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            self.config = {}
         self.wlan_config = self.config.get('protocols', {}).get('wlan', {})
 
     def analyze(self, pcap_file: str, display_filter: str = None) -> Dict[str, Any]:
@@ -2291,6 +2317,123 @@ class WLANAnalyzer:
                     'update AP/client firmware; verify AP is not in OWE transition mode issues.'
                 )
 
+        # --- AP State Machine Deadlock: Status 30 + Post-Rejection PMF Action Frames ---
+        # Detect the pattern:
+        #   STA → AP : SAE Commit (auth_alg=3, seq=1, status=0)
+        #   AP  → STA: SAE Commit Response (status=30 REFUSED_TEMPORARILY)
+        #   AP  → STA: 5× PMF-encrypted Action frames (CCMP-protected) ← SA Query with stale PTK
+        #   [No subsequent Deauthentication or Disassociation — §11.3.5.5 violation]
+        #
+        # Signature: auth_alg=3 commit rejected with status=30 AND
+        #            ≥3 consecutive protected Action frames (type 0x000d, protected=1)
+        #            directed to the SAE-rejected STA within 2 seconds of the rejection,
+        #            with no subsequent Deauth/Disassoc.
+        status30_rejections = []
+        if has_auth_alg:
+            _s30_filter = (
+                (auth_df['auth_alg'] == 3) &
+                (auth_df['auth_seq'] == 1) &
+                (auth_df['status_code'] == 30) &
+                (auth_df['sa'] == auth_df['bssid'])   # AP → STA direction
+            )
+        else:
+            _s30_filter = (auth_df['status_code'] == 30)
+
+        s30_df = auth_df[_s30_filter]
+        if not s30_df.empty:
+            action_df_all = df[df['type_subtype'].isin({'0x000d', '0x000e'})]
+            protected_actions = action_df_all[action_df_all['protected'] == 1] \
+                if 'protected' in df.columns else action_df_all
+
+            for _, s30_row in s30_df.iterrows():
+                rejection_ts   = float(s30_row.get('timestamp', 0) or 0)
+                rejection_fn   = int(s30_row.get('frame_number', 0) or 0)
+                ap_bssid       = s30_row.get('bssid', '') or ''
+                rejected_sta   = s30_row.get('da', '') or ''
+
+                # Look for PMF Action frames from the same AP to the same STA
+                # within 2 seconds of the rejection (SA Query retransmit window)
+                window_end = rejection_ts + 2.0
+                pmf_actions_after = protected_actions[
+                    (protected_actions['sa'] == ap_bssid) &
+                    (protected_actions['da'] == rejected_sta) &
+                    (protected_actions['timestamp'] >= rejection_ts) &
+                    (protected_actions['timestamp'] <= window_end)
+                ] if rejected_sta else pd.DataFrame()
+
+                # Check for missing Deauth/Disassoc after those action frames
+                # (frames 0x000c=Deauth, 0x000a=Disassoc)
+                deauth_disassoc_df = df[
+                    df['type_subtype'].isin({'0x000c', '0x000a'}) &
+                    (df['sa'] == ap_bssid) &
+                    (df['da'] == rejected_sta) &
+                    (df['timestamp'] > rejection_ts)
+                ] if rejected_sta else pd.DataFrame()
+
+                pmf_count = len(pmf_actions_after)
+                has_cleanup = not deauth_disassoc_df.empty
+
+                if pmf_count >= 3:
+                    _bump('AP state machine deadlock — Status 30 + SA Query with stale PTK')
+                    diag = {
+                        'frame': rejection_fn,
+                        'timestamp': rejection_ts,
+                        'client': rejected_sta,
+                        'ap_bssid': ap_bssid,
+                        'failure_phase': 'SAE Commit (seq=1) — REFUSED_TEMPORARILY (Status 30)',
+                        'status_code': 30,
+                        'status_text': STATUS_CODES.get(30, 'Refused temporarily'),
+                        'root_cause': _sae_status_root_cause(30),
+                        'remediation': _sae_remediation(30),
+                        'pmf_action_frames_after_rejection': pmf_count,
+                        'ap_sent_cleanup_deauth': has_cleanup,
+                        'spec_violation': (
+                            'IEEE 802.11-2020 §11.3.5.5 violated' if not has_cleanup
+                            else 'AP sent cleanup after SA Query timeout (compliant)'
+                        ),
+                        'analysis': (
+                            f'AP sent Status 30 (REFUSED_TEMPORARILY) rejecting SAE Commit '
+                            f'(frame #{rejection_fn}), then sent {pmf_count} PMF-encrypted '
+                            f'Action frame(s) to the rejected STA using a STALE PTK from a '
+                            f'prior session. These are SA Query Requests (IEEE 802.11w §11.3.5) '
+                            f'used to probe whether the STA still holds the old session keys. '
+                            f'The STA cannot decrypt them (no prior PTK), so all SA Queries '
+                            f'time out. '
+                            + (
+                                'The AP then correctly sent a Disassociation/Deauthentication '
+                                'to clear the stale entry.'
+                                if has_cleanup else
+                                'The AP did NOT send a Deauthentication or Disassociation after '
+                                'SA Query timeout — violating §11.3.5.5. The stale association '
+                                'entry persists indefinitely, causing a permanent deadlock. '
+                                'The STA cannot complete new SAE until the AP purges its state.'
+                            )
+                        ),
+                        'wpa3_transition_mode_note': (
+                            'AP RSN IE advertises both WPA2-PSK (AKM=2) and WPA3-SAE (AKM=8) '
+                            '(Transition Mode). The stale PTK used for SA Query may be from a '
+                            'prior WPA2 session, creating a cross-mode PTK confusion scenario: '
+                            'the AP applies PMF-protected SA Query using a non-PMF WPA2 PTK, '
+                            'which the STA was never configured to decrypt under PMF rules.'
+                        ) if sae_akm_present and has_auth_alg and
+                             not auth_df[auth_df['auth_alg'] == 0].empty else None,
+                    }
+                    status30_rejections.append(diag)
+                    sae_sessions.append(diag)
+
+        if status30_rejections:
+            result['stale_association_deadlock'] = {
+                'count': len(status30_rejections),
+                'summary': (
+                    f'{len(status30_rejections)} AP state machine deadlock instance(s) detected: '
+                    f'SAE Commit rejected with Status 30 (REFUSED_TEMPORARILY) followed by '
+                    f'PMF-encrypted SA Query frames using stale PTK from a prior session. '
+                    f'AP did not send Deauthentication after SA Query timeout '
+                    f'(IEEE 802.11-2020 §11.3.5.5 violation).'
+                ),
+                'sessions': status30_rejections,
+            }
+
         if not sae_sessions and not issues and not failure_counts:
             # Still note if SAE AKM was advertised (positive detection of WPA3 network)
             if sae_akm_present:
@@ -2601,7 +2744,54 @@ class WLANAnalyzer:
                         ),
                     })
 
-        # --- WNM / 802.11v BSS Transition Management (cat=10) ---
+            # --- Stale PTK detection: SA Query CCMP PN starts above 1 ---
+            # If SA Query frames begin with a high CCMP Packet Number (PN >> 1),
+            # the AP is encrypting them with a PTK from a prior session
+            # (not a freshly derived PTK from the current SAE exchange).
+            # This is the direct evidence of the Status-30 deadlock scenario.
+            if 'ccmp_pn' in df.columns:
+                sa_protected = sa_df[sa_df['protected'] == 1] \
+                    if 'protected' in df.columns else sa_df
+                if not sa_protected.empty:
+                    pn_vals = pd.to_numeric(sa_protected['ccmp_pn'], errors='coerce').dropna()
+                    if len(pn_vals) > 0:
+                        first_pn = int(pn_vals.iloc[0])
+                        # PN > 10 at the start of SA Query exchange indicates reuse of stale PTK
+                        if first_pn > 10:
+                            issues.append({
+                                'category': 'SA Query (802.11w)',
+                                'issue': 'SA Query uses stale PTK — CCMP PN continuity breach',
+                                'severity': 'high',
+                                'count': len(sa_protected),
+                                'first_pn': first_pn,
+                                'description': (
+                                    f'{len(sa_protected)} PMF-encrypted SA Query frame(s) observed '
+                                    f'with CCMP Packet Number starting at {first_pn} (0x{first_pn:x}). '
+                                    f'A PN >> 1 at the beginning of an SA Query exchange proves the '
+                                    f'AP is encrypting these frames with a PTK derived in a PRIOR session '
+                                    f'(not the current one). This means the STA cannot decrypt the '
+                                    f'SA Query requests — causing all queries to time out silently. '
+                                    f'This is the forensic fingerprint of the Status 30 '
+                                    f'(REFUSED_TEMPORARILY) AP state machine deadlock.'
+                                ),
+                                'impact': (
+                                    'STA cannot respond to SA Query (wrong decryption key). '
+                                    'AP SA Query retransmits all time out. '
+                                    'Per §11.3.5.5, AP must then send Disassociation — if it does not, '
+                                    'the STA is permanently locked out until the AP state is cleared.'
+                                ),
+                                'remediation': (
+                                    '(1) STA: send Deauthentication (Reason 3) before retrying SAE. '
+                                    '(2) AP: fix firmware to issue Disassociation after SA Query timeout. '
+                                    '(3) Disable PMKSA caching on STA to avoid stale-cache reconnects. '
+                                    '(4) In WPA3 Transition Mode: ensure PTK from WPA2 sessions is not '
+                                    'reused for PMF-protected SA Query on the WPA3 path.'
+                                ),
+                            })
+                            summary['sa_query_stale_ptk_detected'] = True
+                            summary['sa_query_first_pn'] = first_pn
+
+
         wnm_df = action_df[action_df['category_code'] == 10]
         if not wnm_df.empty:
             summary['wnm_frames'] = len(wnm_df)

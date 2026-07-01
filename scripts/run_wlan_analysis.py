@@ -19,6 +19,27 @@ from src.protocols.wlan_analyzer import (
     FRAME_SUBTYPES, MGMT_SUBTYPES, CTRL_SUBTYPES, DATA_SUBTYPES, WLANAnalyzer,
 )
 
+# WiFi Direct / P2P SSID identification patterns
+WIFI_DIRECT_SSID_PATTERNS = ('DIRECT-', 'DIRECT_', 'HP-Print-', 'HP=Setup', 'HP-Setup>')
+
+
+def _classify_ssids(ssid_dict: dict) -> tuple:
+    """Split an SSID dict into (regular_ssids, wifi_direct_ssids).
+
+    Args:
+        ssid_dict: dict of {ssid: count} as returned by statistics['detected_ssids']
+
+    Returns:
+        (regular, wifi_direct) — both as {ssid: count} dicts
+    """
+    regular, wifi_direct = {}, {}
+    for ssid, count in ssid_dict.items():
+        if any(p in ssid for p in WIFI_DIRECT_SSID_PATTERNS):
+            wifi_direct[ssid] = count
+        else:
+            regular[ssid] = count
+    return regular, wifi_direct
+
 # ─────────────────────────────────────────────────────────────────────────────
 # MAC address utilities
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,6 +112,7 @@ TSHARK_FIELDS = [
     "wlan.fixed.category_code",
     "wlan.fixed.baparams.buffersize",
     "wlan.fixed.action_code",
+    "wlan.ccmp.extiv",
 ]
 
 COLUMN_NAMES = [
@@ -103,6 +125,7 @@ COLUMN_NAMES = [
     "rsn_version", "eapol_msg_nr", "auth_seq",
     "auth_alg", "akm_type", "capabilities",
     "category_code", "ba_buffer_size", "action_code",
+    "ccmp_pn",
 ]
 
 
@@ -195,6 +218,9 @@ def parse_tshark_output(raw_output):
     df['category_code'] = _to_numeric_hex(df['category_code'])
     df['ba_buffer_size'] = pd.to_numeric(df['ba_buffer_size'], errors='coerce').fillna(0)
     df['action_code'] = _to_numeric_hex(df['action_code'])
+    # CCMP Packet Number (Ext IV) — tshark emits as 0x-prefixed hex (e.g. 0x000000000043)
+    # Convert to integer so wlan_analyzer can compare PN values for stale-PTK detection
+    df['ccmp_pn'] = _to_numeric_hex(df['ccmp_pn'])
 
     # Convert type_subtype to hex format matching the analyzer's expected format
     def normalize_subtype(val):
@@ -242,10 +268,19 @@ def run(pcap_file: str, mac_filter: str = None, output_dir: str = 'results') -> 
         return {'error': 'No frames matched', 'json_path': None, 'html_path': None}
 
     analyzer = WLANAnalyzer()
+    statistics = analyzer._calculate_statistics(df)
+
+    # Classify SSIDs into regular vs WiFi Direct
+    detected_ssids = statistics.get('detected_ssids', {})
+    regular_ssids, wifi_direct_ssids = _classify_ssids(detected_ssids)
+    statistics['wifi_direct_ssids'] = wifi_direct_ssids
+    statistics['regular_ssids'] = regular_ssids
+    statistics['wifi_direct_ap_count'] = len(wifi_direct_ssids)
+
     results = {
         "total_packets": len(df),
         "mac_filter": mac_filter,
-        "statistics": analyzer._calculate_statistics(df),
+        "statistics": statistics,
         "connection_events": analyzer._analyze_connection_events(df),
         "threats": analyzer._detect_threats(df),
     }
@@ -299,7 +334,16 @@ def main():
     print(f"Unique BSSIDs: {stats.get('unique_bssids', 0)}")
     print(f"Unique SSIDs: {stats.get('unique_ssids', 0)}")
     if stats.get('detected_ssids'):
-        print(f"SSIDs: {list(stats['detected_ssids'].keys())}")
+        regular_ssids, wifi_direct_ssids = _classify_ssids(stats['detected_ssids'])
+        if regular_ssids:
+            print(f"Regular SSIDs ({len(regular_ssids)}): {list(regular_ssids.keys())[:15]}"
+                  + (" ..." if len(regular_ssids) > 15 else ""))
+        if wifi_direct_ssids:
+            print(f"\nWiFi Direct / P2P SSIDs ({len(wifi_direct_ssids)}):")
+            for ssid in sorted(wifi_direct_ssids.keys())[:20]:
+                print(f"  [WiFi-Direct]  {ssid}")
+            if len(wifi_direct_ssids) > 20:
+                print(f"  ... and {len(wifi_direct_ssids) - 20} more")
 
     events = results['connection_events']
     print(f"\nAssociation requests: {events.get('association_requests', 0)}")

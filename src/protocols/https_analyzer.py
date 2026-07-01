@@ -30,12 +30,23 @@ class HTTPSAnalyzer:
         self.parser = PacketParser(config_path)
         self.cleaner = DataCleaner()
     
-    def analyze(self, pcap_file: str, display_filter: str = None) -> Dict:
+    def analyze(self, pcap_file: str, display_filter: str = None, ip_filter: str = None, port_filter: str = None) -> Dict:
         """Analyze HTTPS/TLS traffic from PCAP file"""
         logger.info(f"Analyzing HTTPS traffic in {pcap_file}")
         
-        # Parse TLS packets (port 443)
-        proto_filter = f'tcp.port==443 && ({display_filter})' if display_filter else 'tcp.port==443'
+        # Build comprehensive filter (HTTPS typically on port 443)
+        filters = ['tcp.port==443']
+        if display_filter:
+            filters.append(f'({display_filter})')
+        if ip_filter:
+            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+        if port_filter:
+            # For HTTPS, usually port 443, but allow custom ports
+            ports = [p.strip() for p in port_filter.split(',')]
+            port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
+            filters.append(f'({port_expr})')
+        
+        proto_filter = ' && '.join(filters)
         df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
         
         if df.empty:

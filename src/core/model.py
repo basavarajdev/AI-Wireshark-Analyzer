@@ -3,6 +3,7 @@ ML Model Definitions
 Anomaly detection and classification models
 """
 
+import os
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
@@ -12,14 +13,23 @@ from typing import Optional, Tuple
 from loguru import logger
 import yaml
 
+# Disable GPU/CUDA to prevent segmentation faults
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 try:
     import tensorflow as tf
+    # Ensure GPU is disabled
+    tf.config.set_visible_devices([], 'GPU')
     from tensorflow import keras
     from tensorflow.keras import layers
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
     logger.warning("TensorFlow not available, autoencoder models disabled")
+except Exception as e:
+    TENSORFLOW_AVAILABLE = False
+    logger.warning(f"TensorFlow initialization failed: {e}, CPU-only mode enabled")
 
 
 class IsolationForestModel:

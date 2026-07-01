@@ -31,21 +31,33 @@ class TCPAnalyzer:
         self.parser = PacketParser(config_path)
         self.cleaner = DataCleaner()
     
-    def analyze(self, pcap_file: str, display_filter: str = None) -> Dict:
+    def analyze(self, pcap_file: str, display_filter: str = None, ip_filter: str = None, port_filter: str = None) -> Dict:
         """
         Analyze TCP traffic from PCAP file
         
         Args:
             pcap_file: Path to PCAP file
             display_filter: Optional additional Wireshark display filter
+            ip_filter: Optional IP address to filter (source or destination)
+            port_filter: Optional comma-separated ports to filter
             
         Returns:
             Dictionary with analysis results and critical issues
         """
         logger.info(f"Analyzing TCP traffic in {pcap_file}")
         
-        # Parse TCP packets
-        proto_filter = f'tcp && ({display_filter})' if display_filter else 'tcp'
+        # Build comprehensive filter
+        filters = ['tcp']
+        if display_filter:
+            filters.append(f'({display_filter})')
+        if ip_filter:
+            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+        if port_filter:
+            ports = [p.strip() for p in port_filter.split(',')]
+            port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
+            filters.append(f'({port_expr})')
+        
+        proto_filter = ' && '.join(filters)
         df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
         
         if df.empty:

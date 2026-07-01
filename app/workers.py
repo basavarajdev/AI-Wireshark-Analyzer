@@ -43,6 +43,8 @@ class AnalysisWorker(QThread):
                 self._run_client_map()
             elif self.task == "combined_report":
                 self._run_combined_report()
+            elif self.task == "multichannel_survey":
+                self._run_multichannel_survey()
             else:
                 self.error.emit(f"Unknown task: {self.task}")
         except Exception as e:
@@ -72,11 +74,12 @@ class AnalysisWorker(QThread):
     def _run_tcp_udp(self):
         """Run TCP/UDP analysis via direct import."""
         pcap = self.params["pcap"]
-        out_html = self.params.get("output", "") or None
+        ip_filter = self.params.get("ip_filter")
+        port_filter = self.params.get("port_filter")
 
         self.progress.emit("Starting TCP/UDP analysis...")
         from scripts.analyze_tcp_udp import run as tcp_run
-        out = tcp_run(pcap, output_html=out_html, output_dir=RESULTS_DIR)
+        out = tcp_run(pcap, ip_filter=ip_filter, port_filter=port_filter, output_dir=RESULTS_DIR)
 
         self.progress.emit("Analysis complete.")
         output = {"stdout": "", "stderr": ""}
@@ -141,30 +144,16 @@ class AnalysisWorker(QThread):
         pcap = self.params["pcap"]
         protocol = self.params.get("protocol", "tcp")
         display_filter = self.params.get("filter", "")
-        html_output = self.params.get("html_output", "") or None
+        ip_filter = self.params.get("ip_filter")
+        port_filter = self.params.get("port_filter")
 
         self.progress.emit(f"Starting {protocol.upper()} protocol analysis...")
 
         from src.api.cli import _run_protocol_analysis
-        results = _run_protocol_analysis(pcap, protocol, display_filter or None)
+        results = _run_protocol_analysis(pcap, protocol, display_filter or None, ip_filter=ip_filter, port_filter=port_filter)
 
         self.progress.emit("Analysis complete.")
         output = {"stdout": "", "stderr": "", "json_data": results}
-
-        if html_output:
-            try:
-                from src.reports.html_generator import HTMLReportGenerator
-                generator = HTMLReportGenerator()
-                generator.generate_report(
-                    results={'total_packets': results.get('total_packets', 0),
-                             'protocol_analysis': {protocol: results}},
-                    pcap_file=pcap,
-                    output_file=html_output,
-                    protocol=protocol.upper(),
-                )
-                output["html_path"] = html_output
-            except Exception as e:
-                pass
 
         self.finished.emit(output)
 
@@ -292,6 +281,38 @@ class AnalysisWorker(QThread):
             return
 
         self.progress.emit("Combined report complete.")
+        output = {"stdout": "", "stderr": ""}
+        if out.get('html_path'):
+            output["html_path"] = out['html_path']
+        self.finished.emit(output)
+
+    def _run_multichannel_survey(self):
+        """Run multi-channel survey and generate comparison report."""
+        pcap_files = self.params["pcap_files"]
+        interval = self.params.get("interval", 60.0)
+        out_dir = self.params.get("output_dir") or RESULTS_DIR
+
+        self.progress.emit(
+            f"Running multi-channel survey on {len(pcap_files)} captures "
+            f"(interval={int(interval)}s)…"
+        )
+        from scripts.run_multichannel_survey import run as survey_run
+        out = survey_run(
+            pcap_files=pcap_files,
+            interval=float(interval),
+            output_dir=out_dir,
+        )
+
+        if out.get('error'):
+            self.error.emit(out['error'])
+            return
+
+        n = out.get('channels_analyzed', 0)
+        ch_list = out.get('channel_list', [])
+        self.progress.emit(
+            f"Survey complete: {n} channel(s) analysed "
+            f"({', '.join(f'Ch {c}' for c in ch_list)})."
+        )
         output = {"stdout": "", "stderr": ""}
         if out.get('html_path'):
             output["html_path"] = out['html_path']

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 
-def setup_logging(config_path: str = "config/default.yaml"):
+def setup_logging(config_path: str = None):
     """
     Setup logging configuration
     
@@ -18,6 +18,10 @@ def setup_logging(config_path: str = "config/default.yaml"):
         config_path: Path to configuration file
     """
     try:
+        if config_path is None:
+            # Resolve relative to this file so it works from any cwd or within PyInstaller binary
+            _here = Path(__file__).resolve().parent.parent.parent
+            config_path = str(_here / "config" / "default.yaml")
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         
@@ -56,7 +60,7 @@ def setup_logging(config_path: str = "config/default.yaml"):
         print(f"Error setting up logging: {e}")
 
 
-def load_config(config_path: str = "config/default.yaml") -> Dict[str, Any]:
+def load_config(config_path: str = None) -> Dict[str, Any]:
     """
     Load configuration from YAML file
     
@@ -67,6 +71,10 @@ def load_config(config_path: str = "config/default.yaml") -> Dict[str, Any]:
         Configuration dictionary
     """
     try:
+        if config_path is None:
+            # Resolve relative to this file so it works from any cwd or within PyInstaller binary
+            _here = Path(__file__).resolve().parent.parent.parent
+            config_path = str(_here / "config" / "default.yaml")
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         logger.info(f"Configuration loaded from {config_path}")

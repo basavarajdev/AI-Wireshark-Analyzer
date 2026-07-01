@@ -85,14 +85,32 @@ def _data_volume_mb(pcap: str, filt: str) -> float:
 
 # ─── analysis ────────────────────────────────────────────────────────────────
 
-def analyse(pcap: str) -> dict:
+def analyse(pcap: str, ip_filter: str = None, port_filter: str = None) -> dict:
+    """Analyze TCP/UDP traffic with optional IP and port filters"""
+    # Build filter expression
+    base_filters = []
+    if ip_filter:
+        base_filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+    if port_filter:
+        ports = [p.strip() for p in port_filter.split(',')]
+        port_expr = ' || '.join([f'(tcp.port=={port} || udp.port=={port})' for port in ports])
+        base_filters.append(f'({port_expr})')
+    
+    filter_expr = ' && '.join(base_filters) if base_filters else None
+    
     results = {}
 
     # ── Basic stats ──────────────────────────────────────────────────
-    results["total_packets"] = _total_packets(pcap)
-    results["duration_s"] = round(_capture_duration(pcap), 2)
-    results["tcp_count"] = _tshark_count(pcap, "tcp")
-    results["udp_count"] = _tshark_count(pcap, "udp")
+    if filter_expr:
+        results["total_packets"] = _tshark_count(pcap, filter_expr)
+        results["duration_s"] = round(_capture_duration(pcap), 2)
+        results["tcp_count"] = _tshark_count(pcap, f"tcp && ({filter_expr})")
+        results["udp_count"] = _tshark_count(pcap, f"udp && ({filter_expr})")
+    else:
+        results["total_packets"] = _total_packets(pcap)
+        results["duration_s"] = round(_capture_duration(pcap), 2)
+        results["tcp_count"] = _tshark_count(pcap, "tcp")
+        results["udp_count"] = _tshark_count(pcap, "udp")
 
     # ── Identify print stream (port 9100) ────────────────────────────
     print_rows = _tshark(
@@ -673,12 +691,12 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
 
 # ─── entry point ─────────────────────────────────────────────────────────────
 
-def run(pcap_file: str, output_html: str = None, output_dir: str = 'results') -> dict:
+def run(pcap_file: str, output_html: str = None, output_dir: str = 'results', ip_filter: str = None, port_filter: str = None) -> dict:
     """Callable entry point — usable from workers without subprocess."""
     if not output_html:
         output_html = str(Path(output_dir) / (Path(pcap_file).stem + "_tcp_udp_report.html"))
     Path(output_html).parent.mkdir(parents=True, exist_ok=True)
-    analysis = analyse(pcap_file)
+    analysis = analyse(pcap_file, ip_filter=ip_filter, port_filter=port_filter)
     generate_html(pcap_file, analysis, output_html)
     return {'html_path': output_html, 'results': analysis}
 
