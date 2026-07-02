@@ -35,7 +35,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={userappdata}\Programs\{#MyAppName}
+DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 ; License file (use project LICENSE)
@@ -55,7 +55,7 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Privileges
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 ; Minimum Windows version (Windows 10+)
 MinVersion=10.0
 
@@ -67,28 +67,17 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "fileassoc"; Description: "Associate .pcap and .pcapng files with {#MyAppName}"; GroupDescription: "File Associations:"
 
 [Files]
-; Main application files
-Source: "..\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\config\*"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\setup.py"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\QUICKSTART.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\launch-gui-windows.bat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\launch-cli-windows.bat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\installer\app_icon.ico"; DestDir: "{app}\installer"; Flags: ignoreversion
+; Main application (PyInstaller output)
+Source: "..\dist\AI-Wireshark-Analyzer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Ensure results directory exists
 Source: "..\results\.gitkeep"; DestDir: "{app}\results"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 ; Start Menu
-Name: "{group}\{#MyAppName}"; Filename: "{app}\launch-gui-windows.bat"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 ; Desktop (optional)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\launch-gui-windows.bat"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Registry]
 ; File associations (optional)
@@ -100,7 +89,7 @@ Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt2}\OpenWithProgids"; ValueTy
 
 [Run]
 ; Launch app after install (optional)
-Filename: "{app}\launch-gui-windows.bat"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; Clean up generated files on uninstall
