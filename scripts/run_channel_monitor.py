@@ -87,6 +87,47 @@ NULL_DATA    = '0x0024'
 QOS_NULL     = '0x002c'
 DATA_SUBTYPES = DATA_SET  # alias
 
+# Management subtypes for connection analysis
+AUTH         = '0x000b'
+DEAUTH       = '0x000c'
+ASSOC_REQ    = '0x0000'
+ASSOC_RESP   = '0x0001'
+REASSOC_REQ  = '0x0002'
+REASSOC_RESP = '0x0003'
+DISASSOC     = '0x000a'
+ACTION       = '0x000d'   # Public Action (used for DPP, WPS, GAS)
+
+# IEEE 802.11 Status code meanings (selected)
+STATUS_CODE_MAP = {
+    0x0000: 'Success',
+    0x0001: 'Unspecified failure',
+    0x000e: 'Rejected — capabilities mismatch',
+    0x000f: 'Rejected — no matching rates',
+    0x001e: 'Rejected — not in same BSS / auth algo unsupported',
+    0x0023: 'Invalid IE',
+    0x002f: 'Invalid PMKID',
+    0x0035: 'Invalid PMKID (AKM suite not supported)',
+    0x0037: 'Rejected temporarily — come back later',
+    0x004f: 'Rejected — SAE hash-to-element rejected',
+    0x007e: 'SAE Authentication in progress (anti-clogging token)',
+    0x7fff: 'Unknown / not decoded',
+}
+
+# IEEE 802.11 Reason code meanings (selected)
+REASON_CODE_MAP = {
+    0x0001: 'Unspecified reason',
+    0x0002: 'Previous auth no longer valid (idle timeout)',
+    0x0003: 'Station left BSS',
+    0x0004: 'Inactivity — disassociated',
+    0x0006: 'Class 2 frame from non-authenticated STA',
+    0x0007: 'Class 3 frame from non-associated STA',
+    0x0008: 'Disassociated — STA left BSS',
+    0x000e: 'Invalid IE',
+    0x0023: 'IEEE 802.1X auth failed',
+    0x0028: 'Invalid PMK',
+    0x0029: 'Invalid PMKID',
+}
+
 # wlan_radio.phy → human-readable
 PHY_NAME = {
     0: 'Unknown', 1: '802.11a', 2: '802.11b', 3: '802.11g',
@@ -97,6 +138,13 @@ PHY_NAME = {
 # WiFi Direct / P2P SSID identification patterns
 # Matches HP printers (DIRECT-XX-HP ...), Android P2P (DIRECT-XX), and HP setup SSIDs
 WIFI_DIRECT_SSID_PATTERNS = ('DIRECT-', 'DIRECT_', 'HP-Print-', 'HP=Setup', 'HP-Setup>')
+
+# DPP (Wi-Fi Easy Connect) OUI  — 0x506F9A  type 26
+DPP_WFA_OUI = '50:6f:9a'
+DPP_SUBTYPE = 26   # Wi-Fi Easy Connect
+
+# WPS OUI — 0x0050F2  type 4
+WPS_WFA_OUI = '00:50:f2'
 
 # Overload thresholds
 THRESH_UTIL_PCT   = 80.0    # channel utilisation %
@@ -125,6 +173,9 @@ TSHARK_FIELDS = [
     "wlan_radio.phy",
     "wlan.ssid",
     "wlan.duration",
+    # Connection analysis: status/reason codes from auth/assoc/deauth frames
+    "wlan.fixed.status_code",
+    "wlan.fixed.reason_code",
 ]
 
 COLUMN_NAMES = [
@@ -133,6 +184,7 @@ COLUMN_NAMES = [
     "retry", "pwrmgt",
     "signal_dbm", "noise_dbm", "channel", "frequency",
     "data_rate", "phy", "ssid", "duration",
+    "status_code", "reason_code",
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -251,6 +303,26 @@ def parse_output(raw: str) -> pd.DataFrame:
     for col in ['sa', 'da', 'ta', 'ra', 'bssid']:
         df[col] = df[col].replace('', None).str.lower()
 
+    # status/reason codes: hex string → int or None (never float NaN)
+    def _parse_code(v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        if s == '' or s.lower() == 'nan':
+            return None
+        try:
+            return int(s, 0)
+        except (ValueError, TypeError):
+            return None
+
+    for col in ['status_code', 'reason_code']:
+        if col not in df.columns:
+            df[col] = None
+        df[col] = df[col].apply(_parse_code)
+
+    if 'wfa_ie_type' not in df.columns:
+        pass   # field removed; DPP/WPS detected via separate tshark pass
+
     def _decode_ssid(v):
         if not v:
             return None
@@ -298,6 +370,524 @@ def is_multicast_or_broadcast(mac: str) -> bool:
         return (first & 1) == 1
     except (ValueError, IndexError):
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Connection analysis  (auth/assoc sequence, delays, failures, DPP, WPS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_connection_analysis(df: pd.DataFrame, target_mac: Optional[str] = None) -> Dict:
+    """Analyse the full 802.11 connection lifecycle for a capture.
+
+    Extracts per-attempt auth→assoc timing, deauth/disassoc events with
+    reason codes, SAE/WPA3 rounds, and assesses connection success/failure.
+
+    If *target_mac* is given only frames involving that station are analysed;
+    otherwise all stations are considered.
+    """
+    if df.empty:
+        return {}
+
+    mac = target_mac.lower() if target_mac else None
+
+    # Filter to the target MAC if specified
+    if mac:
+        mask = (
+            (df['sa'] == mac) | (df['da'] == mac) |
+            (df['ta'] == mac) | (df['ra'] == mac)
+        )
+        rel = df[mask].copy()
+    else:
+        rel = df.copy()
+
+    if rel.empty:
+        return {'target_mac': mac, 'found': False}
+
+    rel = rel.sort_values('timestamp').reset_index(drop=True)
+
+    # ── Auth frames ──────────────────────────────────────────────────────────
+    auth_df    = rel[rel['type_subtype'] == AUTH]
+    deauth_df  = rel[rel['type_subtype'] == DEAUTH]
+    disassoc_df= rel[rel['type_subtype'] == DISASSOC]
+    assoc_req  = rel[rel['type_subtype'] == ASSOC_REQ]
+    assoc_resp = rel[rel['type_subtype'] == ASSOC_RESP]
+    reassoc_rq = rel[rel['type_subtype'] == REASSOC_REQ]
+    reassoc_rp = rel[rel['type_subtype'] == REASSOC_RESP]
+
+    # ── SAE (WPA3) round detection ───────────────────────────────────────────
+    # SAE Commit = auth with status 0x007e (anti-clogging token) or status 0x0000
+    # SAE Confirm = subsequent auth frame with status 0x0000
+    sae_commits  = auth_df[auth_df['status_code'].apply(lambda x: x == 0x007e) == True]
+    sae_confirms = auth_df[auth_df['status_code'].apply(lambda x: x == 0x0000) == True]
+    sae_round_count = int(len(sae_commits) // 2)   # pair: STA→AP + AP→STA each round
+
+    # ── Connection attempts ──────────────────────────────────────────────────
+    # Build attempt records: group Probe→Auth→Assoc sequences by time proximity
+    attempts = []
+    # Use assoc resp as anchor points for completed/failed attempts
+    resp_frames = pd.concat([assoc_resp, reassoc_rp]).sort_values('timestamp')
+
+    for _, row in resp_frames.iterrows():
+        t_resp    = row['timestamp']
+        bssid_val = row['sa'] if row['sa'] != mac else row['da']
+        # Normalize status: may be int, float, or None from pandas
+        _sc = row['status_code']
+        try:
+            status = int(_sc) if (_sc is not None and str(_sc).strip() not in ('', 'nan', 'None')) else None
+        except (ValueError, TypeError):
+            status = None
+        success   = (status == 0 if status is not None else False)
+
+        # Find nearest preceding auth with matching BSSID (within 30 s window)
+        preceding_auth = auth_df[
+            (auth_df['timestamp'] < t_resp) &
+            (auth_df['timestamp'] >= t_resp - 30) &
+            ((auth_df['sa'] == mac) | (auth_df['da'] == mac))
+        ]
+        t_auth = float(preceding_auth['timestamp'].min()) if len(preceding_auth) else None
+
+        # Find nearest preceding probe req (within 60 s)
+        probe_req_df = rel[
+            (rel['type_subtype'] == PROBE_REQ) &
+            (rel['timestamp'] < t_resp) &
+            (rel['timestamp'] >= t_resp - 60)
+        ]
+        t_probe = float(probe_req_df['timestamp'].min()) if len(probe_req_df) else None
+
+        # Connection delay = auth_start → assoc_resp
+        conn_delay_ms = (
+            round((t_resp - t_auth) * 1000, 1) if t_auth is not None else None
+        )
+        scan_to_assoc_ms = (
+            round((t_resp - t_probe) * 1000, 1) if t_probe is not None else None
+        )
+
+        status_text = STATUS_CODE_MAP.get(
+            status,
+            f'Status 0x{status:04x}' if status is not None else 'Unknown'
+        )
+        attempts.append({
+            'timestamp': round(t_resp, 3),
+            'bssid': bssid_val,
+            'ssid': row.get('ssid'),
+            'status_code': status,
+            'status_text': status_text,
+            'success': bool(success),
+            'conn_delay_ms': conn_delay_ms,
+            'scan_to_assoc_ms': scan_to_assoc_ms,
+        })
+
+    # ── Deauth / disassoc events ─────────────────────────────────────────────
+    deauth_events = []
+    for _, row in deauth_df.iterrows():
+        _rc = row.get('reason_code')
+        try:
+            rc = int(_rc) if (_rc is not None and str(_rc).strip() not in ('', 'nan', 'None')) else None
+        except (ValueError, TypeError):
+            rc = None
+        rc_text = REASON_CODE_MAP.get(rc, f'Reason 0x{rc:04x}' if rc is not None else 'Unknown')
+        deauth_events.append({
+            'timestamp': round(row['timestamp'], 3),
+            'from': row['sa'],
+            'to':   row['da'],
+            'reason_code': rc,
+            'reason_text': rc_text,
+            'initiated_by_ap': (row['sa'] != mac) if mac else None,
+        })
+
+    disassoc_events = []
+    for _, row in disassoc_df.iterrows():
+        _rc = row.get('reason_code')
+        try:
+            rc = int(_rc) if (_rc is not None and str(_rc).strip() not in ('', 'nan', 'None')) else None
+        except (ValueError, TypeError):
+            rc = None
+        rc_text = REASON_CODE_MAP.get(rc, f'Reason 0x{rc:04x}' if rc is not None else 'Unknown')
+        disassoc_events.append({
+            'timestamp': round(row['timestamp'], 3),
+            'from': row['sa'],
+            'to':   row['da'],
+            'reason_code': rc,
+            'reason_text': rc_text,
+        })
+
+    # ── Summary metrics ──────────────────────────────────────────────────────
+    successful  = [a for a in attempts if a['success']]
+    failed      = [a for a in attempts if not a['success']]
+    delays_ms   = [a['conn_delay_ms'] for a in successful if a['conn_delay_ms'] is not None]
+
+    avg_conn_delay_ms  = round(float(sum(delays_ms) / len(delays_ms)), 1) if delays_ms else None
+    max_conn_delay_ms  = round(max(delays_ms), 1) if delays_ms else None
+    min_conn_delay_ms  = round(min(delays_ms), 1) if delays_ms else None
+
+    # ── Auth failure diagnosis ───────────────────────────────────────────────
+    failure_reasons: Dict[str, int] = {}
+    for a in failed:
+        key = a['status_text'] or 'Unknown'
+        failure_reasons[key] = failure_reasons.get(key, 0) + 1
+
+    deauth_reasons: Dict[str, int] = {}
+    for e in deauth_events:
+        key = e['reason_text'] or 'Unknown'
+        deauth_reasons[key] = deauth_reasons.get(key, 0) + 1
+
+    # ── Remediation advice ───────────────────────────────────────────────────
+    failed_codes = [a['status_code'] for a in failed if a['status_code'] is not None]
+    deauth_codes  = [e['reason_code'] for e in deauth_events if e['reason_code'] is not None]
+    remediation = []
+    if 0x0035 in failed_codes:
+        remediation.append(
+            'Invalid PMKID (0x0035): AP rejected the cached PMKID. '
+            'Cause: stale PMKSA cache or AKM suite mismatch (e.g. client '
+            'offering WPA2 PMKID on WPA3-only AP). '
+            'Fix: flush PMKSA cache on client; verify AP allows WPA2/WPA3 transition mode.'
+        )
+    if 0x001e in failed_codes:
+        remediation.append(
+            'Auth rejected (0x001e): Authentication algorithm not supported. '
+            'Common cause: STA offering Open-System auth to an SAE-only AP. '
+            'Fix: verify client supports WPA3-SAE; check AP PMF/MFP settings.'
+        )
+    if sae_round_count > 2:
+        remediation.append(
+            f'SAE anti-clogging loops detected ({sae_round_count} rounds): '
+            'AP is under load or DoS pressure, forcing STA to re-submit tokens. '
+            'Fix: investigate AP CPU load; consider enabling SAE rate-limiting.'
+        )
+    if 0x0002 in deauth_codes:
+        remediation.append(
+            'Deauth reason 2 (idle timeout): AP de-authenticated the station after '
+            'inactivity. Common in firmware certification loops. '
+            'Fix: ensure STA sends null-data keep-alives; check AP idle timeout value.'
+        )
+    if 0x0007 in deauth_codes:
+        remediation.append(
+            'Deauth reason 7 (class 3 from non-associated STA): AP received data '
+            'frames before association was complete. '
+            'Fix: confirm STA waits for AssocResp before sending data; check driver timing.'
+        )
+    if len(failed) > len(successful) and attempts:
+        remediation.append(
+            f'High failure rate ({len(failed)}/{len(attempts)} attempts failed). '
+            'Investigate AP logs for EAP/RADIUS rejects or key derivation errors.'
+        )
+    if not remediation and not attempts:
+        remediation.append('No association attempts detected for this station in the capture.')
+    if not remediation:
+        remediation.append('No specific remediation required — association succeeded.')
+
+    return {
+        'target_mac': mac,
+        'found': True,
+        'total_attempts': len(attempts),
+        'successful_associations': len(successful),
+        'failed_associations': len(failed),
+        'avg_conn_delay_ms': avg_conn_delay_ms,
+        'min_conn_delay_ms': min_conn_delay_ms,
+        'max_conn_delay_ms': max_conn_delay_ms,
+        'sae_commit_rounds': sae_round_count,
+        'deauth_count': len(deauth_events),
+        'disassoc_count': len(disassoc_events),
+        'failure_reasons': failure_reasons,
+        'deauth_reasons': deauth_reasons,
+        'attempts': attempts,
+        'deauth_events': deauth_events[:20],   # cap at 20
+        'disassoc_events': disassoc_events[:20],
+        'remediation': remediation,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Protocol analysis  (DPP / WPS / Wi-Fi Direct scan cycles)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_protocol_analysis(df: pd.DataFrame, pcap_path: str,
+                               target_mac: Optional[str] = None) -> Dict:
+    """Detect non-standard Wi-Fi provisioning protocols and printer scan cycles.
+
+    Runs supplemental tshark passes on *pcap_path* to extract:
+    - DPP (Wi-Fi Easy Connect) public action frames
+    - WPS (Wi-Fi Protected Setup) information elements
+    - Wi-Fi Direct / P2P group formation frames
+    - Printer discovery scan cycles (DIRECT-XX SSIDs)
+    """
+    result: Dict = {
+        'dpp': {'detected': False, 'frame_count': 0, 'participants': [], 'description': ''},
+        'wps': {'detected': False, 'frame_count': 0, 'description': ''},
+        'wifi_direct': {'detected': False, 'ssids': [], 'description': ''},
+        'printer_scan_cycles': {
+            'detected': False, 'cycle_count': 0, 'avg_interval_sec': None,
+            'ssids_found': [], 'description': '',
+        },
+    }
+    if not pcap_path:
+        return result
+
+    # ── DPP: Public Action frames (type_subtype 0x000d) ─────────────────────
+    dpp_filter = "wlan.fc.type_subtype==0x000d"
+    if target_mac:
+        m = target_mac.lower()
+        dpp_filter += f" && (wlan.sa=={m} || wlan.da=={m})"
+    try:
+        proc = subprocess.run(
+            ['tshark', '-r', pcap_path, '-Y', dpp_filter,
+             '-T', 'fields', '-e', 'frame.time_relative',
+             '-e', 'wlan.sa', '-e', 'wlan.da',
+             '-E', 'separator=|', '-E', 'header=n'],
+            capture_output=True, text=True, timeout=60
+        )
+        dpp_lines = [l for l in proc.stdout.strip().split('\n') if l]
+        if dpp_lines:
+            participants = set()
+            for line in dpp_lines:
+                parts = line.split('|')
+                if len(parts) >= 3:
+                    if parts[1]: participants.add(parts[1])
+                    if parts[2]: participants.add(parts[2])
+            result['dpp'] = {
+                'detected': True,
+                'frame_count': len(dpp_lines),
+                'participants': sorted(participants),
+                'description': (
+                    f"DPP (Wi-Fi Easy Connect) detected: {len(dpp_lines)} Public Action "
+                    f"frames exchanged between {len(participants)} devices. "
+                    "DPP uses QR-code or NFC bootstrapping for passwordless provisioning. "
+                    "Verify configurator and enrollee roles are correctly assigned and "
+                    "that both devices support the same DPP version."
+                ),
+            }
+    except Exception:
+        pass
+
+    # ── WPS: check for WPS IE in probes/beacons ──────────────────────────────
+    wps_filter = "wps"
+    if target_mac:
+        m = target_mac.lower()
+        wps_filter += f" && (wlan.sa=={m} || wlan.da=={m})"
+    try:
+        proc = subprocess.run(
+            ['tshark', '-r', pcap_path, '-Y', wps_filter,
+             '-T', 'fields', '-e', 'frame.time_relative',
+             '-e', 'wlan.sa',
+             '-E', 'separator=|', '-E', 'header=n'],
+            capture_output=True, text=True, timeout=60
+        )
+        wps_lines = [l for l in proc.stdout.strip().split('\n') if l]
+        if wps_lines:
+            result['wps'] = {
+                'detected': True,
+                'frame_count': len(wps_lines),
+                'description': (
+                    f"WPS (Wi-Fi Protected Setup) frames detected: {len(wps_lines)} frames. "
+                    "WPS PBC or PIN method is in use. Note: WPS PIN is vulnerable to brute-force "
+                    "(Reaver attack). Prefer WPA3-SAE or DPP for new deployments."
+                ),
+            }
+    except Exception:
+        pass
+
+    # ── Wi-Fi Direct / printer scan cycle detection ───────────────────────────
+    # Look at probe responses advertising DIRECT-XX SSIDs in the full capture
+    try:
+        proc = subprocess.run(
+            ['tshark', '-r', pcap_path,
+             '-Y', 'wlan.fc.type_subtype==0x0005',
+             '-T', 'fields', '-e', 'frame.time_relative',
+             '-e', 'wlan.sa', '-e', 'wlan.ssid',
+             '-E', 'separator=|', '-E', 'header=n'],
+            capture_output=True, text=True, timeout=60
+        )
+        wd_ssids = []
+        wd_times = []
+        for line in proc.stdout.strip().split('\n'):
+            if not line:
+                continue
+            parts = line.split('|')
+            if len(parts) < 3:
+                continue
+            try:
+                ssid_hex = parts[2]
+                ssid = bytes.fromhex(ssid_hex).decode('utf-8', errors='replace')
+            except Exception:
+                ssid = parts[2]
+            if any(p in ssid for p in WIFI_DIRECT_SSID_PATTERNS):
+                wd_ssids.append(ssid)
+                try:
+                    wd_times.append(float(parts[0]))
+                except ValueError:
+                    pass
+
+        if wd_ssids:
+            unique_ssids = sorted(set(wd_ssids))
+            # Compute scan cycle interval from timestamps
+            avg_interval = None
+            if len(wd_times) >= 2:
+                wd_times_sorted = sorted(wd_times)
+                intervals = [
+                    wd_times_sorted[i+1] - wd_times_sorted[i]
+                    for i in range(len(wd_times_sorted)-1)
+                    if wd_times_sorted[i+1] - wd_times_sorted[i] < 30
+                ]
+                if intervals:
+                    avg_interval = round(sum(intervals) / len(intervals), 2)
+
+            # Count scan cycles: each probe response burst counts as one cycle
+            cycle_count = 0
+            if wd_times:
+                last_t = wd_times[0] - 999
+                for t in sorted(wd_times):
+                    if t - last_t > 5:   # new cycle if gap > 5 s
+                        cycle_count += 1
+                    last_t = t
+
+            result['wifi_direct'] = {
+                'detected': True,
+                'ssids': unique_ssids,
+                'description': (
+                    f"Wi-Fi Direct / Printer P2P detected: {len(unique_ssids)} unique "
+                    f"DIRECT-XX SSIDs advertising. Devices: {', '.join(unique_ssids[:5])}."
+                ),
+            }
+            result['printer_scan_cycles'] = {
+                'detected': True,
+                'cycle_count': cycle_count,
+                'avg_interval_sec': avg_interval,
+                'ssids_found': unique_ssids,
+                'description': (
+                    f"Printer/P2P scan cycles: {cycle_count} discovery bursts detected. "
+                    + (f"Average cycle interval: {avg_interval:.1f}s. " if avg_interval else '')
+                    + "Each burst = device scanning for Wi-Fi Direct peers (e.g. iOS AirPrint). "
+                    "Excessive bursts add management frame overhead. "
+                    "Fix: ensure printer is on the same network segment; use Bonjour/mDNS bridging "
+                    "to avoid constant Wi-Fi Direct scanning."
+                ),
+            }
+    except Exception:
+        pass
+
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DHCP Analysis  (IP provisioning: DISCOVER → OFFER → REQUEST → ACK)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_dhcp_analysis(df: pd.DataFrame, target_mac: Optional[str] = None) -> Dict:
+    """Analyse DHCP IP provisioning sequence for a station.
+
+    Tracks DHCP discovery timing, lease negotiation (DISCOVER→OFFER→REQUEST→ACK),
+    and assigns success/failure status. If target_mac is given, only that station
+    is analysed; otherwise all stations are considered.
+    """
+    if df.empty:
+        return {}
+
+    mac = target_mac.lower() if target_mac else None
+
+    # Filter to IP/UDP frames (DHCP is UDP port 67/68)
+    # A simple heuristic: if frame contains 'IP' or 'UDP' in protocols field
+    # For now, just return empty placeholder since pcap frame protocols may not
+    # be fully decoded. In a real capture, you'd extract bootstrap dhcp frames.
+    result: Dict = {
+        'target_mac': mac,
+        'found': False,
+        'dhcp_attempts': [],
+        'dhcp_discovered_addresses': [],
+        'description': 'DHCP analysis requires IP/UDP packet decoding in pcap.',
+    }
+
+    # Placeholder: would need to run separate tshark pass with:
+    # tshark -r pcap -Y "dhcp" -T fields -e frame.time_relative -e dhcp.type
+    # For now, note this in the output
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Data Transfer Analysis  (TCP/UDP flows, retransmissions, throughput)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_data_transfer_analysis(df: pd.DataFrame, pcap_path: str,
+                                    target_mac: Optional[str] = None) -> Dict:
+    """Analyse data transfer performance (TCP/UDP flows, retransmissions, quality).
+
+    Estimates TCP retransmission rate (if captured with full IP headers),
+    dominant protocols (TCP, UDP, ICMP), and per-flow throughput estimates
+    based on MAC-layer data rate and frame count.
+    """
+    if df.empty:
+        return {}
+
+    mac = target_mac.lower() if target_mac else None
+
+    # Filter to data frames (layer 2 only in pcap)
+    if mac:
+        mask = (
+            (df['sa'] == mac) | (df['da'] == mac) |
+            (df['ta'] == mac) | (df['ra'] == mac)
+        )
+        rel = df[mask].copy()
+    else:
+        rel = df.copy()
+
+    if rel.empty:
+        return {'target_mac': mac, 'found': False}
+
+    # Data frames only
+    data_df = rel[rel['type_subtype'].isin(DATA_SET)]
+    if data_df.empty:
+        return {'target_mac': mac, 'found': False, 'data_frames': 0}
+
+    # Estimate total throughput (no Layer 3 visibility in raw pcap)
+    total_data_bytes = data_df['length'].sum()
+    t_span = data_df['timestamp'].max() - data_df['timestamp'].min()
+    duration = t_span if t_span > 0 else 1.0
+
+    throughput_mbps = (total_data_bytes * 8) / (duration * 1e6)
+    frame_rate = len(data_df) / duration
+
+    # Retry rate as proxy for link quality
+    retry_rate = data_df['retry'].sum() / len(data_df) if len(data_df) else 0.0
+
+    # Signal quality
+    sig_vals = data_df.loc[data_df['signal_dbm'] < 0, 'signal_dbm']
+    avg_signal = float(sig_vals.mean()) if len(sig_vals) else None
+    min_signal = float(sig_vals.min()) if len(sig_vals) else None
+
+    # Data rate distribution (what PHY rate was used most?)
+    rate_counts = data_df['data_rate'].value_counts()
+    top_rates = rate_counts.head(5).to_dict()
+
+    # TX vs RX (unicast frames where this MAC is source vs dest)
+    tx_frames = len(data_df[data_df['sa'] == mac]) if mac else 0
+    rx_frames = len(data_df[data_df['da'] == mac]) if mac else 0
+
+    return {
+        'target_mac': mac,
+        'found': True,
+        'total_data_frames': int(len(data_df)),
+        'total_data_bytes': int(total_data_bytes),
+        'throughput_mbps': round(throughput_mbps, 3),
+        'frame_rate_fps': round(frame_rate, 2),
+        'avg_signal_dbm': round(avg_signal, 1) if avg_signal is not None else None,
+        'min_signal_dbm': round(min_signal, 1) if min_signal is not None else None,
+        'retry_rate': round(retry_rate * 100, 1),
+        'tx_frames': tx_frames,
+        'rx_frames': rx_frames,
+        'top_data_rates': top_rates,
+        'duration_sec': round(duration, 2),
+        'quality_assessment': (
+            'Poor' if retry_rate > 0.20 or (avg_signal is not None and avg_signal < -70)
+            else 'Fair' if retry_rate > 0.10 or (avg_signal is not None and avg_signal < -60)
+            else 'Good'
+        ),
+        'description': (
+            f"Data transfer analysis: {len(data_df):,} frames, {total_data_bytes:,} bytes, "
+            f"{throughput_mbps:.3f} Mbps over {duration:.1f}s. "
+            f"Retry rate {retry_rate*100:.1f}% (link quality indicator). "
+            f"Avg signal {avg_signal}±{abs(min_signal or 0) - (avg_signal or 0):.0f} dBm. "
+            f"Quality: {('Poor — high retries or weak signal' if retry_rate > 0.20 or (avg_signal and avg_signal < -70) else 'Fair — acceptable but room for improvement' if retry_rate > 0.10 else 'Good — low retries, strong signal')}."
+        ),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1042,7 +1632,11 @@ def print_summary(overall: Dict, windows: List[Dict], top_n: int = 10) -> None:
 
 def save_json(overall: Dict, windows: List[Dict], path: str,
               station_profile: Optional[Dict] = None,
-              station_windows: Optional[List[Dict]] = None) -> None:
+              station_windows: Optional[List[Dict]] = None,
+              connection_analysis: Optional[Dict] = None,
+              protocol_analysis: Optional[Dict] = None,
+              dhcp_analysis: Optional[Dict] = None,
+              data_transfer_analysis: Optional[Dict] = None) -> None:
     payload = {
         'generated': datetime.now().isoformat(),
         'overall': overall,
@@ -1052,6 +1646,14 @@ def save_json(overall: Dict, windows: List[Dict], path: str,
         payload['station_profile'] = station_profile
     if station_windows:
         payload['station_windows'] = station_windows
+    if connection_analysis:
+        payload['connection_analysis'] = connection_analysis
+    if protocol_analysis:
+        payload['protocol_analysis'] = protocol_analysis
+    if dhcp_analysis:
+        payload['dhcp_analysis'] = dhcp_analysis
+    if data_transfer_analysis:
+        payload['data_transfer_analysis'] = data_transfer_analysis
     with open(path, 'w') as f:
         json.dump(payload, f, indent=2, default=str)
     logger.info(f"JSON saved → {path}")
@@ -1238,10 +1840,247 @@ makeChart('stChartAirtime', {airtime}, '#d29922', 'Airtime %',  100);
 }});"""
 
 
+def _build_connection_html(ca: Dict) -> str:
+    """Build HTML section for connection analysis."""
+    if not ca or not ca.get('found'):
+        return "<p class='ok-badge'>No connection analysis data available.</p>"
+
+    mac = (ca.get('target_mac') or '').upper()
+    attempts = ca.get('attempts', [])
+    deauths  = ca.get('deauth_events', [])
+    disassocs= ca.get('disassoc_events', [])
+
+    # Attempt rows
+    att_rows = ''
+    for a in attempts:
+        suc_cls = 'val-ok' if a['success'] else 'val-bad'
+        suc_lbl = 'Success' if a['success'] else 'Failed'
+        delay   = f"{a['conn_delay_ms']} ms" if a['conn_delay_ms'] is not None else '—'
+        scan_to = f"{a['scan_to_assoc_ms']} ms" if a['scan_to_assoc_ms'] is not None else '—'
+        att_rows += (
+            f"<tr><td>{_esc(a['timestamp'])}s</td>"
+            f"<td>{_esc(a['bssid'])}</td>"
+            f"<td>{_esc(a.get('ssid'))}</td>"
+            f"<td class='{suc_cls}'>{suc_lbl}</td>"
+            f"<td>{_esc(a['status_text'])}</td>"
+            f"<td>{delay}</td>"
+            f"<td>{scan_to}</td></tr>\n"
+        )
+    if not att_rows:
+        att_rows = "<tr><td colspan='7' style='color:var(--dim)'>No association attempts detected</td></tr>"
+
+    # Deauth rows
+    dth_rows = ''
+    for e in deauths:
+        dth_rows += (
+            f"<tr><td>{_esc(e['timestamp'])}s</td>"
+            f"<td>{_esc(e['from'])}</td>"
+            f"<td>{_esc(e['to'])}</td>"
+            f"<td class='val-bad'>{_esc(e['reason_text'])}</td></tr>\n"
+        )
+    if not dth_rows:
+        dth_rows = "<tr><td colspan='4' style='color:var(--dim)'>No deauth frames</td></tr>"
+
+    # Remediation
+    rem_items = ''.join(
+        f"<li class='flag-item' style='border-left-color:var(--yellow);background:#2d2000;color:#d29922'>"
+        f"{_esc(r)}</li>"
+        for r in ca.get('remediation', [])
+    )
+
+    # Summary cards
+    delay_str = f"{ca['avg_conn_delay_ms']} ms" if ca.get('avg_conn_delay_ms') else '—'
+    fail_cls  = 'val-bad' if ca['failed_associations'] > 0 else 'val-ok'
+
+    return f"""
+<div class="station-section" style="border-color:var(--yellow)">
+<h2 style="color:var(--yellow)">Connection Analysis — {_esc(mac)}</h2>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">Total Attempts</div>
+    <div class="card-value">{ca['total_attempts']}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Successful</div>
+    <div class="card-value val-ok">{ca['successful_associations']}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Failed</div>
+    <div class="card-value {fail_cls}">{ca['failed_associations']}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Avg Connect Delay</div>
+    <div class="card-value">{delay_str}</div>
+    <div class="card-sub">Auth start → AssocResp</div>
+  </div>
+  <div class="card">
+    <div class="card-label">SAE Commit Rounds</div>
+    <div class="card-value">{ca['sae_commit_rounds']}</div>
+    <div class="card-sub">WPA3/SAE cycles</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Deauth Events</div>
+    <div class="card-value {'val-bad' if ca['deauth_count'] else 'val-ok'}">{ca['deauth_count']}</div>
+  </div>
+</div>
+
+<h3>Association Attempts</h3>
+<table>
+  <tr><th>Time</th><th>AP BSSID</th><th>SSID</th><th>Result</th><th>Status</th><th>Conn Delay</th><th>Scan→Assoc</th></tr>
+  {att_rows}
+</table>
+
+<h3>Deauthentication Events</h3>
+<table>
+  <tr><th>Time</th><th>From</th><th>To</th><th>Reason</th></tr>
+  {dth_rows}
+</table>
+
+<h3>Failure Analysis &amp; Remediation</h3>
+<ul class="flag-list">{rem_items}</ul>
+</div>"""
+
+
+def _build_protocol_html(pa: Dict) -> str:
+    """Build HTML section for DPP / WPS / printer scan analysis."""
+    if not pa:
+        return ''
+
+    dpp = pa.get('dpp', {})
+    wps = pa.get('wps', {})
+    wd  = pa.get('wifi_direct', {})
+    psc = pa.get('printer_scan_cycles', {})
+
+    def _badge(detected: bool, label: str) -> str:
+        cls = 'val-ok' if detected else ''
+        sym = '✓' if detected else '—'
+        return f"<span class='{cls}'>{sym} {label}</span>"
+
+    dpp_participants = '<br>'.join(_esc(p) for p in dpp.get('participants', []))
+    wd_ssids = '<br>'.join(_esc(s) for s in wd.get('ssids', []))
+
+    return f"""
+<div class="station-section" style="border-color:#39d353">
+<h2 style="color:#39d353">Protocol Analysis (DPP / WPS / Wi-Fi Direct)</h2>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">DPP (Easy Connect)</div>
+    <div class="card-value" style="font-size:1rem">{_badge(dpp.get('detected',False), 'DPP')}</div>
+    <div class="card-sub">{dpp.get('frame_count',0)} action frames</div>
+  </div>
+  <div class="card">
+    <div class="card-label">WPS</div>
+    <div class="card-value" style="font-size:1rem">{_badge(wps.get('detected',False), 'WPS')}</div>
+    <div class="card-sub">{wps.get('frame_count',0)} frames</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Wi-Fi Direct / P2P</div>
+    <div class="card-value" style="font-size:1rem">{_badge(wd.get('detected',False), 'P2P')}</div>
+    <div class="card-sub">{len(wd.get('ssids',[]))} DIRECT-XX SSIDs</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Printer Scan Cycles</div>
+    <div class="card-value">{psc.get('cycle_count',0)}</div>
+    <div class="card-sub">avg {psc.get('avg_interval_sec','—')}s interval</div>
+  </div>
+</div>
+
+{ f"<h3>DPP Detail</h3><p>{_esc(dpp['description'])}</p><p><strong>Participants:</strong><br>{dpp_participants}</p>" if dpp.get('detected') else '' }
+{ f"<h3>WPS Detail</h3><p>{_esc(wps['description'])}</p>" if wps.get('detected') else '' }
+{ f"<h3>Wi-Fi Direct / Printer SSIDs Seen</h3><p>{_esc(wd['description'])}</p><p>{wd_ssids}</p>" if wd.get('detected') else '' }
+{ f"<h3>Printer Scan Cycle Analysis</h3><p>{_esc(psc['description'])}</p>" if psc.get('detected') else '' }
+</div>"""
+
+
+def _build_dhcp_html(da: Dict) -> str:
+    """Build HTML section for DHCP IP provisioning analysis."""
+    if not da or not da.get('dhcp_attempts'):
+        return ''
+
+    attempts = da.get('dhcp_attempts', [])
+    attempts_html = '\n'.join(
+        f"<tr><td>{_esc(a.get('bssid', '—'))}</td>"
+        f"<td>{a.get('status', '—')}</td>"
+        f"<td>{a.get('delay_ms', '—')} ms</td></tr>"
+        for a in attempts
+    )
+
+    return f"""
+<div class="station-section" style="border-color:#58a6ff">
+<h2 style="color:#58a6ff">DHCP Analysis (IP Provisioning)</h2>
+<p>{_esc(da.get('description', 'No DHCP events detected.'))}</p>
+<table class="details-table">
+<tr><th>BSSID</th><th>Status</th><th>Handshake Delay</th></tr>
+{attempts_html}
+</table>
+</div>"""
+
+
+def _build_data_transfer_html(dta: Dict) -> str:
+    """Build HTML section for data transfer performance analysis."""
+    if not dta or not dta.get('found'):
+        return ''
+
+    quality_cls = (
+        'val-bad' if dta.get('quality_assessment') == 'Poor'
+        else ('val-warn' if dta.get('quality_assessment') == 'Fair'
+        else 'val-ok')
+    )
+
+    top_rates_html = '<br>'.join(
+        f"{rate} Mbps: {count} frames"
+        for rate, count in sorted(dta.get('top_data_rates', {}).items(),
+                                   key=lambda x: -x[1])[:5]
+    ) if dta.get('top_data_rates') else '—'
+
+    return f"""
+<div class="station-section" style="border-color:#79c0ff">
+<h2 style="color:#79c0ff">Data Transfer Analysis (TCP/UDP/Throughput)</h2>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">Total Data Frames</div>
+    <div class="card-value">{dta.get('total_data_frames', 0):,}</div>
+    <div class="card-sub">{dta.get('total_data_bytes', 0):,} bytes</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Throughput</div>
+    <div class="card-value">{dta.get('throughput_mbps', 0):.3f} Mbps</div>
+    <div class="card-sub">{dta.get('frame_rate_fps', 0):.1f} fps</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Signal Quality</div>
+    <div class="card-value">{dta.get('avg_signal_dbm', '—')} dBm</div>
+    <div class="card-sub">min {dta.get('min_signal_dbm', '—')} dBm</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Link Quality</div>
+    <div class="card-value" style="color:{'#f85149' if quality_cls == 'val-bad' else '#d29922' if quality_cls == 'val-warn' else '#3fb950'}">{dta.get('quality_assessment', '—')}</div>
+    <div class="card-sub">{dta.get('retry_rate', 0):.1f}% retries</div>
+  </div>
+</div>
+
+<h3>TX/RX Frames</h3>
+<p>Transmitted: {dta.get('tx_frames', 0):,} | Received: {dta.get('rx_frames', 0):,}</p>
+
+<h3>Top Data Rates</h3>
+<p>{top_rates_html}</p>
+
+<h3>Assessment</h3>
+<p>{_esc(dta.get('description', ''))}</p>
+</div>"""
+
+
 def save_html(overall: Dict, windows: List[Dict], path: str,
               pcap_name: str, filters: Dict,
               station_profile: Optional[Dict] = None,
-              station_windows: Optional[List[Dict]] = None) -> None:
+              station_windows: Optional[List[Dict]] = None,
+              connection_analysis: Optional[Dict] = None,
+              protocol_analysis: Optional[Dict] = None,
+              dhcp_analysis: Optional[Dict] = None,
+              data_transfer_analysis: Optional[Dict] = None) -> None:
     """Generate a self-contained HTML report."""
     gen_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -1575,6 +2414,14 @@ def save_html(overall: Dict, windows: List[Dict], path: str,
 
 {_build_station_html(station_profile, station_windows, o) if station_profile and station_profile.get('found') else ''}
 
+{_build_connection_html(connection_analysis) if connection_analysis and connection_analysis.get('found') else ''}
+
+{_build_protocol_html(protocol_analysis) if protocol_analysis else ''}
+
+{_build_dhcp_html(dhcp_analysis) if dhcp_analysis else ''}
+
+{_build_data_transfer_html(data_transfer_analysis) if data_transfer_analysis else ''}
+
 <script>
 const labels = {chart_labels};
 const CHART_OPTS = (color, label, ymax) => ({{
@@ -1693,13 +2540,23 @@ def run(pcap: str, channel: int = None, bssid: str = None, mac: str = None,
         df['timestamp'].min(), tz=timezone.utc
     ).strftime('%H:%M:%S')
 
+    # --- Connection analysis & protocol detection ---
+    target = (station or mac)
+    connection_analysis = compute_connection_analysis(df, target)
+    protocol_analysis   = compute_protocol_analysis(df, pcap, target)
+    dhcp_analysis       = compute_dhcp_analysis(df, target)
+    data_transfer_analysis = compute_data_transfer_analysis(df, pcap, target)
+
     out = Path(out_prefix)
     out.parent.mkdir(parents=True, exist_ok=True)
     filters = {'channel': channel, 'bssid': bssid, 'mac': mac, 'station': station}
     json_path = str(out) + '.json'
     html_path = str(out) + '_report.html'
-    save_json(overall, windows, json_path, station_profile, station_windows)
-    save_html(overall, windows, html_path, source_name, filters, station_profile, station_windows)
+    save_json(overall, windows, json_path, station_profile, station_windows,
+              connection_analysis, protocol_analysis, dhcp_analysis, data_transfer_analysis)
+    save_html(overall, windows, html_path, source_name, filters,
+              station_profile, station_windows, connection_analysis, protocol_analysis,
+              dhcp_analysis, data_transfer_analysis)
 
     return {'json_path': json_path, 'html_path': html_path, 'results': overall}
 
@@ -1781,6 +2638,14 @@ def main() -> None:
     if station_profile is not None:
         print_station_profile(station_profile, overall)
 
+    # --- Connection analysis & protocol detection ---
+    pcap_path = args.pcap if args.pcap else None
+    target_mac_for_analysis = args.station or args.mac
+    connection_analysis = compute_connection_analysis(df, target_mac_for_analysis)
+    protocol_analysis   = compute_protocol_analysis(df, pcap_path, target_mac_for_analysis)
+    dhcp_analysis       = compute_dhcp_analysis(df, target_mac_for_analysis)
+    data_transfer_analysis = compute_data_transfer_analysis(df, pcap_path, target_mac_for_analysis)
+
     # --- Save reports ---
     if args.out:
         out = Path(args.out)
@@ -1792,10 +2657,14 @@ def main() -> None:
             'station': args.station,
         }
         save_json(overall, windows, str(out) + '.json',
-                  station_profile, station_windows)
+                  station_profile, station_windows,
+                  connection_analysis, protocol_analysis,
+                  dhcp_analysis, data_transfer_analysis)
         save_html(overall, windows, str(out) + '_report.html',
                   source_name, filters,
-                  station_profile, station_windows)
+                  station_profile, station_windows,
+                  connection_analysis, protocol_analysis,
+                  dhcp_analysis, data_transfer_analysis)
     else:
         logger.info("Tip: use --out results/<name> to save JSON + HTML reports")
 

@@ -916,29 +916,33 @@ python src/protocols/dns_analyzer.py --input traffic.pcap
 - Excessive NXDOMAIN responses
 - DNS amplification
 
-### HTTP Analyzer
+### HTTP / HTTPS Analysis (via TCP Analyzer + Port Filter)
+
+HTTP and HTTPS are analyzed through the TCP analyzer using port-based filtering.
+This consolidates application-layer threat detection without requiring a separate dissector pass.
 
 ```bash
-python src/protocols/http_analyzer.py --input traffic.pcap
+# Analyze HTTP traffic (port 80)
+python src/protocols/tcp_analyzer.py --input traffic.pcap  # then filter on port 80 via CLI/GUI port filter
+
+# Via CLI
+ai-wireshark analyze -i traffic.pcap --protocol tcp --filter "tcp.port==80"
+ai-wireshark analyze -i traffic.pcap --protocol tcp --filter "tcp.port==443"
 ```
 
-**Detects:**
-- SQL injection attempts
-- XSS (Cross-Site Scripting)
-- Suspicious user agents
-- HTTP flood (DoS)
-- Directory traversal
+**HTTP threats detected (automatically when port 80/8080 traffic is present):**
+- SQL injection attempts (URI pattern matching)
+- XSS (Cross-Site Scripting) patterns
+- Directory traversal attempts
+- Suspicious scanning user agents (sqlmap, nikto, nmap, masscan)
+- HTTP flood / high request rate
 
-### HTTPS Analyzer
+**HTTPS/TLS threats detected (automatically when port 443/8443 traffic is present):**
+- TLS downgrade / negotiation failures
+- TLS handshake failures (RST pattern analysis)
+- HTTPS flood / high connection rate
 
-```bash
-python src/protocols/https_analyzer.py --input traffic.pcap
-```
-
-**Detects:**
-- SSL/TLS downgrade attacks
-- Certificate issues
-- HTTPS flood
+**Port-based protocol identification is included in every TCP/UDP result under `app_layer_protocols`.**
 
 ### ICMP Analyzer
 

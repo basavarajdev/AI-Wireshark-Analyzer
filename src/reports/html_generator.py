@@ -463,9 +463,32 @@ class HTMLReportGenerator:
                 if data.get('detected') or data.get('high_rate'):
                     threats.append({'protocol': proto.upper(), 'name': name, **data})
 
-        # Sort: critical first, then high, medium, low
+        # Sort: by severity first, then within same severity put connection-related
+        # threats before RF-statistical ones (retry rate, RTS/CTS, power-save, etc.)
         severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
-        threats.sort(key=lambda t: severity_order.get(t.get('severity', 'info'), 5))
+        # Connection/authentication failures should surface above RF statistics
+        _CONNECTION_THREATS = frozenset({
+            'connection_failures', 'ip_connectivity_failure', 'wpa3_sae_failures',
+            'beacon_loss', 'probe_failures', 'connection_delays',
+            'deauth_flood', 'disassoc_flood', 'auth_flood', 'evil_twin',
+        })
+        _RF_STAT_THREATS = frozenset({
+            'high_retry_rate', 'control_frame_issues', 'power_save_issues',
+            'scan_failures', 'weak_signal_coverage', 'unprotected_traffic',
+            'action_frame_issues',
+        })
+
+        def _type_order(name: str) -> int:
+            if name in _CONNECTION_THREATS:
+                return 0
+            if name in _RF_STAT_THREATS:
+                return 2
+            return 1  # other (TCP/UDP/DNS/ICMP) between
+
+        threats.sort(key=lambda t: (
+            severity_order.get(t.get('severity', 'info'), 5),
+            _type_order(t.get('name', '')),
+        ))
         return threats
 
     def _collect_protocol_summaries(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -607,6 +630,538 @@ class HTMLReportGenerator:
         """
         return html
 
+    # ------------------------------------------------------------------
+    #  Dynamic Root Cause Analysis helper
+    # ------------------------------------------------------------------
+
+    def _build_threat_rca_html(self, t: Dict[str, Any]) -> str:
+        """Return dynamic Root Cause Analysis + specific recommendation HTML
+        derived from the actual threat data in *t*.  Returns '' when insufficient
+        dynamic data is available (caller falls back to REMEDIATION_GUIDE)."""
+        name = t.get('name', '')
+
+        # ── Internal helpers ────────────────────────────────────────────────
+        def _ip_list(d: dict, limit: int = 5) -> str:
+            items = sorted(d.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True)[:limit]
+            return ', '.join(
+                f'<code>{k}</code>&nbsp;({v:,})' if isinstance(v, int) else
+                f'<code>{k}</code>&nbsp;({v:.1f})' if isinstance(v, float) else
+                f'<code>{k}</code>'
+                for k, v in items
+            )
+
+        def _rca(title: str, rows: list) -> str:
+            if not rows:
+                return ''
+            s = ('<div style="background:#e8f0fe;border-left:4px solid #3f51b5;'
+                 'padding:12px 16px;border-radius:4px;margin-top:12px">'
+                 f'<p style="margin:0 0 8px;font-weight:bold">&#128270; Root Cause Analysis: {title}</p>'
+                 '<ul style="margin:0 0 0 18px">')
+            for r in rows:
+                s += f'<li style="margin-bottom:4px">{r}</li>'
+            return s + '</ul></div>'
+
+        def _recs(recs: list) -> str:
+            if not recs:
+                return ''
+            s = ('<div style="background:#e8f5e9;border-left:4px solid #2e7d32;'
+                 'padding:12px 16px;border-radius:4px;margin-top:8px">'
+                 '<p style="margin:0 0 8px;font-weight:bold">'
+                 '&#128736; Specific Recommendations (based on this capture)</p>'
+                 '<ol style="margin:0 0 0 18px">')
+            for r in recs:
+                s += f'<li style="margin-bottom:4px">{r}</li>'
+            return s + '</ol></div>'
+
+        # ── TCP Threats ──────────────────────────────────────────────────────
+        if name == 'syn_flood':
+            syn_rate = t.get('syn_rate', 0)
+            top_targets = t.get('top_targets', {})
+            if not syn_rate:
+                return ''
+            rows = [f'SYN rate: <strong>{syn_rate:.1f} pkts/sec</strong> (threshold: {t.get("threshold", "?")} pkts/sec)']
+            if top_targets:
+                rows.append(f'Targeted server(s): {_ip_list(top_targets)}')
+            recs = [
+                f'Apply rate-limit on the firewall: ≤50 new TCP SYN/sec per source IP — current rate is {syn_rate:.0f} pkts/sec',
+                'Enable SYN cookies on affected servers: <code>sysctl -w net.ipv4.tcp_syncookies=1</code>',
+                'Reduce SYN-RECEIVED timeout: <code>sysctl -w net.ipv4.tcp_synack_retries=2</code>',
+            ]
+            if top_targets:
+                recs.append(f'Deploy rate-limiting specifically toward: {_ip_list(top_targets, 3)}')
+            return _rca('SYN Flood', rows) + _recs(recs)
+
+        elif name == 'rst_storm':
+            rst_rate = t.get('rst_rate', 0)
+            top_sources = t.get('top_sources', {})
+            rst_by_port = t.get('rst_by_port', {})
+            refused = t.get('connection_refused', 0)
+            if not rst_rate and not top_sources:
+                return ''
+            rows = [f'RST rate: <strong>{rst_rate:.1f} pkts/sec</strong>']
+            if refused:
+                rows.append(f'{refused:,} connection-refused RSTs (SYN→RST) — service not listening or firewall reject')
+            if rst_by_port:
+                top_ports = list(sorted(rst_by_port.items(), key=lambda x: x[1], reverse=True))[:5]
+                rows.append(f'Most RST-affected ports: {", ".join(f"<code>{p}</code> ({c})" for p, c in top_ports)}')
+            if top_sources:
+                rows.append(f'Top RST senders: {_ip_list(top_sources)}')
+            recs = []
+            if refused:
+                affected_ports = ', '.join(f'<code>{p}</code>' for p in list(rst_by_port.keys())[:5]) if rst_by_port else 'listed ports'
+                recs.append(f'Verify services are running on {affected_ports} — connection-refused RSTs indicate the port is not listening')
+            if top_sources:
+                recs.append(f'Investigate these top RST sources for misconfigured firewalls or active session manipulation: {_ip_list(top_sources, 3)}')
+            recs += [
+                'Check firewall/NAT idle-timeout — premature RSTs on long-idle connections indicate too-short TCP timeouts',
+                'Enable TCP RST rate-limiting at the network boundary',
+            ]
+            return _rca('RST Storm', rows) + _recs(recs)
+
+        elif name == 'port_scanning':
+            scanner_count = t.get('scanner_count', 0)
+            scanners = t.get('scanners', t.get('scanner_ips', {}))
+            scan_type = t.get('scan_type', '')
+            if not scanner_count:
+                return ''
+            rows = [f'<strong>{scanner_count}</strong> active port scanner(s) ({scan_type or "TCP scan"})']
+            if scanners:
+                rows.append(f'Scanner source(s) and ports probed: {_ip_list(scanners)}')
+            recs = []
+            if scanners:
+                scanner_list = ', '.join(f'<code>{ip}</code>' for ip in list(scanners.keys())[:5])
+                recs.append(f'Block or quarantine scanning sources immediately: {scanner_list}')
+            recs += [
+                'Enable IDS port-scan detection rules (e.g., Snort SID 1228/1229)',
+                'Close all unnecessary open ports — reduce the attack surface visible to scanners',
+                'Enable fail2ban or similar auto-blocking for excessive connection attempts per source',
+            ]
+            return _rca('Port Scanning', rows) + _recs(recs)
+
+        elif name == 'excessive_retransmissions':
+            rate = t.get('retransmission_rate', 0)
+            count = t.get('retransmission_count', 0)
+            top_sources = t.get('top_sources', {})
+            top_targets = t.get('top_targets', {})
+            if not rate:
+                return ''
+            rows = [f'Retransmission rate: <strong>{rate*100:.1f}%</strong> ({count:,} retransmitted segments)']
+            if top_sources:
+                rows.append(f'Highest-retransmitting sources: {_ip_list(top_sources)}')
+            if top_targets:
+                rows.append(f'Most affected destinations: {_ip_list(top_targets)}')
+            recs = [
+                'Run <code>ethtool -S &lt;interface&gt;</code> on affected hosts to check for link-layer CRC/frame errors',
+                'Test for path MTU black hole: <code>ping -M do -s 1460 &lt;dest&gt;</code>',
+            ]
+            if top_sources or top_targets:
+                recs.append(f'Focus investigation on path between: {_ip_list(top_sources, 2)} → {_ip_list(top_targets, 2)}')
+            recs += [
+                'Check for duplex mismatch on switches — autonegotiation failure causes high TCP retransmission',
+                f'With {rate*100:.0f}% retransmission rate — apply QoS prioritization on the affected traffic class',
+            ]
+            return _rca('Excessive Retransmissions', rows) + _recs(recs)
+
+        elif name == 'zero_window':
+            zw_count = t.get('zero_window_count', 0)
+            zw_ratio = t.get('zero_window_ratio', 0)
+            affected_dst = t.get('affected_destinations', {})
+            affected_src = t.get('affected_sources', {})
+            if not zw_count:
+                return ''
+            rows = [f'Zero-window advertisements: <strong>{zw_count:,}</strong> ({zw_ratio*100:.1f}% of TCP traffic)']
+            if affected_dst:
+                rows.append(f'Slow consumers (advertising zero window): {_ip_list(affected_dst)}')
+            if affected_src:
+                rows.append(f'Senders stalled by zero window: {_ip_list(affected_src)}')
+            recs = []
+            if affected_dst:
+                recs.append(f'Investigate CPU/memory pressure on {_ip_list(affected_dst, 3)} — application not draining its receive buffer fast enough')
+            recs += [
+                'Increase TCP receive buffer: <code>sysctl -w net.core.rmem_max=16777216 net.ipv4.tcp_rmem="4096 87380 16777216"</code>',
+                'Profile application layer on affected hosts — zero window usually means the application is not reading from the socket quickly enough',
+                'Check for anti-virus scanning, GC pauses, or disk I/O bottleneck on the slow-consumer hosts',
+            ]
+            return _rca('TCP Zero Window', rows) + _recs(recs)
+
+        elif name == 'connection_resets':
+            rst_count = t.get('rst_count', 0)
+            rst_ratio = t.get('rst_ratio', 0)
+            refused = t.get('connection_refused', 0)
+            rst_by_port = t.get('rst_by_port', {})
+            top_rst_src = t.get('top_rst_sources', {})
+            if not rst_count:
+                return ''
+            rows = [f'TCP RST frames: <strong>{rst_count:,}</strong> ({rst_ratio*100:.1f}% of TCP traffic)']
+            if refused:
+                rows.append(f'{refused:,} connection-refused resets (SYN immediately followed by RST)')
+            if rst_by_port:
+                top_ports = list(sorted(rst_by_port.items(), key=lambda x: x[1], reverse=True))[:5]
+                rows.append(f'Ports with most resets: {", ".join(f"<code>{p}</code> ({c})" for p, c in top_ports)}')
+            if top_rst_src:
+                rows.append(f'RST sources: {_ip_list(top_rst_src)}')
+            recs = []
+            if refused and rst_by_port:
+                recs.append(f'Verify services are running on: {", ".join(f"<code>{p}</code>" for p in list(rst_by_port.keys())[:5])}')
+            recs += [
+                'Check firewall/NAT idle-timeout settings — RSTs from middleboxes after idle periods indicate too-short keepalive settings',
+                'Enable TCP keepalives: <code>sysctl -w net.ipv4.tcp_keepalive_time=600</code>',
+                'Review load balancer session-persistence settings — asymmetric routing can cause unexpected RSTs',
+            ]
+            return _rca('Connection Resets', rows) + _recs(recs)
+
+        elif name == 'data_transmission_gaps':
+            stalled_count = t.get('stalled_flow_count', 0)
+            worst_gap = t.get('worst_gap_sec', 0)
+            stalled_flows = t.get('stalled_flows', [])
+            if not stalled_count:
+                return ''
+            rows = [f'<strong>{stalled_count}</strong> stalled TCP flow(s), worst gap: <strong>{worst_gap:.1f}s</strong>']
+            if stalled_flows:
+                f0 = stalled_flows[0]
+                rows.append(f'Most severe: <code>{f0.get("src_ip","?")}</code> → <code>{f0.get("dst_ip","?")}:{f0.get("dst_port","?")}</code> — {f0.get("gap_count",0)} gap(s), max {f0.get("max_gap_sec",0):.1f}s')
+            recs = [
+                'Enable TCP keepalives to detect stale connections: <code>sysctl -w net.ipv4.tcp_keepalive_time=300</code>',
+                'Investigate for network path packet loss during gap periods using <code>mtr</code> or <code>traceroute</code>',
+                'Check application-level flow control — send-buffer exhaustion causes TX gaps',
+                'Review load balancer or proxy timeout settings that may rate-limit transfers',
+            ]
+            return _rca('Data Transmission Gaps', rows) + _recs(recs)
+
+        # ── UDP Threats ──────────────────────────────────────────────────────
+        elif name == 'udp_flood':
+            rate = t.get('packet_rate', 0)
+            top_targets = t.get('top_targets', {})
+            top_sources = t.get('top_sources', {})
+            if not rate:
+                return ''
+            rows = [f'UDP rate: <strong>{rate:.1f} pkts/sec</strong> (threshold: {t.get("threshold", "?")})']
+            if top_targets:
+                rows.append(f'Targeted host(s): {_ip_list(top_targets)}')
+            if top_sources:
+                rows.append(f'Top UDP senders: {_ip_list(top_sources)}')
+            recs = []
+            if top_sources:
+                recs.append(f'Apply ingress rate-limit or block: {_ip_list(top_sources, 3)}')
+            if top_targets:
+                recs.append(f'Protect targeted hosts with per-source UDP rate-limiting: {_ip_list(top_targets, 3)}')
+            recs += [
+                'Apply UDP rate-limit at network edge: <code>iptables -m hashlimit --hashlimit-above 1000/sec --hashlimit-mode srcip -j DROP</code>',
+                'If volumetric: contact ISP for upstream blackhole routing for flood source addresses',
+            ]
+            return _rca('UDP Flood', rows) + _recs(recs)
+
+        elif name == 'udp_amplification':
+            amp_count = t.get('amplification_packet_count', 0)
+            abused = t.get('abused_services', {})
+            victims = t.get('victim_ips', {})
+            if not amp_count:
+                return ''
+            rows = [f'<strong>{amp_count:,}</strong> amplified UDP responses detected']
+            if abused:
+                rows.append(f'Abused reflector services: {_ip_list(abused)}')
+            if victims:
+                rows.append(f'Victim IP(s) receiving amplified traffic: {_ip_list(victims)}')
+            recs = []
+            if abused:
+                recs.append(f'Restrict these amplification-vulnerable services to authorized clients only: {", ".join(f"<code>{s}</code>" for s in list(abused.keys())[:5])}')
+            recs += [
+                'Implement BCP38 (RFC 2827) ingress filtering to block spoofed source IPs at the network edge',
+                'Enable Response Rate Limiting (RRL) on DNS/NTP: <code>rate-limit {{ responses-per-second 5; }};</code>',
+                'If this network is a victim: contact upstream ISP for DDoS scrubbing',
+            ]
+            return _rca('UDP Amplification', rows) + _recs(recs)
+
+        elif name == 'fragmentation_attack':
+            variance = t.get('packet_size_variance', 0)
+            small_ratio = t.get('small_packet_ratio', 0)
+            small_count = t.get('small_packet_count', 0)
+            if not small_count and not variance:
+                return ''
+            rows = [
+                f'Packet size variance: <strong>{variance:.1f}</strong>',
+                f'Tiny fragments: <strong>{small_count:,}</strong> ({small_ratio*100:.1f}% of UDP traffic)',
+            ]
+            recs = [
+                'Drop IP fragments smaller than 512 bytes at the firewall — tiny fragments are a common IDS evasion technique',
+                'Set fragment reassembly timeout: <code>sysctl -w net.ipv4.ipfrag_time=3</code>',
+                'Enable fragment normalization on stateful firewall/NIDS to detect overlap attacks',
+            ]
+            return _rca('UDP Fragmentation', rows) + _recs(recs)
+
+        # ── DNS Threats ──────────────────────────────────────────────────────
+        elif name == 'dns_tunneling':
+            count = t.get('suspicious_query_count', 0)
+            rate = t.get('suspicious_query_rate', 0)
+            sample = t.get('sample_domains', [])
+            if not count:
+                return ''
+            rows = [f'<strong>{count:,}</strong> suspicious high-entropy DNS queries ({rate*100:.1f}% of total)']
+            if sample:
+                rows.append(f'Sample suspicious domains: {", ".join(f"<code>{d}</code>" for d in sample[:5])}')
+            recs = [
+                'Investigate source hosts querying these high-entropy domains for tunneling tools (iodine, dnscat2, dns2tcp)',
+                'Block direct outbound UDP/TCP port 53 from endpoints — force DNS through a monitored resolver',
+                'Deploy DNS query logging with entropy-based anomaly detection on the recursive resolver',
+            ]
+            return _rca('DNS Tunneling', rows) + _recs(recs)
+
+        elif name == 'domain_generation_algorithm':
+            count = t.get('dga_domain_count', 0)
+            sample = t.get('sample_domains', [])
+            if not count:
+                return ''
+            rows = [f'<strong>{count:,}</strong> algorithmically-generated domain name(s) detected']
+            if sample:
+                rows.append(f'Sample DGA domains: {", ".join(f"<code>{d}</code>" for d in sample[:5])}')
+            recs = []
+            if sample:
+                recs.append(f'Isolate hosts querying these DGA domains immediately — active malware C2 communication likely: {", ".join(f"<code>{d}</code>" for d in sample[:3])}')
+            recs += [
+                'Run full offline malware scan on all source hosts',
+                'Deploy DNS sinkholing via RPZ for DGA domain categories',
+                'Apply threat-intelligence IP/domain blocklists (VirusTotal, ThreatFox, AbuseIPDB)',
+            ]
+            return _rca('DGA / Malware C2', rows) + _recs(recs)
+
+        elif name == 'excessive_nxdomain':
+            nxd_rate = t.get('nxdomain_rate', 0)
+            nxd_count = t.get('nxdomain_count', 0)
+            top_failing = t.get('top_failing_domains', {})
+            if not nxd_count:
+                return ''
+            rows = [f'NXDOMAIN rate: <strong>{nxd_rate*100:.1f}%</strong> ({nxd_count:,} NXDOMAIN responses)']
+            if top_failing:
+                rows.append(f'Top non-existent domains queried: {_ip_list(top_failing)}')
+            recs = []
+            if top_failing:
+                recs.append(f'Investigate hosts querying these non-existent names: {", ".join(f"<code>{d}</code>" for d in list(top_failing.keys())[:5])}')
+            recs += [
+                'Audit DNS clients for misconfigured applications querying stale or incorrect hostnames',
+                f'With {nxd_rate*100:.0f}% NXDOMAIN rate — likely misconfigurations or DGA malware activity',
+                'Enable DNS RRL on authoritative servers to reduce resolver load from repeated NXDOMAIN queries',
+            ]
+            return _rca('Excessive NXDOMAIN', rows) + _recs(recs)
+
+        elif name == 'dns_amplification':
+            top_sources = t.get('top_sources', {})
+            amp_count = t.get('amplification_source_count', 0)
+            if not amp_count and not top_sources:
+                return ''
+            rows = [f'<strong>{amp_count}</strong> DNS amplification source(s) detected']
+            if top_sources:
+                rows.append(f'Top amplifying sources: {_ip_list(top_sources)}')
+            recs = []
+            if top_sources:
+                recs.append(f'Restrict recursive DNS from these sources: {_ip_list(top_sources, 3)}')
+            recs += [
+                'Configure resolver: allow recursion only from trusted subnets (<code>allow-recursion {{ 10.0.0.0/8; }};</code>)',
+                'Implement RRL: <code>rate-limit {{ responses-per-second 5; window 5; }};</code>',
+                'Enable BCP38 ingress filtering upstream to prevent IP spoofing',
+            ]
+            return _rca('DNS Amplification', rows) + _recs(recs)
+
+        # ── ICMP Threats ─────────────────────────────────────────────────────
+        elif name == 'icmp_flood':
+            rate = t.get('packet_rate', 0)
+            top_sources = t.get('top_sources', {})
+            top_targets = t.get('top_targets', {})
+            if not rate:
+                return ''
+            rows = [f'ICMP rate: <strong>{rate:.1f} pkts/sec</strong>']
+            if top_sources:
+                rows.append(f'Flood source(s): {_ip_list(top_sources)}')
+            if top_targets:
+                rows.append(f'Target(s): {_ip_list(top_targets)}')
+            recs = []
+            if top_sources:
+                recs.append(f'Rate-limit or block ICMP from: {_ip_list(top_sources, 3)}')
+            recs.append('Apply ICMP rate-limit: <code>iptables -A INPUT -p icmp --icmp-type echo-request -m limit --limit 1/s -j ACCEPT && iptables -A INPUT -p icmp --icmp-type echo-request -j DROP</code>')
+            return _rca('ICMP Flood', rows) + _recs(recs)
+
+        elif name == 'ping_of_death':
+            large_count = t.get('large_ping_count', 0)
+            max_size = t.get('max_ping_size', 0)
+            attacker_ips = t.get('attacker_ips', {})
+            if not large_count:
+                return ''
+            rows = [f'<strong>{large_count:,}</strong> oversized ICMP packets (largest: <strong>{max_size:,} bytes</strong>)']
+            if attacker_ips:
+                rows.append(f'Source(s): {_ip_list(attacker_ips)}')
+            recs = []
+            if attacker_ips:
+                recs.append(f'Block ICMP from these sources: {_ip_list(attacker_ips, 3)}')
+            recs += [
+                f'Drop ICMP packets > 1024 bytes at firewall — observed max {max_size:,} bytes',
+                'Verify firmware patches on all embedded/IoT devices on this network',
+            ]
+            return _rca('Ping of Death', rows) + _recs(recs)
+
+        elif name == 'smurf_attack':
+            victim_ip = t.get('victim_ip', '')
+            reply_count = t.get('reply_count', 0)
+            amp_count = t.get('amplification_source_count', 0)
+            if not victim_ip:
+                return ''
+            rows = [f'Victim: <code>{victim_ip}</code> — receiving <strong>{reply_count:,}</strong> amplified ICMP replies']
+            if amp_count:
+                rows.append(f'{amp_count} hosts acting as Smurf amplifiers (responding to broadcast ICMP)')
+            recs = [
+                f'Protect victim <code>{victim_ip}</code>: apply ingress rate-limit on ICMP echo-reply at upstream router',
+                'Disable IP directed-broadcast on all routers: <code>no ip directed-broadcast</code> (Cisco IOS)',
+                'Implement BCP38 ingress filtering — the spoofed source IP (victim) needs blocking upstream',
+            ]
+            return _rca('Smurf Attack', rows) + _recs(recs)
+
+        elif name == 'icmp_tunneling':
+            suspicious_count = t.get('suspicious_packet_count', 0)
+            payload_size = t.get('common_payload_size', 0)
+            endpoints = t.get('suspected_tunnel_endpoints', {})
+            if not suspicious_count:
+                return ''
+            rows = [f'<strong>{suspicious_count:,}</strong> ICMP packets with unusual payload size (common: {payload_size} bytes)']
+            if endpoints:
+                rows.append(f'Suspected tunnel endpoints: {_ip_list(endpoints)}')
+            recs = []
+            if endpoints:
+                recs.append(f'Block ICMP between suspected tunnel endpoints: {_ip_list(endpoints, 5)}')
+            recs += [
+                'Restrict ICMP payload to ≤64 bytes for echo-request/reply at the firewall',
+                'Investigate source hosts for ICMP tunneling tools (ptunnel, icmptunnel, pinger)',
+            ]
+            return _rca('ICMP Tunneling', rows) + _recs(recs)
+
+        elif name == 'network_scanning':
+            scanner_count = t.get('scanner_count', 0)
+            scanners = t.get('scanners', {})
+            if not scanner_count:
+                return ''
+            rows = [f'<strong>{scanner_count}</strong> ICMP ping-sweep scanner(s) detected']
+            if scanners:
+                rows.append(f'Scanning source(s): {_ip_list(scanners)}')
+            recs = []
+            if scanners:
+                recs.append(f'Investigate or block scanning sources: {_ip_list(scanners, 5)}')
+            recs += [
+                'Block ICMP echo-requests from untrusted external sources at the perimeter',
+                'Verify whether any scanning sources are authorized (vulnerability scanners, monitoring) — whitelist legitimate ones',
+            ]
+            return _rca('ICMP Network Scan', rows) + _recs(recs)
+
+        # ── DHCP Threats ─────────────────────────────────────────────────────
+        elif name == 'dhcp_starvation':
+            unique_macs = t.get('unique_macs', 0)
+            discover_count = t.get('discover_count', 0)
+            top_sources = t.get('top_sources', {})
+            if not unique_macs:
+                return ''
+            rows = [f'<strong>{unique_macs:,}</strong> unique MACs — <strong>{discover_count:,}</strong> DHCP Discover messages']
+            if top_sources:
+                rows.append(f'Top flooding sources: {_ip_list(top_sources)}')
+            recs = [
+                'Enable DHCP snooping on access switches: <code>ip dhcp snooping vlan &lt;VLAN&gt;</code>',
+                'Configure port-security to limit MACs per port: <code>switchport port-security maximum 5</code>',
+                f'With {unique_macs:,} unique MACs — check for a DHCP starvation tool (DHCPig, Yersinia) on the network',
+            ]
+            return _rca('DHCP Starvation', rows) + _recs(recs)
+
+        elif name == 'rogue_dhcp_server':
+            server_count = t.get('server_count', 0)
+            servers = t.get('servers', {})
+            if not server_count or server_count < 2:
+                return ''
+            rows = [f'<strong>{server_count}</strong> DHCP servers responding (only 1 expected)']
+            if servers:
+                rows.append(f'Responding DHCP servers: {_ip_list(servers)}')
+            recs = []
+            if servers:
+                recs.append(f'Locate and disconnect unauthorized server(s): {", ".join(f"<code>{ip}</code>" for ip in list(servers.keys())[:5])}')
+            recs += [
+                'Enable DHCP snooping — mark only the legitimate DHCP server port as trusted: <code>ip dhcp snooping trust</code>',
+                'Use 802.1X port authentication to prevent unauthorized devices from connecting',
+            ]
+            return _rca('Rogue DHCP Server', rows) + _recs(recs)
+
+        elif name == 'rapid_dhcp_requests':
+            req_rate = t.get('request_rate', 0)
+            if not req_rate:
+                return ''
+            rows = [f'DHCP request rate: <strong>{req_rate:.1f} requests/sec</strong>']
+            recs = [
+                'Enable DHCP rate-limiting on the switch to prevent DHCP server overload',
+                'Investigate source MACs for misconfigured clients or automated attack tools',
+                f'With {req_rate:.0f} req/sec — verify the DHCP lease pool is not exhausted',
+            ]
+            return _rca('Rapid DHCP Requests', rows) + _recs(recs)
+
+        # ── HTTP/HTTPS Threats ───────────────────────────────────────────────
+        elif name in ('sql_injection', 'cross_site_scripting', 'directory_traversal'):
+            count_key = {
+                'sql_injection': 'sqli_attempt_count',
+                'cross_site_scripting': 'xss_attempt_count',
+                'directory_traversal': 'traversal_attempt_count',
+            }.get(name, 'suspicious_request_count')
+            count = t.get(count_key, t.get('suspicious_request_count', 0))
+            attacker_ips = t.get('attacker_ips', t.get('scanner_ips_http', {}))
+            sample_uris = t.get('sample_uris', [])
+            label = {'sql_injection': 'SQL Injection', 'cross_site_scripting': 'XSS',
+                     'directory_traversal': 'Directory Traversal'}.get(name, name)
+            if not count:
+                return ''
+            rows = [f'<strong>{count:,}</strong> {label} attempt(s) in HTTP requests']
+            if attacker_ips:
+                rows.append(f'Attacker source(s): {_ip_list(attacker_ips)}')
+            if sample_uris:
+                rows.append(f'Sample malicious URIs: {", ".join(f"<code>{u[:60]}</code>" for u in sample_uris[:3])}')
+            recs = []
+            if attacker_ips:
+                recs.append(f'Block these attacking sources at the WAF/firewall: {_ip_list(attacker_ips, 5)}')
+            recs += [
+                'Enable WAF blocking rules and review all requests from the listed source IPs in the web server access log',
+                'Harden application input validation for targeted endpoints (parameterized queries for SQLi, output encoding for XSS)',
+            ]
+            return _rca(label, rows) + _recs(recs)
+
+        elif name == 'suspicious_user_agents':
+            count = t.get('suspicious_request_count', 0)
+            user_agents = t.get('user_agents', {})
+            attacker_ips = t.get('attacker_ips', {})
+            if not count:
+                return ''
+            rows = [f'<strong>{count:,}</strong> requests from known vulnerability scanner user agents']
+            if user_agents:
+                rows.append(f'Detected scanners: {_ip_list(user_agents)}')
+            if attacker_ips:
+                rows.append(f'Source IP(s): {_ip_list(attacker_ips)}')
+            recs = []
+            if attacker_ips:
+                recs.append(f'Block or monitor scanner source IPs: {_ip_list(attacker_ips, 5)}')
+            recs += [
+                'Review web server access logs for the full scope of endpoints probed by the detected scanners',
+                'Ensure all scanned endpoints are patched and hardened',
+            ]
+            return _rca('Vulnerability Scanning', rows) + _recs(recs)
+
+        elif name == 'http_flood':
+            count = t.get('high_rate_ip_count', 0)
+            top_req = t.get('top_requesters', {})
+            if not count:
+                return ''
+            rows = [f'<strong>{count:,}</strong> IP(s) sending HTTP requests at anomalously high rates']
+            if top_req:
+                rows.append(f'Top flooding sources: {_ip_list(top_req)}')
+            recs = []
+            if top_req:
+                recs.append(f'Apply request rate-limiting at the reverse proxy/WAF for: {_ip_list(top_req, 5)}')
+            recs += [
+                'Enable per-IP HTTP rate-limiting (nginx: <code>limit_req_zone</code>; Apache: <code>mod_reqtimeout</code>)',
+                'Deploy JavaScript challenge or CAPTCHA for high-rate client IPs',
+                'Use a CDN with DDoS protection and bot management capabilities',
+            ]
+            return _rca('HTTP Flood', rows) + _recs(recs)
+
+        return ''  # No dynamic data for this threat type
+
     def _generate_critical_issues(self, all_threats: List[Dict[str, Any]]) -> str:
         if not all_threats:
             return '<div class="alert alert-success">&#10003; No critical issues detected</div>'
@@ -622,6 +1177,8 @@ class HTMLReportGenerator:
             description = guide.get('description', '')
             impact = guide.get('impact', '')
             remediation_steps = guide.get('remediation', [])
+            # Flag: WLAN threats with dedicated dynamic blocks suppress the generic static guide
+            _skip_static_remediation = False
 
             html += f"""
             <div class="issue-card {severity_class}">
@@ -638,6 +1195,12 @@ class HTMLReportGenerator:
                 html += f'<p style="margin-top:8px"><strong>What is this?</strong> {description}</p>'
             if impact:
                 html += f'<p style="margin-top:4px"><strong>Impact:</strong> {impact}</p>'
+
+            # Dynamic root cause analysis (replaces generic static steps when data is available)
+            dynamic_rca = self._build_threat_rca_html(t)
+            if dynamic_rca:
+                html += dynamic_rca
+                _skip_static_remediation = True
 
             # Show key numeric details from the threat data
             detail_keys = [
@@ -706,6 +1269,7 @@ class HTMLReportGenerator:
 
             # Connection failures: breakdown, client timelines, frame details
             if threat_name_raw == 'connection_failures':
+                _skip_static_remediation = True
                 breakdown = t.get('failure_breakdown', {})
                 if breakdown:
                     html += '<h4 style="margin-top:14px">Failure Breakdown by Root Cause</h4>'
@@ -918,6 +1482,7 @@ class HTMLReportGenerator:
 
 
             elif threat_name_raw == 'beacon_loss':
+                _skip_static_remediation = True
                 bssid_detail = t.get('bssid_detail', {})
                 if bssid_detail:
                     html += '<h4 style="margin-top:14px">Beacon Loss Detail per BSSID</h4>'
@@ -934,6 +1499,7 @@ class HTMLReportGenerator:
 
             # Scan failures: devices that probed but never associated
             elif threat_name_raw == 'scan_failures':
+                _skip_static_remediation = True
                 details_list = t.get('scan_only_details', [])
                 if details_list:
                     for dev in details_list:
@@ -986,6 +1552,7 @@ class HTMLReportGenerator:
 
             # Probe failures: low response rate
             elif threat_name_raw == 'probe_failures':
+                _skip_static_remediation = True
                 scanners = t.get('top_scanning_devices', {})
                 if scanners:
                     html += '<h4 style="margin-top:14px">Top Devices Sending Unanswered Probe Requests</h4>'
@@ -996,6 +1563,7 @@ class HTMLReportGenerator:
 
             # Unprotected traffic: WPA2/WPA3 context note
             elif threat_name_raw == 'unprotected_traffic':
+                _skip_static_remediation = True
                 sec_ctx = t.get('security_context', '')
                 null_excl = t.get('null_frames_excluded', 0)
                 if sec_ctx:
@@ -1010,6 +1578,7 @@ class HTMLReportGenerator:
 
             # IP connectivity failure: post-handshake no AP unicast
             elif threat_name_raw == 'ip_connectivity_failure':
+                _skip_static_remediation = True
                 sessions = t.get('sessions', [])
                 rc = t.get('root_cause_candidates', [])
                 actions = t.get('recommended_actions', [])
@@ -1066,6 +1635,7 @@ class HTMLReportGenerator:
             # ── WLAN-specific rich details end ──────────────────────────
 
             elif threat_name_raw == 'wpa3_sae_failures':
+                _skip_static_remediation = True
                 sae_sessions  = t.get('sae_sessions', [])
                 issues        = t.get('issues', [])
                 fail_counts   = t.get('failure_counts', {})
@@ -1196,6 +1766,7 @@ class HTMLReportGenerator:
 
             # ── Action Frame Issues ──────────────────────────────────────
             elif threat_name_raw == 'action_frame_issues':
+                _skip_static_remediation = True
                 cat_dist = t.get('category_distribution', {})
                 action_summary = t.get('summary', {})
                 action_issues = t.get('issues', [])
@@ -1276,6 +1847,7 @@ class HTMLReportGenerator:
 
             # ── Control Frame Issues ─────────────────────────────────────
             elif threat_name_raw == 'control_frame_issues':
+                _skip_static_remediation = True
                 ctrl_summary = t.get('control_frame_summary', {})
                 ctrl_issues = t.get('issues', [])
 
@@ -1402,6 +1974,7 @@ class HTMLReportGenerator:
 
             # ── Power Save / Null Data Issues ────────────────────────────
             elif threat_name_raw == 'power_save_issues':
+                _skip_static_remediation = True
                 ps_summary = t.get('power_save_summary', {})
                 ps_issues = t.get('issues', [])
 
@@ -1523,9 +2096,190 @@ class HTMLReportGenerator:
                     'over legacy PS-Poll for efficient buffered frame delivery.</p>'
                 )
 
+            # ── High Retry Rate ───────────────────────────────────────────
+            elif threat_name_raw == 'high_retry_rate':
+                _skip_static_remediation = True
+                retry_rate = t.get('retry_rate', 0.0)
+                retry_count = t.get('retry_count', 0)
+                total_frames = t.get('total_data_frames', 0)
+
+                # Severity-tiered dynamic recommendation set
+                if retry_rate > 0.50:
+                    sev_note = 'Critically high retry rate — severe RF interference, hidden node, or hardware fault.'
+                    recs = [
+                        f'Immediate: run a wireless site survey on channel(s) in use — retry rate {retry_rate*100:.0f}% requires physical investigation.',
+                        'Check for non-802.11 interference sources (microwave ovens, DECT phones, radar on 5 GHz DFS channels).',
+                        'Inspect AP antenna integrity and cabling — a damaged antenna can cause dramatic, sudden retry spikes.',
+                        'Reduce the number of APs on the same channel (auto-channel selection can resolve severe co-channel interference).',
+                        'Tune AP Short Retry Limit (dot11ShortRetryLimit, default 7) down to 4 to fail fast and free airtime sooner.',
+                        'Consider migrating affected clients to 5 GHz or 6 GHz where the band is less congested.',
+                    ]
+                elif retry_rate > 0.30:
+                    sev_note = 'High retry rate — significant RF congestion or hidden node present.'
+                    recs = [
+                        f'Change AP channel assignment — {retry_rate*100:.0f}% retries indicate co-channel or adjacent-channel interference.',
+                        'Use a Wi-Fi scanner to find the clearest channel (non-overlapping channels 1/6/11 on 2.4 GHz, 36/40/44/48 on 5 GHz).',
+                        'Enable RTS/CTS threshold on AP (set 512–1024 bytes) to mitigate hidden-node collisions.',
+                        'Enable band-steering to move dual-band clients to 5 GHz.',
+                        'Check for overlapping SSID coverage from neighbouring APs on the same channel.',
+                    ]
+                else:
+                    sev_note = 'Elevated retry rate — moderate interference or suboptimal RF coverage.'
+                    recs = [
+                        'Review channel assignment using a Wi-Fi scanner — use non-overlapping channels.',
+                        'Improve RF coverage in areas with weak signal — reposition AP or add a second AP.',
+                        'Enable 802.11r/k/v (fast roaming) so clients move to stronger APs before retries accumulate.',
+                        'Adjust AP transmit power to match client density — over-powered APs increase co-channel interference.',
+                    ]
+
+                html += (
+                    f'<div style="background:#fff3e0;border-left:4px solid #e65100;'
+                    f'padding:12px 16px;border-radius:4px;margin-top:10px">'
+                    f'<p><strong>&#128293; {sev_note}</strong></p>'
+                    f'<table class="data-table" style="margin-top:8px;max-width:520px">'
+                    f'<tr><td>Retry rate</td><td><strong>{retry_rate*100:.1f}%</strong></td></tr>'
+                    f'<tr><td>Threshold</td><td>{t.get("threshold_pct", 15):.0f}%</td></tr>'
+                    f'<tr><td>Retransmitted frames</td><td>{retry_count:,} of {total_frames:,} data frames</td></tr>'
+                    f'</table></div>'
+                )
+
+                # Per-AP (BSSID) retry breakdown
+                bssid_detail = t.get('high_retry_bssids', {})
+                if bssid_detail:
+                    html += '<h4 style="margin-top:14px">&#128246; Per-AP Retry Breakdown</h4>'
+                    html += '<table class="data-table"><thead><tr><th>AP (BSSID)</th><th>Retry Rate</th><th>Retries</th><th>Data Frames</th></tr></thead><tbody>'
+                    for bssid, info in sorted(bssid_detail.items(), key=lambda x: x[1]['retry_rate'], reverse=True):
+                        rc_color = '#b71c1c' if info['retry_rate'] > 0.4 else '#e65100' if info['retry_rate'] > 0.25 else '#555'
+                        html += (
+                            f'<tr><td><code>{bssid}</code></td>'
+                            f'<td><strong style="color:{rc_color}">{info["retry_rate"]*100:.1f}%</strong></td>'
+                            f'<td>{info["retry_count"]:,}</td>'
+                            f'<td>{info["total_frames"]:,}</td></tr>'
+                        )
+                    html += '</tbody></table>'
+
+                # Per-channel retry breakdown
+                ch_detail = t.get('high_retry_channels', {})
+                if ch_detail:
+                    html += '<h4 style="margin-top:14px">&#128246; Per-Channel Retry Breakdown</h4>'
+                    html += '<table class="data-table"><thead><tr><th>Channel</th><th>Band</th><th>Retry Rate</th><th>Retries</th><th>Data Frames</th></tr></thead><tbody>'
+                    for ch, info in sorted(ch_detail.items(), key=lambda x: x[1]['retry_rate'], reverse=True):
+                        band = '2.4 GHz' if ch <= 14 else '5 GHz' if ch <= 177 else '6 GHz'
+                        rc_color = '#b71c1c' if info['retry_rate'] > 0.4 else '#e65100' if info['retry_rate'] > 0.25 else '#555'
+                        html += (
+                            f'<tr><td>Ch {ch}</td><td>{band}</td>'
+                            f'<td><strong style="color:{rc_color}">{info["retry_rate"]*100:.1f}%</strong></td>'
+                            f'<td>{info["retry_count"]:,}</td>'
+                            f'<td>{info["total_frames"]:,}</td></tr>'
+                        )
+                    html += '</tbody></table>'
+
+                html += '<h4 style="margin-top:14px">&#128736; Recommended Actions (derived from analysis)</h4>'
+                html += '<ol style="margin:4px 0 0 18px">'
+                for step in recs:
+                    html += f'<li style="margin-bottom:4px">{step}</li>'
+                html += '</ol>'
+                html += (
+                    '<p style="font-size:0.82em;color:#777;margin-top:12px">'
+                    '&#128214; IEEE 802.11: a frame is retried (retry bit set in FC field) when no ACK is received '
+                    'within SIFS + ACKTimeout. Each retry consumes additional airtime. In 802.11ac/ax, '
+                    'A-MPDU retransmission re-sends only failed subframes, but a high per-frame retry rate '
+                    'indicates the medium is too noisy for reliable single-attempt delivery.</p>'
+                )
+
+            # ── Connection Delays ─────────────────────────────────────────────
+            elif threat_name_raw == 'connection_delays':
+                _skip_static_remediation = True
+                delay_analyses = t.get('delay_analyses', [])
+                REASON_ICONS = {
+                    'multi_band_scanning':        '&#128225;',
+                    'weak_signal_hesitation':     '&#128200;',
+                    'unanswered_channels':         '&#128262;',
+                    'multiple_scan_cycles':       '&#8635;',
+                    'channel_switch_overhead':    '&#8644;',
+                    'scan_to_directed_transition': '&#128269;',
+                    'passive_scan_periods':        '&#9208;',
+                }
+                ISSUE_COLORS = {'high': ('#ffebee', '#c62828'), 'medium': ('#fff8e1', '#e65100'),
+                                'low': ('#e8f5e9', '#2e7d32'), 'info': ('#e3f2fd', '#1565c0')}
+
+                if not delay_analyses:
+                    html += f'<p>{t.get("message", "")}</p>'
+                else:
+                    for analysis in delay_analyses:
+                        client = analysis.get('client', 'unknown')
+                        ap = analysis.get('ap_bssid', 'unknown')
+                        delay_s = analysis.get('delay_seconds', 0)
+                        bands = analysis.get('bands_scanned', [])
+                        channels = analysis.get('channels_scanned', [])
+                        reasons = analysis.get('reasons', [])
+
+                        delay_color = '#b71c1c' if delay_s > 20 else '#e65100' if delay_s > 5 else '#f9a825'
+                        html += (
+                            f'<div style="border:1px solid #e0e0e0;border-radius:6px;'
+                            f'padding:14px 18px;margin:12px 0">'
+                            f'<p style="margin:0 0 8px"><strong>Client:</strong> <code>{client}</code>'
+                            f' &rarr; <strong>AP:</strong> <code>{ap}</code></p>'
+                            f'<p style="margin:0 0 10px">'
+                            f'<strong>Total connection delay:</strong> '
+                            f'<span style="font-size:1.2em;font-weight:bold;color:{delay_color}">{delay_s:.1f}s</span>'
+                            f'&nbsp;&nbsp;(Frame {analysis.get("first_probe_response_frame","")} '
+                            f'&rarr; {analysis.get("first_auth_frame","")})</p>'
+                        )
+                        if bands:
+                            html += (
+                                f'<p style="margin:0 0 8px">'
+                                f'<strong>Bands scanned:</strong> {", ".join(bands)}'
+                                f' &nbsp;|&nbsp; <strong>Channels:</strong> {", ".join(str(c) for c in channels)}'
+                                f' &nbsp;|&nbsp; Probes: {analysis.get("total_probes_in_delay",0)}'
+                                f' &nbsp;|&nbsp; Responses: {analysis.get("total_responses_in_delay",0)}</p>'
+                            )
+                        ch_detail = analysis.get('channel_detail', {})
+                        if ch_detail:
+                            html += (
+                                '<h4 style="margin:10px 0 6px">Channel Scan Activity</h4>'
+                                '<table class="data-table"><thead><tr>'
+                                '<th>Channel</th><th>Probes Sent</th><th>Responses</th><th>Avg Signal</th>'
+                                '</tr></thead><tbody>'
+                            )
+                            for ch_label, info in ch_detail.items():
+                                sig_str = f'{info["signal_avg"]:.0f} dBm' if info.get('signal_avg') else '&mdash;'
+                                resp_color = '#2e7d32' if info['responses_received'] > 0 else '#b71c1c'
+                                html += (
+                                    f'<tr><td>{ch_label}</td>'
+                                    f'<td>{info["probes_sent"]}</td>'
+                                    f'<td style="color:{resp_color};font-weight:bold">{info["responses_received"]}</td>'
+                                    f'<td>{sig_str}</td></tr>'
+                                )
+                            html += '</tbody></table>'
+
+                        if reasons:
+                            html += '<h4 style="margin-top:14px">Root Causes of Delay</h4>'
+                            for reason in reasons:
+                                isev = reason.get('severity', 'info')
+                                bg, border = ISSUE_COLORS.get(isev, ('#f5f5f5', '#757575'))
+                                icon = REASON_ICONS.get(reason.get('reason', ''), '&#9888;')
+                                reason_name = reason.get('reason', '').replace('_', ' ').title()
+                                html += (
+                                    f'<div style="background:{bg};border-left:4px solid {border};'
+                                    f'padding:10px 14px;border-radius:4px;margin:8px 0">'
+                                    f'<p style="margin:0 0 6px"><strong>{icon} {reason_name}</strong></p>'
+                                )
+                                if reason.get('description'):
+                                    html += f'<p style="margin:4px 0;color:#333">{reason["description"]}</p>'
+                                if reason.get('impact'):
+                                    html += f'<p style="margin:4px 0"><strong>Impact:</strong> {reason["impact"]}</p>'
+                                if reason.get('remediation'):
+                                    html += (
+                                        f'<div class="remediation-box" style="margin:6px 0 0">'
+                                        f'<p><strong>&#128736; Fix:</strong> {reason["remediation"]}</p></div>'
+                                    )
+                                html += '</div>'
+                        html += '</div>'
+
             # ── Catch-all end marker ─────────────────────────────────────
 
-            if remediation_steps:
+            if remediation_steps and not _skip_static_remediation:
                 html += '<div class="remediation-box"><h4>&#128736; Recommended Remediation</h4><ol>'
                 for step in remediation_steps:
                     html += f'<li>{step}</li>'

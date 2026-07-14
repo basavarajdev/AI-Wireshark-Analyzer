@@ -1,6 +1,7 @@
 """
 UDP Protocol Analyzer
-Detects UDP-specific critical network issues
+Detects UDP-specific critical network issues and provides port-based
+application-layer protocol coverage (DNS, NTP, DHCP, QUIC, SSDP, etc.)
 """
 
 import argparse
@@ -17,9 +18,21 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from src.parsers.packet_parser import PacketParser
 from src.preprocessing.cleaning import DataCleaner
 
+# Well-known UDP port → application-layer protocol mapping
+UDP_PORT_MAP = {
+    53: "DNS", 67: "DHCP-Server", 68: "DHCP-Client",
+    69: "TFTP", 123: "NTP", 137: "NetBIOS-NS", 138: "NetBIOS-DGM",
+    161: "SNMP", 162: "SNMP-Trap", 389: "LDAP",
+    443: "QUIC/HTTP3", 500: "IKE/VPN", 514: "Syslog",
+    1194: "OpenVPN", 1900: "SSDP/UPnP",
+    4500: "IKE-NAT", 5353: "mDNS", 5355: "LLMNR",
+    9000: "QUIC-Alt", 11211: "Memcached",
+}
+
 
 class UDPAnalyzer:
-    """Analyze UDP traffic for critical issues"""
+    """Analyze UDP traffic for critical issues, with port-based
+    application-layer protocol identification."""
     
     def __init__(self, config_path: str = "config/default.yaml"):
         """Initialize UDP Analyzer"""
@@ -45,33 +58,46 @@ class UDPAnalyzer:
         """
         logger.info(f"Analyzing UDP traffic in {pcap_file}")
         
-        # Build comprehensive filter
-        filters = ['udp']
-        if display_filter:
-            filters.append(f'({display_filter})')
-        if ip_filter:
-            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
-        if port_filter:
-            ports = [p.strip() for p in port_filter.split(',')]
-            port_expr = ' || '.join([f'udp.port=={port}' for port in ports])
-            filters.append(f'({port_expr})')
-        
-        proto_filter = ' && '.join(filters)
-        df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
-        
-        if df.empty:
-            logger.warning("No UDP packets found")
-            return {"error": "No UDP packets found"}
-        
-        df = self.cleaner.clean(df)
-        
-        results = {
-            "total_packets": len(df),
-            "statistics": self._calculate_statistics(df),
-            "threats": self._detect_threats(df)
-        }
-        
-        return results
+        try:
+            # Build comprehensive filter
+            filters = ['udp']
+            if display_filter:
+                filters.append(f'({display_filter})')
+            if ip_filter:
+                filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+            if port_filter:
+                ports = [p.strip() for p in port_filter.split(',')]
+                port_expr = ' || '.join([f'udp.port=={port}' for port in ports])
+                filters.append(f'({port_expr})')
+            
+            proto_filter = ' && '.join(filters)
+            logger.debug(f"UDP filter: {proto_filter}")
+            
+            df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
+            
+            if df.empty:
+                logger.warning("No UDP packets found")
+                return {"error": "No UDP packets found", "status": "empty"}
+            
+            df = self.cleaner.clean(df)
+            
+            results = {
+                "total_packets": len(df),
+                "statistics": self._calculate_statistics(df),
+                "threats": self._detect_threats(df),
+                "app_layer_protocols": self._identify_app_layer_protocols(df),
+            }
+            
+            return results
+            
+        except Exception as e:
+            error_msg = f"Error analyzing UDP traffic: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "error": error_msg,
+                "status": "error",
+                "type": type(e).__name__
+            }
     
     def _calculate_statistics(self, df: pd.DataFrame) -> Dict:
         """Calculate UDP statistics"""
@@ -123,6 +149,28 @@ class UDPAnalyzer:
             threats['fragmentation_attack'] = fragmentation
         
         return threats
+
+    def _identify_app_layer_protocols(self, df: pd.DataFrame) -> Dict:
+        """Map observed UDP ports to known application-layer protocols."""
+        result = {}
+        for col in ('dst_port', 'src_port'):
+            if col not in df.columns:
+                continue
+            port_counts = df[col].value_counts()
+            for port, count in port_counts.items():
+                try:
+                    port_int = int(port)
+                except (ValueError, TypeError):
+                    continue
+                proto_name = UDP_PORT_MAP.get(port_int)
+                if proto_name:
+                    key = f"port_{port_int}_{proto_name.replace('/', '_')}"
+                    result[key] = {
+                        "port": port_int,
+                        "protocol": proto_name,
+                        "packet_count": int(count),
+                    }
+        return result
     
     def _detect_udp_flood(self, df: pd.DataFrame) -> Dict:
         """Detect UDP flood attacks"""

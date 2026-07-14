@@ -4,7 +4,7 @@
 
 AI-Wireshark-Analyzer is a modular network analysis platform built in Python 3.12. It supports two parallel ingestion paths — **tshark-native** (high-performance subprocess extraction used by all GUI panels and CLI scripts) and **PyShark-based** structured parsing (used by the ML pipeline and protocol analyzers). All analysis is local; no data leaves the machine.
 
-**Version:** 1.5.0  
+**Version:** 1.7.1  
 **Stack:** Python 3.12 · PyQt6 · tshark · scikit-learn · TensorFlow (optional) · FastAPI · pandas · loguru · PyYAML
 
 ```
@@ -150,12 +150,10 @@ results = analyzer.analyze(pcap_file, display_filter=None)
 
 | Analyzer | Key detections |
 |---|---|
-| `tcp_analyzer.py` | SYN flood, RST storm, port scan, excessive retransmissions, connection hijacking (seq anomalies), zero-window stalls, data gaps |
-| `udp_analyzer.py` | UDP flood, amplification (response/request size ratio), port scan, fragmentation attacks |
+| `tcp_analyzer.py` | SYN flood, RST storm, port scan, excessive retransmissions, connection hijacking (seq anomalies), zero-window stalls, data gaps; **port-based app-layer detection**: HTTP threats (SQL injection, XSS, directory traversal, suspicious user agents, HTTP flood) on ports 80/8080, TLS threats (downgrade, handshake failures, HTTPS flood) on ports 443/8443 |
+| `udp_analyzer.py` | UDP flood, amplification (response/request size ratio), port scan, fragmentation attacks; **port-based protocol identification**: DNS/53, DHCP/67-68, NTP/123, QUIC/443, SSDP/1900, and more |
 | `wlan_analyzer.py` | 40+ IEEE 802.11 reason/status codes, EAPOL stalls, WPA3/SAE failures (anti-clogging, EC group mismatch, Status 30 AP state machine deadlock, stale PTK CCMP PN detection), beacon loss, high retry rate, power-save scans, unprotected data frames, RTS/CTS overhead, NAV abuse |
 | `dns_analyzer.py` | Tunneling (entropy + subdomain depth), DGA patterns, cache poisoning, NXDOMAIN flood, amplification |
-| `http_analyzer.py` | SQL injection, XSS, suspicious user agents, HTTP flood, directory traversal |
-| `https_analyzer.py` | TLS downgrade, cert anomalies, connection rate |
 | `icmp_analyzer.py` | ICMP flood, Ping of Death, Smurf, tunneling (payload analysis), network scanning |
 | `dhcp_analyzer.py` | Starvation/exhaustion, rogue DHCP server, lease anomalies |
 
@@ -493,11 +491,9 @@ AI-Wireshark-Analyzer/
 │   │   ├── wlan_analyzer.py         802.11 diagnostics
 │   │   ├── wlan_decryptor.py        WPA2/WPA3 decryption
 │   │   ├── wlan_rf_monitor.py       Channel RF metrics
-│   │   ├── tcp_analyzer.py
-│   │   ├── udp_analyzer.py
+│   │   ├── tcp_analyzer.py          TCP + HTTP/HTTPS port-based app-layer analysis
+│   │   ├── udp_analyzer.py          UDP + DNS/NTP/DHCP/QUIC port identification
 │   │   ├── dns_analyzer.py
-│   │   ├── http_analyzer.py
-│   │   ├── https_analyzer.py
 │   │   ├── icmp_analyzer.py
 │   │   └── dhcp_analyzer.py
 │   ├── core/
@@ -568,6 +564,32 @@ AI-Wireshark-Analyzer/
 | Python | 3.10+ | 3.12 |
 | tshark | 3.x | 4.2+ |
 | OS (binary) | Linux x86_64 Ubuntu 20.04+ | same |
+
+---
+
+## v1.7.x Architecture Changes
+
+### Dynamic Report Engine (`src/reports/html_generator.py`)
+
+**v1.7.1** replaced all static `REMEDIATION_GUIDE` fallbacks with a new `_build_threat_rca_html()` helper method. For 25+ threat types it extracts actual IPs, rates, and counts from the threat dict and produces a two-part dynamic block:
+
+1. **Root Cause Analysis box** (blue) — specific findings from the capture (e.g., scanner IPs, SYN rate)
+2. **Specific Recommendations box** (green) — numbered remediation steps referencing actual IPs/rates
+
+Threat ordering now uses a two-key sort `(severity, type_order)` where connection-related threats (type_order=0) always precede RF-statistical findings (type_order=2) within the same severity tier.
+
+### WLANRFMonitor (`src/protocols/wlan_rf_monitor.py`)
+
+`detect_high_retry()` now returns per-AP (`high_retry_bssids`) and per-channel (`high_retry_channels`) breakdowns in addition to the overall rate. This feeds the dynamic report to show which specific AP or channel is the source of the retry problem.
+
+### Threat Gating
+
+WPA3-SAE advisory notices (successful handshake confirmations) are no longer surfaced as threats. `_detect_wpa3_sae_failures()` now only sets `detected=True` when `failure_counts` or `sae_sessions` are non-empty — purely informational advisory notices are retained in `wpa3_network_detected` metadata but excluded from the Threat Overview.
+
+### TShark Crash Resilience
+
+All direct `pyshark.FileCapture` usages (DHCP, WLAN analyzers) now wrap packet iteration in try/except, use `keep_packets=False`, and avoid `use_json=True`/`include_raw=True`. The `PacketParser.parse_pcap()` method also catches mid-iteration TShark process exits (retcode 255) and continues with whatever packets were successfully parsed.
+
 
 ---
 

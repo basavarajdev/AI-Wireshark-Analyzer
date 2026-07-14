@@ -224,4 +224,77 @@ QStatusBar {
     font-size: 11px;
     padding: 4px 12px;
 }
+
+/* ── About panel ─────────────────────────────────────────────────────────── */
+
+#aboutAppName {
+    font-size: 22px;
+    font-weight: 700;
+    color: #eef5ff;
+    background: transparent;
+}
+
+#aboutAppDesc {
+    font-size: 12px;
+    color: #9cb0c6;
+    background: transparent;
+    line-height: 1.5;
+}
+
+#aboutSection {
+    background-color: #111b2a;
+    border: 1px solid #1e3249;
+    border-radius: 8px;
+}
+
+#aboutSectionTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #5a8bbf;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: transparent;
+    padding-bottom: 8px;
+}
+
+#aboutSeparator {
+    color: #1e3249;
+    background-color: #1e3249;
+    max-height: 1px;
+    margin-bottom: 6px;
+}
+
+#versionRow {
+    background: transparent;
+    border-bottom: 1px solid #16283e;
+}
+
+#versionKey {
+    font-size: 12px;
+    color: #7a96b0;
+    background: transparent;
+    padding: 0 12px 0 0;
+}
+
+#versionValue {
+    font-size: 12px;
+    font-family: "Consolas", "JetBrains Mono", "Fira Code", monospace;
+    color: #c8daf0;
+    background: transparent;
+}
+
+#versionValueHighlight {
+    font-size: 12px;
+    font-family: "Consolas", "JetBrains Mono", "Fira Code", monospace;
+    font-weight: 700;
+    color: #58c4dc;
+    background: transparent;
+}
+
+#aboutCredits {
+    font-size: 11px;
+    color: #506a82;
+    background: transparent;
+    line-height: 1.6;
+}
 """

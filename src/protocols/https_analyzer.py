@@ -34,34 +34,46 @@ class HTTPSAnalyzer:
         """Analyze HTTPS/TLS traffic from PCAP file"""
         logger.info(f"Analyzing HTTPS traffic in {pcap_file}")
         
-        # Build comprehensive filter (HTTPS typically on port 443)
-        filters = ['tcp.port==443']
-        if display_filter:
-            filters.append(f'({display_filter})')
-        if ip_filter:
-            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
-        if port_filter:
-            # For HTTPS, usually port 443, but allow custom ports
-            ports = [p.strip() for p in port_filter.split(',')]
-            port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
-            filters.append(f'({port_expr})')
-        
-        proto_filter = ' && '.join(filters)
-        df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
-        
-        if df.empty:
-            logger.warning("No HTTPS packets found")
-            return {"error": "No HTTPS packets found"}
-        
-        df = self.cleaner.clean(df)
-        
-        results = {
-            "total_packets": len(df),
-            "statistics": self._calculate_statistics(df),
-            "threats": self._detect_threats(df)
-        }
-        
-        return results
+        try:
+            # Build comprehensive filter (HTTPS typically on port 443)
+            filters = ['tcp.port==443']
+            if display_filter:
+                filters.append(f'({display_filter})')
+            if ip_filter:
+                filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+            if port_filter:
+                # For HTTPS, usually port 443, but allow custom ports
+                ports = [p.strip() for p in port_filter.split(',')]
+                port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
+                filters.append(f'({port_expr})')
+            
+            proto_filter = ' && '.join(filters)
+            logger.debug(f"HTTPS filter: {proto_filter}")
+            
+            df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
+            
+            if df.empty:
+                logger.warning("No HTTPS packets found")
+                return {"error": "No HTTPS packets found", "status": "empty"}
+            
+            df = self.cleaner.clean(df)
+            
+            results = {
+                "total_packets": len(df),
+                "statistics": self._calculate_statistics(df),
+                "threats": self._detect_threats(df)
+            }
+            
+            return results
+            
+        except Exception as e:
+            error_msg = f"Error analyzing HTTPS traffic: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "error": error_msg,
+                "status": "error",
+                "type": type(e).__name__
+            }
     
     def _calculate_statistics(self, df: pd.DataFrame) -> Dict:
         """Calculate HTTPS statistics"""

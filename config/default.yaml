@@ -81,6 +81,7 @@ protocols:
     min_label_length: 3
     max_subdomain_depth: 5
   
+  # HTTP threat detection is now handled by TCP analyzer when port 80/8080 is filtered
   http:
     suspicious_user_agents:
       - "sqlmap"
@@ -88,7 +89,7 @@ protocols:
       - "nmap"
       - "masscan"
     max_request_rate: 50
-  
+
   icmp:
     max_packet_rate: 100
     max_payload_size: 1024

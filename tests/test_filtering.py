@@ -112,31 +112,11 @@ class TestProtocolAnalyzerFiltering:
         assert 'ip_filter' in sig.parameters, "Should have ip_filter parameter"
         assert 'port_filter' in sig.parameters, "Should have port_filter parameter"
 
-    def test_http_analyzer_accepts_filters(self):
-        """Test HTTPAnalyzer accepts IP and port filter parameters"""
-        from src.protocols.http_analyzer import HTTPAnalyzer
-
-        analyzer = HTTPAnalyzer()
-        import inspect
-        sig = inspect.signature(analyzer.analyze)
-        assert 'ip_filter' in sig.parameters, "Should have ip_filter parameter"
-        assert 'port_filter' in sig.parameters, "Should have port_filter parameter"
-
     def test_dns_analyzer_accepts_filters(self):
         """Test DNSAnalyzer accepts IP and port filter parameters"""
         from src.protocols.dns_analyzer import DNSAnalyzer
 
         analyzer = DNSAnalyzer()
-        import inspect
-        sig = inspect.signature(analyzer.analyze)
-        assert 'ip_filter' in sig.parameters, "Should have ip_filter parameter"
-        assert 'port_filter' in sig.parameters, "Should have port_filter parameter"
-
-    def test_https_analyzer_accepts_filters(self):
-        """Test HTTPSAnalyzer accepts IP and port filter parameters"""
-        from src.protocols.https_analyzer import HTTPSAnalyzer
-
-        analyzer = HTTPSAnalyzer()
         import inspect
         sig = inspect.signature(analyzer.analyze)
         assert 'ip_filter' in sig.parameters, "Should have ip_filter parameter"

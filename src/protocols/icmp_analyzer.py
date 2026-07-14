@@ -34,29 +34,41 @@ class ICMPAnalyzer:
         """Analyze ICMP traffic from PCAP file"""
         logger.info(f"Analyzing ICMP traffic in {pcap_file}")
         
-        # Build comprehensive filter
-        filters = ['icmp']
-        if display_filter:
-            filters.append(f'({display_filter})')
-        if ip_filter:
-            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
-        
-        proto_filter = ' && '.join(filters)
-        df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
-        
-        if df.empty:
-            logger.warning("No ICMP packets found")
-            return {"error": "No ICMP packets found"}
-        
-        df = self.cleaner.clean(df)
-        
-        results = {
-            "total_packets": len(df),
-            "statistics": self._calculate_statistics(df),
-            "threats": self._detect_threats(df)
-        }
-        
-        return results
+        try:
+            # Build comprehensive filter
+            filters = ['icmp']
+            if display_filter:
+                filters.append(f'({display_filter})')
+            if ip_filter:
+                filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+            
+            proto_filter = ' && '.join(filters)
+            logger.debug(f"ICMP filter: {proto_filter}")
+            
+            df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
+            
+            if df.empty:
+                logger.warning("No ICMP packets found")
+                return {"error": "No ICMP packets found", "status": "empty"}
+            
+            df = self.cleaner.clean(df)
+            
+            results = {
+                "total_packets": len(df),
+                "statistics": self._calculate_statistics(df),
+                "threats": self._detect_threats(df)
+            }
+            
+            return results
+            
+        except Exception as e:
+            error_msg = f"Error analyzing ICMP traffic: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "error": error_msg,
+                "status": "error",
+                "type": type(e).__name__
+            }
     
     def _calculate_statistics(self, df: pd.DataFrame) -> Dict:
         """Calculate ICMP statistics"""

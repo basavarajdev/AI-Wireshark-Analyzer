@@ -351,6 +351,78 @@ def _build_report(data: dict, html_path: str):
                 f"  <table><tr><th>BSSID</th><th>SSID</th><th>Frames</th><th>Signal</th></tr>\n"
                 f"  {wd_rows}</table>\n"
             )
+
+        # ── Important Metrics: per-BSSID summary ─────────────────────────────
+        bssid_metrics_rows = ""
+        for mac, c in sorted([(m, cl) for m, cl in clients.items() if cl["role"] == "AP"],
+                               key=lambda x: -x[1]["total_frames"]):
+            ssid_raw   = c.get("primary_ssid") or bssid_ssid.get(mac, "—")
+            assoc_cnt  = sum(len(v["clients"]) for v in ssid_groups.values() if v.get("bssid") == mac)
+            breakdown  = c.get("client_breakdown", {})
+            active_cnt = breakdown.get("actively_connected_gt50frames", 0)
+            low_cnt    = breakdown.get("low_activity_le5frames", 0)
+            med_cnt    = breakdown.get("medium_activity_6to50frames", 0)
+            oui_cnt    = c.get("oui_clients", breakdown.get("total_oui_devices", assoc_cnt))
+            bssid_retry = c.get("retry_rate")
+            retry_str   = f"{bssid_retry*100:.1f}%" if bssid_retry is not None else "—"
+            retry_cls_v = "val-bad" if (bssid_retry or 0) >= 0.15 else "val-warn" if (bssid_retry or 0) >= 0.08 else "val-ok"
+            rts_v = c.get("rts_count", "—"); cts_v = c.get("cts_count", "—")
+            if isinstance(rts_v, int) and isinstance(cts_v, int) and rts_v > 0:
+                cts_pct = cts_v / rts_v * 100
+                cts_cls = "val-bad" if cts_pct < 50 else "val-warn" if cts_pct < 80 else "val-ok"
+                rtscts_str = f'RTS {rts_v:,} / CTS {cts_v:,} <span class="{cts_cls}">({cts_pct:.0f}% reply)</span>'
+            else:
+                rtscts_str = "—"
+            max_nav = c.get("max_nav_usec")
+            nav_str  = f'{max_nav:,} µs' if max_nav else "—"
+            nav_cls  = "val-bad" if (max_nav or 0) > 32767 else ""
+            bssid_metrics_rows += (
+                f"<tr><td class='mono'>{esc(mac)}</td><td class='ssid-cell'>{esc(ssid_raw)}</td>"
+                f"<td>{assoc_cnt} <span class='dim'>(OUI: {oui_cnt})</span></td>"
+                f"<td class='dim' title='Active >50fr: {active_cnt}  Med: {med_cnt}  Low ≤5fr: {low_cnt}'>"
+                f"{active_cnt} active / {med_cnt} med / {low_cnt} low</td>"
+                f"<td class='{retry_cls_v}'>{retry_str}</td>"
+                f"<td>{rtscts_str}</td>"
+                f"<td class='{nav_cls}'>{nav_str}</td></tr>\n"
+            )
+
+        # ── Important Metrics: per-station key metrics ─────────────────────
+        station_metrics_rows = ""
+        for mac, c in sorted(
+            [(m, cl) for m, cl in clients.items() if cl["role"] != "AP"],
+            key=lambda x: -(x[1].get("retry_rate") or 0),
+        )[:30]:
+            psid = c.get("primary_ssid") or (f"[{c.get('primary_bssid','?')}]" if c.get("primary_bssid") else "—")
+            rr   = c.get("retry_rate", 0)
+            sig  = c.get("avg_signal_dbm")
+            rr_cls  = "val-bad" if rr >= 0.15 else "val-warn" if rr >= 0.08 else "val-ok"
+            sig_cls_v = "val-bad" if sig is not None and sig < -80 else "val-warn" if sig is not None and sig < -70 else "val-ok"
+            conn_delay  = c.get("connection_delay_sec")
+            delay_str   = f"{conn_delay:.1f}s" if conn_delay is not None else "—"
+            delay_cls   = "val-bad" if (conn_delay or 0) > 60 else "val-warn" if (conn_delay or 0) > 10 else ""
+            scan_cycles = c.get("scan_cycles")
+            cycles_str  = str(scan_cycles) if scan_cycles is not None else "—"
+            cycles_cls  = "val-bad" if (scan_cycles or 0) >= 10 else "val-warn" if (scan_cycles or 0) >= 5 else ""
+            rts_v = c.get("rts_count", "—"); cts_v = c.get("cts_count", "—")
+            if isinstance(rts_v, int) and isinstance(cts_v, int) and rts_v > 0:
+                cts_pct = cts_v / rts_v * 100
+                cts_cls2 = "val-bad" if cts_pct < 50 else "val-warn" if cts_pct < 80 else "val-ok"
+                rtscts_str2 = f'<span class="{cts_cls2}">{cts_pct:.0f}%</span> (R{rts_v}/C{cts_v})'
+            else:
+                rtscts_str2 = "—"
+            max_nav = c.get("max_nav_usec")
+            nav_str2 = f'{max_nav:,} µs' if max_nav else "—"
+            nav_cls2 = "val-bad" if (max_nav or 0) > 32767 else ""
+            station_metrics_rows += (
+                f"<tr><td class='mono'>{esc(mac)}</td><td>{esc(psid)}</td>"
+                f"<td class='{rr_cls}'>{rr*100:.1f}%</td>"
+                f"<td class='{sig_cls_v}'>{sig} dBm</td>"
+                f"<td class='{delay_cls}'>{delay_str}</td>"
+                f"<td class='{cycles_cls}'>{cycles_str}</td>"
+                f"<td>{rtscts_str2}</td>"
+                f"<td class='{nav_cls2}'>{nav_str2}</td></tr>\n"
+            )
+
         tab_panels += (
             f'\n<div class="tab-panel" id="tab-{ch}" style="display:none">\n'
             f'  <h2>Channel {ch} &mdash; {ch_data["n_clients"]} unique MACs ({n_ap} APs&nbsp;+&nbsp;{n_sta} STAs)</h2>\n'
@@ -365,6 +437,19 @@ def _build_report(data: dict, html_path: str):
             f'  <table><tr><th>BSSID</th><th>SSID / Network Name</th><th>TX Frames</th><th>Signal</th><th>Assoc. clients</th><th>Flags</th></tr>\n'
             f'  {ap_rows or "<tr><td colspan=6 class=dim>none</td></tr>"}</table>\n'
             f'{wd_section}'
+            f'  <h3 style="color:#58c4dc;margin-top:20px">&#128202; Important Metrics &mdash; Per BSSID</h3>\n'
+            f'  <p style="color:#6a8ba8;font-size:0.78rem;margin-bottom:8px">Key RF and client metrics per Access Point on this channel. RTS/CTS ratio below 80% indicates hidden-node risk.</p>\n'
+            f'  <table style="margin-bottom:16px">\n'
+            f'    <tr><th>BSSID</th><th>SSID</th><th>Connected Clients</th><th>Activity Breakdown</th>'
+            f'<th>Retry Rate</th><th>RTS / CTS</th><th>Max NAV Duration</th></tr>\n'
+            f'    {bssid_metrics_rows or "<tr><td colspan=7 class=dim>No AP data</td></tr>"}</table>\n'
+            f'  <h3 style="color:#58c4dc;margin-top:20px">&#128202; Important Metrics &mdash; Per Station (top 30 by retry)</h3>\n'
+            f'  <p style="color:#6a8ba8;font-size:0.78rem;margin-bottom:8px">Connection quality metrics per client station. '
+            f'Connection Delay and Scan Cycles are populated when WLAN analysis data is available for the station.</p>\n'
+            f'  <table style="margin-bottom:16px">\n'
+            f'    <tr><th>MAC Address</th><th>Network</th><th>Retry Rate</th><th>Avg Signal</th>'
+            f'<th>Connection Delay</th><th>Scan Cycles</th><th>RTS/CTS Ratio</th><th>Max NAV</th></tr>\n'
+            f'    {station_metrics_rows or "<tr><td colspan=8 class=dim>No station data</td></tr>"}</table>\n'
             f'  <h3>Client STAs ({n_sta}) &mdash; {n_assoc_sta} associated + {n_unassoc} scanning/unassociated</h3>\n'
             f'  <table><tr><th>MAC Address</th><th>Retry Rate</th><th>Avg Signal</th><th>TX Frames</th><th>Tags</th><th>Tooltip</th></tr>\n'
             f'  {client_rows or "<tr><td colspan=6 class=dim>none</td></tr>"}</table>\n'

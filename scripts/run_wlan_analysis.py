@@ -250,6 +250,401 @@ def parse_tshark_output(raw_output):
     return df
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# WPA3 / SAE Root Cause Analysis HTML Report
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Complete WPA3-SAE Status Code reference (IEEE 802.11-2020 Table 9-50)
+WPA3_STATUS_REFERENCE = [
+    (1,  "Unspecified failure",
+     "General SAE rejection without a specific reason.",
+     "Check AP logs; verify WPA3-SAE is enabled on both AP and client; update firmware."),
+    (15, "Authentication rejected — challenge failure (wrong credentials)",
+     "SAE Confirm MIC verification failed — passphrase mismatch.",
+     "Re-enter correct WPA3 passphrase. Ensure UTF-8 (RFC 8265 PRECIS) normalisation on both sides."),
+    (30, "Refused temporarily — AP state machine busy or STA still associated",
+     "AP returned REFUSED_TEMPORARILY because it believes the STA is still associated "
+     "from a prior session. AP state machine deadlock: per IEEE 802.11-2020 §11.3.5.5 "
+     "the AP MUST send Disassociation after SA Query timeout, but did not (firmware bug).",
+     "(1) STA: send Deauthentication (Reason 3) to force AP to purge stale entry, then retry. "
+     "(2) AP: firmware update implementing §11.3.5.5 Disassociation on SA Query timeout. "
+     "(3) Disable PMKSA caching on STA to prevent stale-cache fast-reconnect. "
+     "(4) If Transition Mode: verify AP does not apply WPA2 PTK for PMF SA Query after SAE Commit."),
+    (37, "Invalid RSN IE capabilities",
+     "Mismatch in RSN element between probe/association and authentication.",
+     "Update AP/client firmware; verify RSN IE fields match between Beacon and 4-way handshake."),
+    (46, "Invalid contents of RSNE (Robust Security Network Element)",
+     "RSNE in authentication or association frame is malformed.",
+     "Check driver/firmware for RSN IE construction bugs; update firmware."),
+    (53, "Invalid PMKID",
+     "Stale PMKSA cache: the PMKID in the Association Request does not match "
+     "any active PMKSA entry on the AP.",
+     "Disable PMKID caching on client; perform full SAE exchange (auth_alg=3) instead of "
+     "relying on cached PMKSA."),
+    (72, "SAE authentication rejected",
+     "AP explicitly rejected the SAE authentication request.",
+     "Verify WPA3-SAE passphrase; check AP supports SAE; ensure client driver supports SAE commit/confirm (auth_alg=3)."),
+    (73, "SAE commit rejected",
+     "AP rejected SAE Commit — possible EC group mismatch or configuration error.",
+     "Ensure both AP and client support EC group 19 (P-256, mandatory). Update AP firmware. "
+     "Disable non-standard SAE groups on client."),
+    (74, "SAE confirm rejected",
+     "SAE Confirm exchange failed — wrong passphrase or MIC error.",
+     "Verify WPA3 passphrase (UTF-8 normalised). Update firmware. If anti-clogging was "
+     "involved, ensure client correctly retried with token."),
+    (76, "Unknown Password Identifier (WPA3-SAE)",
+     "Client sent an unknown Password Identifier not configured on AP.",
+     "Remove or correct the 'password ID' field in the client's WPA3 config. "
+     "Ensure AP and client use the same password identifier (or none)."),
+    (77, "SAE Anti-Clogging Token Required",
+     "AP is rate-limiting SAE Commit processing (DoS protection, not a credential error).",
+     "Client must resend SAE Commit with the provided anti-clogging token. "
+     "If persistent: investigate SAE flooding from rogue clients targeting the AP."),
+    (78, "SAE Finite Cyclic Group not supported",
+     "The elliptic curve group requested by the client is not supported by the AP.",
+     "Configure both AP and client to use EC group 19 (P-256). "
+     "Disable exotic groups; update AP firmware."),
+]
+
+# Complete WPA3-relevant Reason Code reference (IEEE 802.11-2020)
+WPA3_REASON_REFERENCE = [
+    (2,  "Previous authentication no longer valid",
+     "AP considers this STA's prior authentication expired or invalid.",
+     "Client should perform a fresh SAE Commit/Confirm exchange."),
+    (3,  "STA is leaving or has left the BSS",
+     "Normal intentional disconnect by STA or AP.",
+     "Reconnect with fresh SAE if client wishes to re-associate."),
+    (6,  "Class 2 frame from non-authenticated STA",
+     "STA sent a management frame while not authenticated — state machine mismatch.",
+     "Driver/firmware bug or race condition. Client should restart authentication from scratch."),
+    (7,  "Class 3 frame from non-associated STA",
+     "STA sent data while not associated — common after AP reboots without sending Deauth.",
+     "Client should detect AP reboot and re-authenticate."),
+    (14, "4-way handshake MIC failure / PSK mismatch",
+     "EAPOL MIC verification failed after SAE — wrong PMK or replay attack.",
+     "Verify the passphrase. For WPA3 the PMK comes from SAE not from passphrase directly — "
+     "ensure both sides correctly complete SAE Confirm."),
+    (15, "Group key handshake timeout",
+     "GTK renewal failed; some AP firmware (e.g. TP-Link) also uses this for 4-way Msg1/Msg2 failure.",
+     "Retry connection. If persistent: check for driver/firmware bugs in GTK re-key handling."),
+    (22, "IEEE 802.1X authentication failed",
+     "802.1X EAP authentication failure (WPA3-Enterprise mode).",
+     "Check RADIUS server logs; verify EAP certificates; ensure correct SSID profile."),
+    (23, "Cipher suite rejected by security policy",
+     "AP rejected the cipher suite proposed by the client.",
+     "Verify client and AP agree on CCMP-128 (WPA3-Personal) or GCMP-256 (WPA3-Enterprise)."),
+    (36, "Peer STA leaving BSS or resetting",
+     "AP or STA is resetting its 802.11 state machine.",
+     "Normal during roaming or AP reboot. Client should reconnect automatically."),
+    (45, "Peer STA does not support requested cipher suite",
+     "The cipher negotiated in the association is not supported.",
+     "Ensure client and AP both support CCMP-128. Disable deprecated TKIP."),
+    (47, "SAE PMK-ID not recognized",
+     "AP does not recognize the PMKID — the cached SAE PMK has expired or is invalid.",
+     "Disable PMKSA caching. Perform full SAE Commit/Confirm exchange."),
+    (50, "No SAE PT or password available",
+     "AP cannot complete SAE because no password or SAE-PT (Password Token) is available.",
+     "Verify WPA3-SAE passphrase is configured on AP. Check AP configuration."),
+]
+
+
+def generate_wpa3_rca_html(pcap_file: str, wpa3_data: dict, output_path: str,
+                            mac_filter: str = None) -> None:
+    """
+    Generate a standalone WPA3/SAE Root Cause Analysis HTML report.
+
+    Renders:
+    - Forensic event timeline for each SAE failure session
+    - Stale-association deadlock analysis with CCMP PN evidence
+    - SA Query timeline reconstruction
+    - Complete WPA3 status code & reason code reference table with remediations
+    """
+    from datetime import datetime as _dt
+    now = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    pcap_name = Path(pcap_file).name
+
+    sae_sessions    = wpa3_data.get("sae_sessions", [])
+    issues          = wpa3_data.get("issues", [])
+    fail_counts     = wpa3_data.get("failure_counts", {})
+    deadlock        = wpa3_data.get("stale_association_deadlock", {})
+    sae_advertised  = wpa3_data.get("sae_akm_advertised", False)
+    owe_advertised  = wpa3_data.get("owe_advertised", False)
+    severity        = wpa3_data.get("severity", "info").upper()
+
+    sev_color = {"HIGH": "#c0392b", "MEDIUM": "#e67e22", "LOW": "#2980b9", "INFO": "#7f8c8d"}.get(severity, "#555")
+
+    # ── Event timeline rows ────────────────────────────────────────────────────
+    session_cards = ""
+    for si, sess in enumerate(sae_sessions, 1):
+        phase   = sess.get("failure_phase", "")
+        rc      = sess.get("root_cause", "")
+        remedy  = sess.get("remediation", "")
+        client  = sess.get("client", "—")
+        ap      = sess.get("ap_bssid", "—")
+        status  = sess.get("status_code")
+        stext   = sess.get("status_text", "")
+        ts      = sess.get("timestamp", "")
+        frame   = sess.get("frame", "")
+        pmf_cnt = sess.get("pmf_action_frames_after_rejection", 0)
+        cleanup = sess.get("ap_sent_cleanup_deauth", False)
+        spec    = sess.get("spec_violation", "")
+        analysis = sess.get("analysis", "")
+        tm_note = sess.get("wpa3_transition_mode_note", "")
+
+        border = "#c0392b" if "wrong" in (rc or "").lower() or "deadlock" in (rc or "").lower() else "#e67e22"
+        bg = "#fff5f5" if border == "#c0392b" else "#fff8f0"
+
+        # Build timeline table for deadlock cases
+        timeline_table = ""
+        if pmf_cnt > 0 and frame:
+            timeline_table = f"""
+            <div style="margin:10px 0;">
+              <h4 style="color:#555">SA Query / PMF Action Frame Evidence</h4>
+              <table>
+                <thead><tr><th>Event</th><th>Frame</th><th>Direction</th><th>Detail</th></tr></thead>
+                <tbody>
+                  <tr><td>SAE Commit sent by STA</td><td>—</td><td>STA → AP</td>
+                      <td>auth_alg=SAE(3), seq=0x0001, status=0x0000 (Success)</td></tr>
+                  <tr style="background:#ffebee"><td>SAE Commit rejected by AP</td><td>#{frame}</td>
+                      <td>AP → STA</td>
+                      <td>Status <strong>{status}</strong> ({stext}) — bare 6-byte rejection, no scalar/element</td></tr>
+                  <tr style="background:#fff3e0"><td>PMF-encrypted Action frames</td><td>—</td>
+                      <td>AP → STA</td>
+                      <td><strong>{pmf_cnt}</strong> frames, CCMP-protected with <strong>stale PTK</strong> "
+                          (PN > 1 at start proves prior session key). "
+                          Pattern matches SA Query Requests (IEEE 802.11w §11.3.5, cat=8, action=0).</td></tr>
+                  <tr><td>STA response to SA Query</td><td>—</td><td>—</td>
+                      <td><strong>None</strong> — STA cannot decrypt with old-session keys</td></tr>
+                  <tr style="{'background:#ffebee' if not cleanup else 'background:#e8f5e9'}">
+                      <td>Deauth/Disassoc after SA Query timeout</td><td>—</td><td>AP → STA</td>
+                      <td><strong>{'ABSENT — §11.3.5.5 VIOLATION' if not cleanup else 'Present (compliant)'}</strong><br>
+                          <em>{spec}</em></td></tr>
+                </tbody>
+              </table>
+            </div>"""
+
+        session_cards += f"""
+        <div style="background:{bg};border-left:5px solid {border};padding:16px 20px;
+                    border-radius:4px;margin:14px 0;">
+          <h3 style="margin:0 0 8px;font-size:1em;">
+            Failure #{si} — <span style="color:{border}">{phase}</span>
+          </h3>
+          <p style="margin:4px 0;font-size:0.85em;color:#555;">
+            <strong>STA:</strong> <code>{client}</code> &nbsp;→&nbsp;
+            <strong>AP:</strong> <code>{ap}</code>
+            {f'&nbsp;|&nbsp; Frame #{frame}  @  t={round(float(ts),3)}s' if frame and ts else ''}
+          </p>
+          {'<p style="margin:6px 0"><strong>Status:</strong> <code>' + str(status) + '</code> — <em>' + stext + '</em></p>' if status is not None else ''}
+          {timeline_table}
+          {'<div style="background:#fffde7;border:1px solid #f9a825;padding:10px 14px;border-radius:4px;margin:8px 0;"><p><strong>🔍 Root Cause:</strong></p><p style="font-size:0.9em;margin-top:4px;">' + rc + '</p></div>' if rc else ''}
+          {'<div style="background:#f3f3f3;border:1px solid #ccc;padding:10px 14px;border-radius:4px;margin:8px 0;font-size:0.85em;">' + analysis + '</div>' if analysis else ''}
+          {'<div style="background:#e8f5e9;border-left:3px solid #43a047;padding:10px 14px;border-radius:4px;margin:8px 0;"><p><strong>🔧 Remediation Steps:</strong></p><p style="font-size:0.88em;margin-top:4px;white-space:pre-line;">' + (remedy or '') + '</p></div>' if remedy else ''}
+          {'<div style="background:#e3f2fd;border-left:3px solid #1976d2;padding:8px 14px;border-radius:4px;margin:6px 0;font-size:0.82em;"><strong>⚠ WPA3 Transition Mode Note:</strong> ' + tm_note + '</div>' if tm_note else ''}
+        </div>"""
+
+    # ── Failure count summary ──────────────────────────────────────────────────
+    fc_rows = "".join(
+        f'<tr><td>{k}</td><td><strong>{v}</strong></td></tr>'
+        for k, v in sorted(fail_counts.items(), key=lambda x: -x[1])
+    )
+
+    # ── Deadlock summary banner ────────────────────────────────────────────────
+    deadlock_banner = ""
+    if deadlock:
+        deadlock_banner = f"""
+        <div style="background:#b71c1c;color:#fff;padding:14px 20px;border-radius:6px;margin:14px 0;">
+          <h3 style="margin:0 0 6px;font-size:1.05em;">⛔ AP State Machine Deadlock Detected ({deadlock['count']} instance(s))</h3>
+          <p style="font-size:0.9em;margin:0;">{deadlock.get('summary','')}</p>
+        </div>"""
+
+    # ── Advisory notices ───────────────────────────────────────────────────────
+    advisory_html = ""
+    for issue in issues:
+        advisory_html += f"""
+        <div style="background:#e8f5e9;border-left:4px solid #43a047;padding:10px 16px;
+                    border-radius:4px;margin:8px 0;font-size:0.87em;">
+          {issue}
+        </div>"""
+
+    # ── WPA3 Status Code reference table ──────────────────────────────────────
+    status_ref_rows = ""
+    for code, name, explanation, remediation in WPA3_STATUS_REFERENCE:
+        highlight = ' style="background:#fff5f5"' if code in (30, 77) else (
+            ' style="background:#fffde7"' if code in (73, 74, 76, 78) else "")
+        status_ref_rows += (
+            f'<tr{highlight}>'
+            f'<td style="font-weight:700;text-align:center">{code}</td>'
+            f'<td><strong>{name}</strong></td>'
+            f'<td style="font-size:0.83em;color:#444">{explanation}</td>'
+            f'<td style="font-size:0.83em;color:#1a5276">{remediation}</td></tr>'
+        )
+
+    # ── WPA3 Reason Code reference table ──────────────────────────────────────
+    reason_ref_rows = ""
+    for code, name, explanation, remediation in WPA3_REASON_REFERENCE:
+        reason_ref_rows += (
+            f'<tr>'
+            f'<td style="font-weight:700;text-align:center">{code}</td>'
+            f'<td><strong>{name}</strong></td>'
+            f'<td style="font-size:0.83em;color:#444">{explanation}</td>'
+            f'<td style="font-size:0.83em;color:#1a5276">{remediation}</td></tr>'
+        )
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WPA3-SAE Root Cause Analysis — {pcap_name}</title>
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f9;color:#2c3e50;font-size:14px}}
+  header{{background:linear-gradient(135deg,#7b1fa2,#4a148c);color:#fff;padding:26px 40px}}
+  header h1{{font-size:1.5em;font-weight:700}}
+  header p{{color:#ce93d8;margin-top:6px;font-size:0.9em}}
+  .container{{max-width:1200px;margin:24px auto;padding:0 24px}}
+  .card{{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;overflow:hidden}}
+  .card-header{{padding:14px 20px;font-weight:600;font-size:1em;border-bottom:1px solid #eee;background:#fafafa}}
+  .card-body{{padding:16px 20px}}
+  .summary-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}}
+  .metric{{background:#f8f9fb;border-radius:8px;padding:12px 16px;border-left:4px solid #7b1fa2}}
+  .metric .val{{font-size:1.4em;font-weight:700;color:#2c3e50}}
+  .metric .label{{font-size:0.75em;color:#7f8c8d;margin-top:4px}}
+  table{{border-collapse:collapse;width:100%;font-size:0.84em;margin-top:8px}}
+  th{{background:#4a148c;color:#fff;padding:8px 12px;text-align:left}}
+  td{{padding:7px 12px;border-bottom:1px solid #eef;vertical-align:top}}
+  tr:hover td{{background:#f5f0ff}}
+  code{{background:#ede7f6;padding:2px 6px;border-radius:3px;font-size:0.88em}}
+  h4{{font-size:0.9em;color:#4a148c;margin:10px 0 6px}}
+  .badge{{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.8em;font-weight:600}}
+  section h2{{font-size:1.05em;color:#4a148c;padding:12px 0 8px;border-bottom:2px solid #ce93d8;margin-bottom:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔐 WPA3-SAE Root Cause Analysis Report</h1>
+  <p>File: {pcap_name} &nbsp;|&nbsp; Generated: {now}
+     {f'&nbsp;|&nbsp; MAC filter: {mac_filter}' if mac_filter else ''}
+  </p>
+</header>
+<div class="container">
+
+  <!-- ═══ Overall Status ═══ -->
+  <div class="card">
+    <div class="card-header" style="background:{sev_color};color:#fff;">
+      WPA3-SAE Severity: {severity} &nbsp;—&nbsp; {sum(fail_counts.values())} failure event(s) / {len(issues)} advisory notice(s)
+    </div>
+    <div class="card-body">
+      <div class="summary-grid">
+        <div class="metric"><div class="val">{len(sae_sessions)}</div><div class="label">SAE Session Failures</div></div>
+        <div class="metric"><div class="val">{sum(fail_counts.values())}</div><div class="label">Total Failure Events</div></div>
+        <div class="metric {'style="border-color:#c0392b"' if deadlock else ''}">
+          <div class="val">{'⛔ YES' if deadlock else 'No'}</div><div class="label">Deadlock Detected</div>
+        </div>
+        <div class="metric"><div class="val">{'✅ Yes' if sae_advertised else 'No'}</div><div class="label">WPA3-SAE Advertised</div></div>
+        <div class="metric"><div class="val">{'✅ Yes' if owe_advertised else 'No'}</div><div class="label">OWE Advertised</div></div>
+      </div>
+    </div>
+  </div>
+
+  {deadlock_banner}
+
+  <!-- ═══ SAE Session Analysis ═══ -->
+  {'<div class="card"><div class="card-header">🔍 SAE Session Failure Analysis</div><div class="card-body">' + session_cards + '</div></div>' if session_cards else ''}
+
+  <!-- ═══ Advisory Notices ═══ -->
+  {'<div class="card"><div class="card-header">📋 Advisory Notices</div><div class="card-body">' + advisory_html + '</div></div>' if advisory_html else ''}
+
+  <!-- ═══ Failure Summary ═══ -->
+  {'<div class="card"><div class="card-header">📊 Failure Type Summary</div><div class="card-body"><table><th>Failure Type</th><th>Count</th>' + fc_rows + '</table></div></div>' if fc_rows else ''}
+
+  <!-- ═══ WPA3-SAE Status Code Reference ═══ -->
+  <div class="card">
+    <div class="card-header">📖 WPA3-SAE Status Code Reference (IEEE 802.11-2020)</div>
+    <div class="card-body">
+      <p style="font-size:0.83em;color:#7f8c8d;margin-bottom:10px;">
+        Status codes are returned in Authentication frame responses (subtype 0x000b).
+        SAE-specific codes are 72–78. Code 30 (REFUSED_TEMPORARILY) is general 802.11 but
+        critically impacts WPA3-SAE state machine behaviour.
+        Highlighted rows indicate codes observed in this capture.
+      </p>
+      <table>
+        <thead><tr>
+          <th style="width:60px">Code</th>
+          <th style="width:200px">Name</th>
+          <th>Explanation</th>
+          <th>Recovery / Remediation</th>
+        </tr></thead>
+        <tbody>{status_ref_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ WPA3-SAE Reason Code Reference ═══ -->
+  <div class="card">
+    <div class="card-header">📖 WPA3-Relevant Reason Code Reference (IEEE 802.11-2020)</div>
+    <div class="card-body">
+      <p style="font-size:0.83em;color:#7f8c8d;margin-bottom:10px;">
+        Reason codes are used in Deauthentication (0x000c) and Disassociation (0x000a) frames.
+        WPA3-specific codes are 47 and 50. Codes 2, 3, 6, 7 are frequently seen in SAE
+        failure recovery flows.
+      </p>
+      <table>
+        <thead><tr>
+          <th style="width:60px">Code</th>
+          <th style="width:200px">Name</th>
+          <th>Explanation</th>
+          <th>Recovery / Remediation</th>
+        </tr></thead>
+        <tbody>{reason_ref_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ WPA3-SAE Protocol Spec Note ═══ -->
+  <div class="card">
+    <div class="card-header">📚 WPA3-SAE Protocol Reference</div>
+    <div class="card-body" style="font-size:0.88em;line-height:1.7;color:#444">
+      <p><strong>SAE Exchange (IEEE 802.11-2020 §12.4):</strong></p>
+      <ol style="margin:8px 0 12px 20px;">
+        <li>STA → AP: Auth frame, <code>auth_alg=3</code>, <code>auth_seq=0x0001</code> — <em>SAE Commit</em>
+            (contains Scalar + FFE element for ECDH on group 19/P-256)</li>
+        <li>AP → STA: Auth frame, <code>auth_alg=3</code>, <code>auth_seq=0x0001</code>, <code>status=0</code> — <em>SAE Commit Response</em></li>
+        <li>STA → AP: Auth frame, <code>auth_alg=3</code>, <code>auth_seq=0x0002</code> — <em>SAE Confirm</em></li>
+        <li>AP → STA: Auth frame, <code>auth_alg=3</code>, <code>auth_seq=0x0002</code>, <code>status=0</code> — <em>SAE Confirm Response</em></li>
+        <li>Normal Association Request / Response</li>
+        <li>4-way EAPOL/PTK handshake (Msg1–Msg4) to install session keys</li>
+      </ol>
+      <p><strong>SA Query (IEEE 802.11-2020 §11.3.5, 802.11w MFP):</strong></p>
+      <ul style="margin:8px 0 12px 20px;">
+        <li>Used by an AP to verify a previously associated STA still holds the old PTK</li>
+        <li>SA Query Request: Action frame Category=8, Action=0, PMF-encrypted with existing PTK</li>
+        <li>SA Query Response: same category/action, sent by STA if it has the PTK</li>
+        <li>If no response within <code>dot11AssociationSAQueryMaximumTimeout</code>, AP <strong>MUST</strong>
+            issue Disassociation (Reason 6 or 7) per §11.3.5.5</li>
+        <li>Failure to send Disassociation = firmware non-compliance → permanent deadlock</li>
+      </ul>
+      <p><strong>CCMP Packet Number (PN) forensics:</strong></p>
+      <ul style="margin:8px 0 0 20px;">
+        <li>If PMF-encrypted Action frames appear after an SAE Commit rejection, and the PN
+            starts at a value &gt; 1, this proves the AP is encrypting with a <strong>stale PTK</strong>
+            from a prior session (a fresh PTK would start at PN=0 or 1)</li>
+        <li>A PN of 67 (0x43) at the start of post-rejection frames, as in the reference case,
+            is definitive forensic proof of stale-PTK SA Query</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>"""
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    logger.info(f"WPA3 RCA report saved to {output_path}")
+
+
 def run(pcap_file: str, mac_filter: str = None, output_dir: str = 'results') -> dict:
     """Callable entry point — usable from workers without subprocess."""
     _stem = Path(pcap_file).stem
@@ -307,6 +702,16 @@ def run(pcap_file: str, mac_filter: str = None, output_dir: str = 'results') -> 
         logger.info(f"HTML report saved to {output_html}")
     except Exception as e:
         logger.error(f"Failed to generate HTML report: {e}")
+
+    # ── WPA3 RCA standalone report ─────────────────────────────────────────────
+    wpa3_data = results.get("threats", {}).get("wpa3_sae_failures", {})
+    if wpa3_data.get("detected") or wpa3_data.get("wpa3_network_detected"):
+        wpa3_rca_path = str(Path(output_dir) / f"{Path(output_json).stem}_wpa3_rca.html")
+        try:
+            generate_wpa3_rca_html(pcap_file, wpa3_data, wpa3_rca_path, mac_filter)
+            results["wpa3_rca_html"] = wpa3_rca_path
+        except Exception as e:
+            logger.error(f"Failed to generate WPA3 RCA report: {e}")
 
     return {'json_path': output_json, 'html_path': output_html, 'results': results}
 

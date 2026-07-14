@@ -47,8 +47,6 @@ class TestV160Features:
         analyzers = [
             "tcp_analyzer.py",
             "udp_analyzer.py",
-            "http_analyzer.py",
-            "https_analyzer.py",
             "dns_analyzer.py",
             "icmp_analyzer.py",
             "dhcp_analyzer.py"
@@ -64,18 +62,21 @@ class TestV160Features:
     def test_documentation_updated(self):
         """Verify documentation reflects v1.6.0"""
         docs_to_check = [
-            "RELEASE_NOTES.md",
-            "README.md",
-            "BUILD_GUIDE.md"
+            ("docs", "RELEASE_NOTES.md"),
+            (None, "README.md"),
         ]
 
-        for doc in docs_to_check:
-            doc_path = Path(__file__).parent.parent / doc
+        for doc_dir, doc_file in docs_to_check:
+            if doc_dir:
+                doc_path = Path(__file__).parent.parent / doc_dir / doc_file
+            else:
+                doc_path = Path(__file__).parent.parent / doc_file
             if doc_path.exists():
                 content = doc_path.read_text()
+                doc_label = f"{doc_dir}/{doc_file}" if doc_dir else doc_file
                 # Should mention v1.6.0 or July 2026
                 assert "v1.6" in content or "July 2026" in content, \
-                    f"{doc} should mention v1.6.0"
+                    f"{doc_label} should mention v1.6.0"
 
 
 class TestReleaseReadiness:

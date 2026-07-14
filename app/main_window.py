@@ -16,6 +16,7 @@ from app.panels.protocol_panel import ProtocolPanel
 from app.panels.anomaly_panel import AnomalyPanel
 from app.panels.decrypt_panel import DecryptPanel
 from app.panels.cli_info_panel import CliInfoPanel
+from app.panels.about_panel import AboutPanel
 from app.resources import get_resource_path
 
 
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         self.resize(1480, 900)
 
         # Set window icon
-        _icon_path = get_resource_path("installer", "app_icon.png")
+        _icon_path = get_resource_path("installer", "app_icon_orig.png")
         if _icon_path.exists():
             self.setWindowIcon(QIcon(str(_icon_path)))
 
@@ -75,6 +76,7 @@ class MainWindow(QMainWindow):
             ("protocol", "Protocol Analyzers", "security-high", QStyle.StandardPixmap.SP_MessageBoxWarning),
             ("anomaly", "ML Anomaly", "applications-science", QStyle.StandardPixmap.SP_CommandLink),
             ("cli", "CLI & Workflow", "utilities-terminal", QStyle.StandardPixmap.SP_FileDialogListView),
+            ("about", "About", "help-about", QStyle.StandardPixmap.SP_MessageBoxInformation),
         ]
 
         for key, label, theme_icon, fallback_icon in nav_items:
@@ -117,6 +119,7 @@ class MainWindow(QMainWindow):
             "protocol": ProtocolPanel,
             "anomaly": AnomalyPanel,
             "cli": CliInfoPanel,
+            "about": AboutPanel,
         }
 
         for key, cls in panel_classes.items():

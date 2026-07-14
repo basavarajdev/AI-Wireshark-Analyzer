@@ -67,7 +67,7 @@ def main():
     app.setOrganizationName("AI-Wireshark")
 
     # Set application icon (Analyser brand icon)
-    icon_path = get_resource_path("installer", "app_icon.png")
+    icon_path = get_resource_path("installer", "app_icon_orig.png")
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 

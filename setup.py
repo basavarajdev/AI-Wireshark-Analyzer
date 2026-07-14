@@ -9,7 +9,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="ai-wireshark-analyzer",
-    version="1.5.0",
+    version="1.6.1",
     author="AI-Wireshark Project",
     author_email="your.email@example.com",
     description="AI-powered Wireshark PCAP analyzer for network protocol insights",
@@ -46,6 +46,6 @@ setup(
     },
     data_files=[
         ("share/applications", ["installer/ai-wireshark.desktop"]),
-        ("share/pixmaps", ["installer/app_icon.png"]),
+        ("share/pixmaps", ["installer/app_icon_orig.png"]),
     ],
 )

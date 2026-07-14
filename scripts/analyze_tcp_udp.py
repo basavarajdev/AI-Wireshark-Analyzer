@@ -298,33 +298,238 @@ def _zw_chart(timeline: dict) -> str:
             f'{bars}</div>')
 
 
-def generate_html(pcap: str, data: dict, out_path: str) -> None:
+def generate_html(pcap: str, data: dict, out_path: str,
+                  ip_filter: str = None, port_filter: str = None) -> None:
+    """Generate a fully-dynamic HTML report.  No IP addresses or port numbers
+    are ever hard-coded in this function — every value comes from *data*."""
+
     ph = data.get("print_hosts", {})
-    client = ph.get("client", "N/A")
-    printer = ph.get("printer", "N/A")
-    port = ph.get("port", "9100")
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    pcap_name = Path(pcap).name
+    client  = ph.get("client",  "")
+    printer = ph.get("printer", "")
+    port    = ph.get("port",    "")
+    now        = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    pcap_name  = Path(pcap).name
 
-    zw = data.get("zero_window", 0)
+    zw   = data.get("zero_window", 0)
     retx = data.get("retransmissions_print", 0)
-    rst = data.get("rst_total", 0)
+    rst  = data.get("rst_total", 0)
 
-    # ── derive overall severity ──────────────────────────────────────
-    if zw > 5000 or retx > 200:
-        overall_sev = "CRITICAL"
-        overall_colour = "#c0392b"
-    elif zw > 1000 or retx > 50:
-        overall_sev = "HIGH"
-        overall_colour = "#e67e22"
-    elif zw > 100 or retx > 10:
-        overall_sev = "MEDIUM"
-        overall_colour = "#d4ac0d"
+    has_print_stream = bool(client and printer)
+
+    # ── active-filter display banner ─────────────────────────────────
+    filter_parts = []
+    if ip_filter:
+        filter_parts.append(f"IP: <code>{ip_filter}</code>")
+    if port_filter:
+        filter_parts.append(f"Port: <code>{port_filter}</code>")
+    filter_banner = (
+        f'<div style="background:#eaf3fb;border-left:4px solid #2980b9;'
+        f'padding:10px 18px;margin-bottom:18px;border-radius:0 6px 6px 0;'
+        f'font-size:0.88em;color:#1a4a6b;">'
+        f'<strong>Analysis filter applied:</strong> {" &amp; ".join(filter_parts)}'
+        f'</div>'
+    ) if filter_parts else ""
+
+    # ── overall severity ──────────────────────────────────────────────
+    if has_print_stream and (zw > 5000 or retx > 200):
+        overall_sev = "CRITICAL"; overall_colour = "#c0392b"
+    elif has_print_stream and (zw > 1000 or retx > 50):
+        overall_sev = "HIGH";     overall_colour = "#e67e22"
+    elif has_print_stream and (zw > 100 or retx > 10):
+        overall_sev = "MEDIUM";   overall_colour = "#d4ac0d"
+    elif rst > 200:
+        overall_sev = "HIGH";     overall_colour = "#e67e22"
+    elif rst > 50:
+        overall_sev = "MEDIUM";   overall_colour = "#d4ac0d"
     else:
-        overall_sev = "LOW"
-        overall_colour = "#2e86c1"
+        overall_sev = "LOW";      overall_colour = "#2e86c1"
 
-    # ── RST detail table rows ────────────────────────────────────────
+    overall_msg = (
+        "Severe printer flow-control stall detected" if overall_sev in ("CRITICAL","HIGH") and has_print_stream
+        else "Elevated RST activity detected" if overall_sev in ("HIGH","MEDIUM") and not has_print_stream
+        else "No critical issues detected"
+    )
+
+    # ── derive RST top-port breakdown ─────────────────────────────────
+    rst_port_tally: dict[str, int] = defaultdict(int)
+    for rd in data.get("rst_detail", []):
+        dp = rd.get("dport", "")
+        if dp:
+            rst_port_tally[dp] += 1
+    rst_top_ports = sorted(rst_port_tally.items(), key=lambda x: -x[1])[:5]
+
+    rst_port_summary = ""
+    if rst_top_ports:
+        parts = [f"port <strong>{p}</strong>: {c} RSTs" for p, c in rst_top_ports]
+        rst_port_summary = "Breakdown by destination port — " + ", ".join(parts) + "."
+
+    # ── dynamic findings ──────────────────────────────────────────────
+    findings_html = ""
+    finding_idx = 0
+
+    # Finding: print stream zero-window (only if print traffic exists)
+    if has_print_stream:
+        finding_idx += 1
+        zw_rate  = round(zw / max(data["duration_s"], 1), 1)
+        zw_sev_l = "critical" if zw > 5000 else "high" if zw > 1000 else "medium" if zw > 0 else "low"
+        zw_sev   = zw_sev_l.upper()
+        if zw > 0:
+            findings_html += f"""
+      <div class="finding {zw_sev_l}">
+        <h3>{finding_idx}. Printer Receive Buffer Exhaustion (Zero-Window Stall) &nbsp;{_severity_badge(zw_sev)}</h3>
+        <p>
+          The printer (<strong>{printer}</strong>) announced a <em>zero receive window</em>
+          <strong>{zw:,}</strong> times over the {data["duration_s"]} s capture.
+          The printer's internal TCP receive buffer was repeatedly full — it could not process
+          incoming data as fast as the client was sending it. Every zero-window event forces the
+          sending client to completely halt transmission and wait for a <em>window update</em>;
+          <strong>{data.get("window_updates", 0):,}</strong> window-update events were observed.
+        </p>
+        <p style="margin-top:8px;">
+          <strong>Rate:</strong> ≈ {zw_rate} zero-windows/second over the full capture.
+        </p>
+        <p style="margin-top:6px;">
+          <strong>Root cause:</strong> Printer's internal data pipeline (PDL/PCL rendering engine)
+          is slower than the network feed, causing TCP receive buffer saturation.
+        </p>
+      </div>"""
+        else:
+            findings_html += f"""
+      <div class="finding low">
+        <h3>{finding_idx}. Print Stream — No Flow Control Issues &nbsp;{_severity_badge("INFO")}</h3>
+        <p>No zero-window events detected on the print stream ({client} → {printer}:{port}). Flow control is healthy.</p>
+      </div>"""
+
+        # Finding: retransmissions on print stream
+        finding_idx += 1
+        retx_sev_l = "high" if retx > 200 else "medium" if retx > 50 else "low"
+        retx_sev   = retx_sev_l.upper()
+        findings_html += f"""
+      <div class="finding {retx_sev_l}">
+        <h3>{finding_idx}. Retransmissions on Print Stream &nbsp;{_severity_badge(retx_sev)}</h3>
+        <p>
+          <strong>{retx:,} retransmissions</strong> and
+          <strong>{data.get("dup_acks_print", 0):,} duplicate ACKs</strong> were detected
+          on the print stream ({client} → {printer}:{port}).
+          {"Each retransmission represents a segment the client had to re-send after its retransmit timer expired — consistent with a zero-window stall triggering timeouts." if zw > 0
+           else "No zero-window stalls detected; retransmissions may indicate network congestion or packet loss."}
+        </p>
+        <ul style="margin-top:8px;">
+          <li>Lost segment events: <strong>{data.get("lost_segments", 0)}</strong></li>
+        </ul>
+      </div>"""
+
+        # Finding: print job connections
+        finding_idx += 1
+        conns = data.get("print_connections", 0)
+        data_mb = data.get("data_sent_mb", 0)
+        dur_per_conn = round(data["duration_s"] / max(conns, 1), 1)
+        findings_html += f"""
+      <div class="finding low">
+        <h3>{finding_idx}. Print Job Segmentation &nbsp;{_severity_badge("INFO")}</h3>
+        <p>
+          The client opened <strong>{conns:,} TCP connections</strong> to
+          <strong>{printer}:{port}</strong> throughout the capture
+          (≈ one every {dur_per_conn} s). A total of
+          <strong>{data_mb:.2f} MB</strong> of print data was transferred.
+          Pipelined connection cycling is normal driver behaviour for large print
+          jobs split across multiple TCP sessions.
+        </p>
+      </div>"""
+
+    # Finding: RST events (always shown when > 0)
+    if rst > 0:
+        finding_idx += 1
+        rst_sev_l = "medium" if rst > 50 else "low"
+        rst_sev   = rst_sev_l.upper()
+        findings_html += f"""
+      <div class="finding {rst_sev_l}">
+        <h3>{finding_idx}. TCP RST Events &nbsp;{_severity_badge(rst_sev)}</h3>
+        <p>
+          <strong>{rst:,} TCP RST</strong> segments were captured.
+          {rst_port_summary}
+        </p>
+        {('<p style="margin-top:6px;"><strong>Notable burst:</strong> ' +
+          str(len([b for b in data.get("rst_bursts",[]) if b["count"]>=3])) +
+          ' burst(s) of ≥ 3 resets within 2 seconds — see RST Detail table below.</p>')
+         if data.get("rst_bursts") else ""}
+      </div>"""
+
+    # Finding: broadcast / multicast UDP senders (only shown when present)
+    bc_data = data.get("broadcast_udp", [])
+    if bc_data:
+        finding_idx += 1
+        # Build per-sender summary: group by src
+        sender_map: dict[str, list] = defaultdict(list)
+        for bc in bc_data:
+            sender_map[bc["src"]].append(bc)
+
+        sender_lines = ""
+        for src, entries in list(sender_map.items())[:5]:
+            total_bc_frames = sum(e["frames"] for e in entries)
+            ports_str = ", ".join(str(e["dport"]) for e in entries)
+            sender_lines += (
+                f'<li>Host <strong>{src}</strong>: {total_bc_frames:,} broadcast frames '
+                f'on port(s) {ports_str}</li>'
+            )
+
+        top_sender = bc_data[0]["src"]
+        findings_html += f"""
+      <div class="finding low">
+        <h3>{finding_idx}. Broadcast / Multicast UDP Traffic &nbsp;{_severity_badge("LOW")}</h3>
+        <p>
+          The following host(s) sent broadcast or multicast UDP packets during the capture.
+          This is commonly associated with device-discovery, mDNS, NetBIOS, or management protocols.
+          Verify that each sender is intentional; excessive broadcast traffic adds unnecessary
+          load to all devices on the subnet.
+        </p>
+        <ul style="margin-top:8px;color:#555;font-size:0.87em;line-height:1.8;">
+          {sender_lines}
+        </ul>
+      </div>"""
+
+    if not findings_html:
+        findings_html = '<p style="color:#888;">No significant issues detected in this capture.</p>'
+
+    # ── Print Stream Metrics card (only if print traffic found) ──────
+    print_metrics_card = ""
+    if has_print_stream:
+        zw_chart_html = _zw_chart(data.get("zw_timeline", {}))
+        print_metrics_card = f"""
+  <div class="card">
+    <div class="card-header">Print Stream TCP Metrics ({client} → {printer}:{port})</div>
+    <div class="card-body">
+      <div class="summary-grid">
+        <div class="metric" style="border-color:#c0392b;">
+          <div class="val">{zw:,}</div>
+          <div class="label">Zero-Window / Window-Full Events</div>
+        </div>
+        <div class="metric" style="border-color:#e67e22;">
+          <div class="val">{data.get("window_updates", 0):,}</div>
+          <div class="label">Window Update (re-open) Events</div>
+        </div>
+        <div class="metric" style="border-color:#e74c3c;">
+          <div class="val">{retx:,}</div>
+          <div class="label">Retransmissions</div>
+        </div>
+        <div class="metric" style="border-color:#d4ac0d;">
+          <div class="val">{data.get("dup_acks_print", 0):,}</div>
+          <div class="label">Duplicate ACKs</div>
+        </div>
+        <div class="metric" style="border-color:#8e44ad;">
+          <div class="val">{data.get("print_connections", 0)}</div>
+          <div class="label">TCP Connections Opened</div>
+        </div>
+        <div class="metric" style="border-color:#27ae60;">
+          <div class="val">{data.get("data_sent_mb", 0):.1f} MB</div>
+          <div class="label">Print Data Transferred</div>
+        </div>
+      </div>
+      {('<div style="margin-top:24px;"><div class="section-label">Zero-Window Announcements Over Time (30 s buckets)</div>' + zw_chart_html + '</div>') if zw_chart_html else ""}
+    </div>
+  </div>"""
+
+    # ── RST detail table ──────────────────────────────────────────────
     rst_rows_html = ""
     for rd in data.get("rst_detail", []):
         rst_rows_html += (
@@ -333,16 +538,14 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
             f'<td>{rd["dst"]}:{rd["dport"]}</td></tr>\n'
         )
 
-    # ── RST burst rows ───────────────────────────────────────────────
     burst_rows_html = ""
     for b in data.get("rst_bursts", []):
         burst_rows_html += (
-            f'<tr><td>{b["src"]}</td>'
-            f'<td>{b["count"]}</td>'
+            f'<tr><td>{b["src"]}</td><td>{b["count"]}</td>'
             f'<td>{b["start"]} s</td></tr>\n'
         )
 
-    # ── UDP flow rows ────────────────────────────────────────────────
+    # ── UDP rows ──────────────────────────────────────────────────────
     udp_rows_html = ""
     top_udp = data.get("udp_top_flows", [])
     max_frames = top_udp[0]["frames"] if top_udp else 1
@@ -357,7 +560,6 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
             f'<td style="width:120px;">{bar}</td></tr>\n'
         )
 
-    # ── broadcast rows ───────────────────────────────────────────────
     bc_rows_html = ""
     for bc in data.get("broadcast_udp", []):
         bc_rows_html += (
@@ -365,17 +567,81 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
             f'<td>{bc["frames"]}</td></tr>\n'
         )
 
-    zw_chart_html = _zw_chart(data.get("zw_timeline", {}))
-    zw_sev = "CRITICAL" if zw > 5000 else "HIGH" if zw > 1000 else "MEDIUM" if zw > 100 else "LOW"
-    retx_sev = "HIGH" if retx > 200 else "MEDIUM" if retx > 50 else "LOW"
-    rst_sev = "MEDIUM" if rst > 50 else "LOW" if rst > 0 else "INFO"
+    # ── dynamic recommendations ───────────────────────────────────────
+    rec_html = ""
 
+    if has_print_stream and zw > 0:
+        rec_html += """
+      <div class="finding critical" style="margin-bottom:12px;">
+        <h3>Printer Buffer / Flow Control</h3>
+        <ul>
+          <li>Upgrade printer firmware — newer versions often include pipeline optimisations that reduce zero-window frequency.</li>
+          <li>Enable <strong>TCP Offload / LAN I/O buffering</strong> in the printer's network settings if available.</li>
+          <li>Switch to <strong>IPP (port 631)</strong> instead of Raw/JetDirect (port 9100) — IPP provides better flow control and job-status feedback.</li>
+          <li>For large jobs, use <strong>PCL6 or HP-GL/2</strong> (vector-based) instead of rasterised formats — the rasteriser is often the pipeline bottleneck.</li>
+          <li>Consider upgrading the printer's network interface to Gigabit if currently 100 Mbps.</li>
+        </ul>
+      </div>"""
+
+    if has_print_stream and retx > 10:
+        rec_html += """
+      <div class="finding medium" style="margin-bottom:12px;">
+        <h3>TCP Retransmissions on Print Stream</h3>
+        <ul>
+          <li>Retransmissions are a secondary symptom of zero-window stalls. Resolving the buffer exhaustion above will eliminate them.</li>
+          <li>Review TCP retransmit timeout settings on the print client if retransmissions persist after firmware update.</li>
+        </ul>
+      </div>"""
+
+    if rst > 50:
+        rec_html += f"""
+      <div class="finding medium" style="margin-bottom:12px;">
+        <h3>TCP RST / Connection Resets</h3>
+        <ul>
+          <li>Investigate the top RST sources: {", ".join(p for p,_ in rst_top_ports[:3]) or "see table"}.</li>
+          <li>Determine whether RSTs originate from servers (connection refused / timeout) or from a firewall/middlebox.</li>
+          <li>If RSTs correlate with application errors, check server-side logs and firewall rules.</li>
+        </ul>
+      </div>"""
+    elif rst > 0:
+        rec_html += """
+      <div class="finding low" style="margin-bottom:12px;">
+        <h3>TCP RST Events</h3>
+        <ul>
+          <li>RST count is low. Monitor over time; no immediate action required unless applications report connection errors.</li>
+        </ul>
+      </div>"""
+
+    if bc_data:
+        bc_sender_list = ", ".join(sorted({bc["src"] for bc in bc_data[:5]}))
+        rec_html += f"""
+      <div class="finding low" style="margin-bottom:12px;">
+        <h3>Broadcast / Multicast UDP</h3>
+        <ul>
+          <li>Identify and verify the intent of broadcast UDP senders: <strong>{bc_sender_list}</strong>.</li>
+          <li>If these are printer management or device-discovery services, consider using <strong>unicast discovery</strong> to reduce subnet broadcast load.</li>
+          <li>Apply switch-level broadcast storm control if broadcast rates are abnormal.</li>
+        </ul>
+      </div>"""
+
+    if not rec_html:
+        rec_html = '<p style="color:#888;font-size:0.9em;">No specific remediation required for this capture.</p>'
+
+    # ── overview metrics ──────────────────────────────────────────────
+    print_client_metric = (
+        f'<div class="metric" style="border-color:#e74c3c;">'
+        f'<div class="val">{client}</div><div class="label">Print Client</div></div>'
+        f'<div class="metric" style="border-color:#27ae60;">'
+        f'<div class="val">{printer}:{port}</div><div class="label">Printer (RAW port)</div></div>'
+    ) if has_print_stream else ""
+
+    # ── assemble full HTML ────────────────────────────────────────────
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TCP/UDP Analysis – {pcap_name}</title>
+<title>TCP/UDP Analysis \u2013 {pcap_name}</title>
 <style>
   * {{ box-sizing:border-box; margin:0; padding:0; }}
   body {{ font-family:'Segoe UI',Arial,sans-serif; background:#f4f6f9; color:#2c3e50; font-size:14px; }}
@@ -387,23 +653,17 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
            margin-bottom:24px; overflow:hidden; }}
   .card-header {{ padding:14px 20px; font-weight:600; font-size:1em; border-bottom:1px solid #eee; }}
   .card-body   {{ padding:16px 20px; }}
-
-  /* summary grid */
   .summary-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:16px; }}
-  .metric {{ background:#f8f9fb; border-radius:8px; padding:14px 18px;
-             border-left:4px solid #3498db; }}
+  .metric {{ background:#f8f9fb; border-radius:8px; padding:14px 18px; border-left:4px solid #3498db; }}
   .metric .val {{ font-size:1.8em; font-weight:700; color:#2c3e50; }}
   .metric .label {{ font-size:0.8em; color:#7f8c8d; margin-top:4px; }}
-
   .severity-bar {{ display:flex; align-items:center; gap:12px; padding:14px 20px;
                    background:#fafafa; border-top:1px solid #eee; }}
   .severity-bar span {{ font-size:0.82em; color:#555; }}
-
   table {{ border-collapse:collapse; width:100%; font-size:0.85em; }}
   th {{ background:#2c3e50; color:#fff; padding:8px 12px; text-align:left; }}
   td {{ padding:7px 12px; border-bottom:1px solid #eef; }}
   tr:hover td {{ background:#f5f9ff; }}
-
   .section-label {{ font-size:0.75em; text-transform:uppercase; letter-spacing:.06em;
                     color:#7f8c8d; margin-bottom:6px; }}
   .finding {{ border-left:4px solid; padding:12px 16px; margin-bottom:12px;
@@ -415,36 +675,31 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
   .finding h3 {{ font-size:0.95em; margin-bottom:4px; }}
   .finding p  {{ font-size:0.85em; color:#555; line-height:1.5; }}
   .finding ul {{ font-size:0.85em; color:#555; padding-left:18px; line-height:1.8; }}
-
   .overall {{ padding:20px; text-align:center; color:#fff; font-size:1.2em;
               font-weight:700; border-radius:8px; margin-bottom:20px;
               background:{overall_colour}; }}
-
   footer {{ text-align:center; color:#aaa; font-size:0.78em; padding:20px 0 32px; }}
 </style>
 </head>
 <body>
-
 <header>
   <h1>TCP / UDP Traffic Analysis Report</h1>
   <p>{pcap_name} &nbsp;|&nbsp; Generated {now}</p>
 </header>
-
 <div class="container">
 
-  <div class="overall">
-    Overall Assessment: {overall_sev} &nbsp;
-    {"— Severe printer flow-control stall detected" if overall_sev in ("CRITICAL","HIGH") else "— No critical issues"}
-  </div>
+  <div class="overall">Overall Assessment: {overall_sev} &nbsp;\u2014 {overall_msg}</div>
 
-  <!-- ── Capture Overview ── -->
+  {filter_banner}
+
+  <!-- Capture Overview -->
   <div class="card">
     <div class="card-header">Capture Overview</div>
     <div class="card-body">
       <div class="summary-grid">
         <div class="metric" style="border-color:#3498db;">
           <div class="val">{data["total_packets"]:,}</div>
-          <div class="label">Total Packets</div>
+          <div class="label">{"Filtered" if filter_parts else "Total"} Packets</div>
         </div>
         <div class="metric" style="border-color:#1abc9c;">
           <div class="val">{data["duration_s"]} s</div>
@@ -452,145 +707,29 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
         </div>
         <div class="metric" style="border-color:#8e44ad;">
           <div class="val">{data["tcp_count"]:,}</div>
-          <div class="label">TCP Frames</div>
+          <div class="label">TCP Frames{" (filtered)" if filter_parts else ""}</div>
         </div>
         <div class="metric" style="border-color:#e67e22;">
           <div class="val">{data["udp_count"]:,}</div>
-          <div class="label">UDP Frames</div>
+          <div class="label">UDP Frames{" (filtered)" if filter_parts else ""}</div>
         </div>
-        <div class="metric" style="border-color:#e74c3c;">
-          <div class="val">{client}</div>
-          <div class="label">Print Client</div>
-        </div>
-        <div class="metric" style="border-color:#27ae60;">
-          <div class="val">{printer}:{port}</div>
-          <div class="label">Printer (RAW port)</div>
-        </div>
+        {print_client_metric}
       </div>
     </div>
   </div>
 
-  <!-- ── Key Issues ── -->
+  <!-- Key Findings -->
   <div class="card">
     <div class="card-header">Key Findings Summary</div>
-    <div class="card-body">
-
-      <div class="finding critical">
-        <h3>1. Printer Receive Buffer Exhaustion (Zero-Window Stall) &nbsp;{_severity_badge("CRITICAL")}</h3>
-        <p>
-          The printer (<strong>{printer}</strong>) announced a <em>zero receive window</em>
-          {zw:,} times over the {data["duration_s"]} s capture.
-          This means the printer's internal TCP receive buffer was repeatedly full —
-          the printer could not process incoming print data as fast as the client was sending it.
-          Every zero-window event forces the sending client to completely halt transmission and
-          wait for a <em>window update</em>; {data.get("window_updates",0):,} such updates were observed.
-        </p>
-        <p style="margin-top:8px;"><strong>Rate:</strong> ≈ {round(zw / data["duration_s"], 1)} zero-windows/second sustained over the full capture.</p>
-        <p style="margin-top:6px;"><strong>Root cause:</strong> Printer's internal data pipeline (PDL/PCL rendering engine) is slower than the network feed, causing buffer saturation. This is the direct mechanism behind the reported "paused event while printing".</p>
-      </div>
-
-      <div class="finding high">
-        <h3>2. High Retransmission Rate on Print Stream &nbsp;{_severity_badge("HIGH")}</h3>
-        <p>
-          <strong>{retx:,} retransmissions</strong> and
-          <strong>{data.get("dup_acks_print",0):,} duplicate ACKs</strong> were detected
-          exclusively on the print stream ({client} → {printer}:9100).
-          Each retransmission represents a 1 460-byte segment that the client had to re-send
-          after its retransmit timer expired during a zero-window stall.
-        </p>
-        <ul style="margin-top:8px;">
-          <li>No fast-retransmissions detected — all retransmissions are timeout-driven, confirming the zero-window stall is the trigger.</li>
-          <li>Lost segment events: <strong>{data.get("lost_segments",0)}</strong></li>
-        </ul>
-      </div>
-
-      <div class="finding {'medium' if rst_sev == 'MEDIUM' else 'low'}">
-        <h3>3. TCP RST Events (Port 443 / TLS Connections) &nbsp;{_severity_badge(rst_sev)}</h3>
-        <p>
-          <strong>{rst:,} TCP RST</strong> segments were captured. All are on port 443
-          (TLS/HTTPS connections to external Internet hosts) and are
-          <strong>unrelated to the print stream</strong>. These represent normal
-          TCP connection lifecycle terminations and server-initiated session resets
-          for cloud services (Microsoft Azure, CDN endpoints).
-        </p>
-        {'<p style="margin-top:6px;"><strong>Notable burst:</strong> ' + str(len([b for b in data.get("rst_bursts",[]) if b["count"]>=3])) + ' RST bursts of 3+ resets within 2 seconds detected — see RST Detail table below.' + '</p>' if data.get("rst_bursts") else ""}
-      </div>
-
-      <div class="finding low">
-        <h3>4. Print Job Segmentation — Expected Behaviour &nbsp;{_severity_badge("INFO")}</h3>
-        <p>
-          The client opened <strong>{data.get("print_connections",0):,} separate TCP connections</strong>
-          to port 9100 throughout the capture (approximately one every
-          {round(data["duration_s"]/max(data.get("print_connections",1),1),1)} s).
-          A total of <strong>{data.get("data_sent_mb",0):.2f} MB</strong> of print data
-          was transmitted. This pipelined connection cycling is normal driver behaviour for
-          large print jobs split across multiple TCP sessions.
-        </p>
-      </div>
-
-      <div class="finding low">
-        <h3>5. Elevated UDP Broadcast Traffic from 10.44.8.83 &nbsp;{_severity_badge("LOW")}</h3>
-        <p>
-          Host <strong>10.44.8.83</strong> continuously broadcast UDP packets to the
-          subnet broadcast address (10.44.8.255) on ports <strong>22222</strong> and
-          <strong>3289</strong>, and to 255.255.255.255 on port <strong>10004</strong>.
-          This pattern is typical of a printer management or device-discovery service
-          (common on Ricoh, HP, and Konica Minolta network print devices).
-          If this host is not a managed print server, the broadcasts should be reviewed
-          as they add unnecessary network load.
-        </p>
-      </div>
-
-    </div>
+    <div class="card-body">{findings_html}</div>
   </div>
 
-  <!-- ── Print Stream Metrics ── -->
-  <div class="card">
-    <div class="card-header">Print Stream TCP Metrics (Port 9100)</div>
-    <div class="card-body">
-      <div class="summary-grid">
-        <div class="metric" style="border-color:#c0392b;">
-          <div class="val">{zw:,}</div>
-          <div class="label">Zero-Window / Window-Full Events</div>
-        </div>
-        <div class="metric" style="border-color:#e67e22;">
-          <div class="val">{data.get("window_updates",0):,}</div>
-          <div class="label">Window Update (re-open) Events</div>
-        </div>
-        <div class="metric" style="border-color:#e74c3c;">
-          <div class="val">{retx:,}</div>
-          <div class="label">Retransmissions</div>
-        </div>
-        <div class="metric" style="border-color:#d4ac0d;">
-          <div class="val">{data.get("dup_acks_print",0):,}</div>
-          <div class="label">Duplicate ACKs</div>
-        </div>
-        <div class="metric" style="border-color:#8e44ad;">
-          <div class="val">{data.get("print_connections",0)}</div>
-          <div class="label">TCP Connections Opened</div>
-        </div>
-        <div class="metric" style="border-color:#27ae60;">
-          <div class="val">{data.get("data_sent_mb",0):.1f} MB</div>
-          <div class="label">Print Data Transferred</div>
-        </div>
-      </div>
+  {print_metrics_card}
 
-      <div style="margin-top:24px;">
-        <div class="section-label">Zero-Window Announcements Over Time (30 s buckets)</div>
-        {zw_chart_html}
-        <p style="font-size:0.8em;color:#888;margin-top:4px;">
-          Each bar = number of zero-window packets from printer in a 30 s window.
-          Note the sustained rate through ~390 s, then tapering as the job nears completion.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── RST Detail ── -->
+  <!-- RST Detail -->
   <div class="card">
     <div class="card-header">TCP Reset (RST) Detail</div>
     <div class="card-body">
-      {'<p style="font-size:0.85em;color:#555;margin-bottom:12px;">All RST events are on port 443 external TLS connections. No RSTs detected on the print stream.</p>' if client and all(r.get("dport","0")=="443" for r in data.get("rst_detail",[])) else ""}
       <table>
         <thead><tr>
           <th>Frame</th><th>Time (s)</th>
@@ -598,13 +737,13 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
         </tr></thead>
         <tbody>{rst_rows_html or "<tr><td colspan='4' style='text-align:center;color:#aaa;'>No RST events</td></tr>"}</tbody>
       </table>
-      {('<div style="margin-top:16px;"><div class="section-label">RST Bursts (≥ 3 resets within 2 s)</div>'
+      {('<div style="margin-top:16px;"><div class="section-label">RST Bursts (\u2265 3 resets within 2 s)</div>'
          '<table><thead><tr><th>Source IP</th><th>Count</th><th>Start Time</th></tr></thead>'
          f'<tbody>{burst_rows_html}</tbody></table></div>') if burst_rows_html else ""}
     </div>
   </div>
 
-  <!-- ── UDP Analysis ── -->
+  <!-- UDP Analysis -->
   <div class="card">
     <div class="card-header">UDP Traffic Analysis</div>
     <div class="card-body">
@@ -614,11 +753,10 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
           <div class="label">Total UDP Frames</div>
         </div>
         <div class="metric" style="border-color:#8e44ad;">
-          <div class="val">{data.get("quic_count",0):,}</div>
+          <div class="val">{data.get("quic_count", 0):,}</div>
           <div class="label">QUIC Frames (UDP/443)</div>
         </div>
       </div>
-
       <div class="section-label">Top UDP Flows (by frame count)</div>
       <table>
         <thead><tr>
@@ -626,61 +764,21 @@ def generate_html(pcap: str, data: dict, out_path: str) -> None:
           <th>Destination IP</th><th>Dst Port</th>
           <th>Frames</th><th>Volume</th><th>Relative Volume</th>
         </tr></thead>
-        <tbody>{udp_rows_html}</tbody>
+        <tbody>{udp_rows_html or "<tr><td colspan='7' style='text-align:center;color:#aaa;'>No UDP flows</td></tr>"}</tbody>
       </table>
-
       {('<div style="margin-top:20px;"><div class="section-label">Broadcast / Multicast UDP Senders</div>'
          '<table><thead><tr><th>Source IP</th><th>Dst Port</th><th>Frames</th></tr></thead>'
          f'<tbody>{bc_rows_html}</tbody></table></div>') if bc_rows_html else ""}
     </div>
   </div>
 
-  <!-- ── Recommendations ── -->
+  <!-- Recommendations -->
   <div class="card">
     <div class="card-header">Recommendations</div>
-    <div class="card-body">
-
-      <div class="finding critical" style="margin-bottom:12px;">
-        <h3>Printer Buffer / Flow Control</h3>
-        <ul>
-          <li>Upgrade printer firmware — newer versions often include print pipeline optimisations that reduce zero-window frequency.</li>
-          <li>Enable <strong>TCP Offload / LAN I/O buffering</strong> in the printer's network settings if available (increases internal receive buffer size).</li>
-          <li>Switch to <strong>IPP (port 631)</strong> instead of Raw/JetDirect (port 9100) — IPP provides better flow control and job-status feedback.</li>
-          <li>If using a print spooler, ensure the spooler is not sending data faster than the printer's rated throughput (consider throttling the spooler's send rate).</li>
-          <li>For large jobs, use <strong>PCL6 or HP-GL/2</strong> (vector-based) instead of rasterised formats — the rasteriser is often the bottleneck in the printer's pipeline.</li>
-          <li>Consider upgrading the network interface on the printer to Gigabit if currently 100 Mbps.</li>
-        </ul>
-      </div>
-
-      <div class="finding medium" style="margin-bottom:12px;">
-        <h3>TCP Retransmissions</h3>
-        <ul>
-          <li>Retransmissions are secondary symptoms of the zero-window stall. Resolving the buffer exhaustion above will eliminate them.</li>
-          <li>Review TCP retransmit timeout settings on the print client if retransmissions persist after firmware update.</li>
-        </ul>
-      </div>
-
-      <div class="finding low" style="margin-bottom:12px;">
-        <h3>UDP Broadcasts from 10.44.8.83</h3>
-        <ul>
-          <li>Identify the device at 10.44.8.83 and verify whether the broadcast discovery service is intentional.</li>
-          <li>If this is a print management server, configure it to use <strong>unicast discovery</strong> instead of subnet broadcast to reduce unnecessary network load.</li>
-          <li>Port 10004 broadcasts should be scoped to a VLAN or suppressed at the switch using broadcast storm control if the rate is abnormal.</li>
-        </ul>
-      </div>
-
-      <div class="finding low">
-        <h3>TCP RST / External TLS Connections</h3>
-        <ul>
-          <li>RSTs on port 443 connections are benign — standard TLS session cleanup from Azure / CDN servers.</li>
-          <li>No action required unless specific applications report connection errors.</li>
-        </ul>
-      </div>
-
-    </div>
+    <div class="card-body">{rec_html}</div>
   </div>
 
-</div><!-- /container -->
+</div>
 <footer>Generated by AI Wireshark Analyser &nbsp;|&nbsp; {now}</footer>
 </body>
 </html>"""
@@ -697,7 +795,8 @@ def run(pcap_file: str, output_html: str = None, output_dir: str = 'results', ip
         output_html = str(Path(output_dir) / (Path(pcap_file).stem + "_tcp_udp_report.html"))
     Path(output_html).parent.mkdir(parents=True, exist_ok=True)
     analysis = analyse(pcap_file, ip_filter=ip_filter, port_filter=port_filter)
-    generate_html(pcap_file, analysis, output_html)
+    generate_html(pcap_file, analysis, output_html,
+                  ip_filter=ip_filter, port_filter=port_filter)
     return {'html_path': output_html, 'results': analysis}
 
 
@@ -717,3 +816,4 @@ if __name__ == "__main__":
                       if k not in ("rst_detail", "udp_top_flows", "zw_timeline",
                                    "broadcast_udp", "rst_bursts")}, indent=2))
     generate_html(pcap_path, analysis, output)
+

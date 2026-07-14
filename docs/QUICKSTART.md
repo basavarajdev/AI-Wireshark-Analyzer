@@ -128,6 +128,15 @@ python3 scripts/run_ipv6_analysis.py capture.pcap 2408:8a04:e001::1
 ```
 Covers: TCP/UDP flows, ICMPv6/NDP patterns, SNMP community analysis, per-address traffic breakdown.
 
+**NEW (v1.6.1) Statistical Reports:**
+- **Inter-Packet Interval (IPI) Statistics:** Mean, median, std dev, jitter, CV, burstiness classification (constant/regular/bursty/highly-bursty)
+- **Packet Size Distribution:** Buckets (min, <128B, 128-512B, 512B+), percentiles (P50, P95, P99)
+- **Hourly Traffic Analysis:** Min/max/avg packets per hour, active hours count, peak hour timing
+- **TX/RX Ratios:** Both packet % and byte % ratios for traffic directionality
+- **SNMP Polling Interval:** Estimated interval, median/std consistency, requests/hour, error/unanswered rates
+- **Protocol & Peer Share:** Percentage breakdowns for all protocols and source IPs
+- **Interactive HTML Report:** Embedded charts with Statistics card, IPI table, size distribution graph
+
 ---
 
 ### Protocol Analysis & Anomaly Detection
@@ -177,8 +186,9 @@ python installer\build_installer.bat
 
 All reports are self-contained HTML files (no external CSS/JS):
 - Colour-coded severity badges (Critical / High / Medium / Low)
+- **Connection failures always surface above RF statistics** in the Threat Overview (v1.7.1)
+- **Dynamic Root Cause Analysis** boxes with capture-specific IPs, rates, and remediation steps (v1.7.1)
 - Embedded charts and timeline visualisations
-- Prioritised remediation recommendations
 - Saved as `<name>.json` + `<name>_report.html` in `results/`
 
 ```bash
@@ -195,9 +205,11 @@ start results\my_report.html      # Windows
 | Problem | Panel to use |
 |---------|-------------|
 | Wi-Fi won't connect / wrong password | WLAN |
+| WPA3-SAE authentication rejected | WLAN (connection_failures shows IEEE status codes + frame-level evidence) |
 | Decrypt captured Wi-Fi traffic | WPA Decrypt |
 | Slow / stalled print jobs or transfers | TCP/UDP |
 | Channel congestion or interference | Channel Monitor |
+| High Wi-Fi retry rate | WLAN (high_retry_rate with per-AP/channel breakdown) |
 | IPv6 connectivity issues | IPv6 |
-| DNS, HTTP, ICMP deep-dive | Protocol |
+| DNS, HTTP, ICMP deep-dive | Protocol Analyzers |
 | Detecting unusual traffic | Anomaly |

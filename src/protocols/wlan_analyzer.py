@@ -64,6 +64,7 @@ CTRL_SUBTYPES = {'0x0018', '0x0019', '0x001a', '0x001b', '0x001c', '0x001d',
 DATA_SUBTYPES = {'0x0020', '0x0021', '0x0022', '0x0024', '0x0028', '0x002c'}
 
 # 802.11 Status Codes (used in association/reassociation/authentication responses)
+# Valid range: 0-93 per IEEE 802.11-2020 Table 9-46
 STATUS_CODES = {
     0: 'Success',
     1: 'Unspecified failure',
@@ -98,8 +99,11 @@ STATUS_CODES = {
     84: 'Rejected due to next-TBTT without exact value',
     93: 'Association denied — no HE support',
 }
+# Max valid status code per IEEE 802.11-2020
+MAX_VALID_STATUS_CODE = 93
 
 # 802.11 Reason Codes (IEEE 802.11-2020, used in deauthentication/disassociation frames)
+# Valid range: 0-50 per IEEE 802.11-2020
 REASON_CODES = {
     1:  'Unspecified reason',
     2:  'Previous authentication no longer valid (STA inactive/re-keying)',
@@ -145,6 +149,18 @@ REASON_CODES = {
     47: 'Disassociated — SAE PMK-ID not recognized (SAE session expired)',
     50: 'Disassociated — no SAE PT or password available',
 }
+# Max valid reason code per IEEE 802.11-2020
+MAX_VALID_REASON_CODE = 50
+
+
+def is_valid_status_code(code: int) -> bool:
+    """Check if a status code is valid per IEEE 802.11-2020. Valid range: 0-93."""
+    return 0 <= code <= MAX_VALID_STATUS_CODE
+
+
+def is_valid_reason_code(code: int) -> bool:
+    """Check if a reason code is valid per IEEE 802.11-2020. Valid range: 0-50."""
+    return 0 <= code <= MAX_VALID_REASON_CODE
 
 
 def _sae_status_root_cause(status: int) -> str:
@@ -292,24 +308,44 @@ class WLANAnalyzer:
         packets_data = []
         wlan_filter = f'wlan && ({display_filter})' if display_filter else 'wlan'
 
+        capture = None
         try:
             capture = pyshark.FileCapture(
                 pcap_file,
                 display_filter=wlan_filter,
+                keep_packets=False,
             )
 
-            for i, pkt in enumerate(capture):
-                try:
-                    features = self._extract_wlan_features(pkt)
-                    if features:
-                        packets_data.append(features)
-                except Exception as e:
-                    logger.debug(f"Error parsing WLAN packet {i}: {e}")
-                    continue
+            packet_count = 0
+            try:
+                for pkt in capture:
+                    try:
+                        features = self._extract_wlan_features(pkt)
+                        if features:
+                            packets_data.append(features)
+                            packet_count += 1
+                    except Exception as e:
+                        logger.debug(f"Error parsing WLAN packet {packet_count}: {e}")
+                        continue
+            except Exception as e:
+                # TShark may crash on malformed packets; log and continue with what we have
+                logger.warning(f"TShark encountered an error during packet iteration: {e}. "
+                              f"Continuing with {packet_count} packets parsed so far.")
 
-            capture.close()
+            # Properly close capture
+            if capture is not None:
+                try:
+                    capture.close()
+                except Exception as e:
+                    logger.debug(f"Error closing capture: {e}")
+                    
         except Exception as e:
             logger.error(f"Error reading PCAP for WLAN analysis: {e}")
+            if capture is not None:
+                try:
+                    capture.close()
+                except:
+                    pass
             raise
 
         return packets_data
@@ -682,6 +718,7 @@ class WLANAnalyzer:
         result = {"detected": False, "severity": "info"}
         failures = []
         failure_summary: Dict[str, int] = {}
+        malformed_packets = {"status_code_invalid": 0, "reason_code_invalid": 0}
 
         # Root-cause categories and IEEE 802.11-aligned recovery remediations
         # Keys shared by both status codes and reason codes use the same integer value;
@@ -937,6 +974,11 @@ class WLANAnalyzer:
                 fail_df = resp_df[resp_df['status_code'] > 0]
                 for _, row in fail_df.iterrows():
                     code = int(row['status_code'])
+                    # Validate status code
+                    if not is_valid_status_code(code):
+                        logger.warning(f"Excluding {label} response with invalid status code {code}")
+                        malformed_packets["status_code_invalid"] += 1
+                        continue
                     cat, remediation = _classify(code, is_reason=False)
                     entry = {
                         'type': f'{label} Response Failure',
@@ -955,6 +997,11 @@ class WLANAnalyzer:
             auth_fail_df = auth_df[auth_df['status_code'] > 0]
             for _, row in auth_fail_df.iterrows():
                 code = int(row['status_code'])
+                # Validate status code
+                if not is_valid_status_code(code):
+                    logger.warning(f"Excluding Authentication response with invalid status code {code}")
+                    malformed_packets["status_code_invalid"] += 1
+                    continue
                 cat, remediation = _classify(code, is_reason=False)
                 entry = {
                     'type': 'Authentication Failure',
@@ -973,6 +1020,11 @@ class WLANAnalyzer:
             deauth_coded = deauth_df[deauth_df['reason_code'] > 0]
             for _, row in deauth_coded.iterrows():
                 code = int(row['reason_code'])
+                # Validate reason code
+                if not is_valid_reason_code(code):
+                    logger.warning(f"Excluding Deauthentication frame with invalid reason code {code}")
+                    malformed_packets["reason_code_invalid"] += 1
+                    continue
                 cat, remediation = _classify(code, is_reason=True)
                 entry = {
                     'type': 'Deauthentication',
@@ -991,6 +1043,11 @@ class WLANAnalyzer:
             disassoc_coded = disassoc_df[disassoc_df['reason_code'] > 0]
             for _, row in disassoc_coded.iterrows():
                 code = int(row['reason_code'])
+                # Validate reason code
+                if not is_valid_reason_code(code):
+                    logger.warning(f"Excluding Disassociation frame with invalid reason code {code}")
+                    malformed_packets["reason_code_invalid"] += 1
+                    continue
                 cat, remediation = _classify(code, is_reason=True)
                 entry = {
                     'type': 'Disassociation',
@@ -1135,6 +1192,15 @@ class WLANAnalyzer:
                             'recommended_action', f.get('remediation', ''))
                         f['evidence'] = evidence
                         f['connection_phase'] = session.get('diagnosis', {}).get('phase', '')
+
+        # Add malformed packet information to result
+        result['malformed_packets'] = malformed_packets
+        if sum(malformed_packets.values()) > 0:
+            logger.info(
+                f"Excluded {sum(malformed_packets.values())} malformed packets: "
+                f"{malformed_packets['status_code_invalid']} invalid status codes, "
+                f"{malformed_packets['reason_code_invalid']} invalid reason codes"
+            )
 
         return result
 
@@ -2434,8 +2500,10 @@ class WLANAnalyzer:
                 'sessions': status30_rejections,
             }
 
-        if not sae_sessions and not issues and not failure_counts:
-            # Still note if SAE AKM was advertised (positive detection of WPA3 network)
+        if not sae_sessions and not failure_counts:
+            # No actual SAE failures — do not surface as a threat in the Threat Overview.
+            # Advisory notices about a successful handshake (e.g., "4-way EAPOL completed")
+            # are informational only and should not appear as a finding.
             if sae_akm_present:
                 result['wpa3_network_detected'] = True
                 result['sae_akm_advertised'] = True

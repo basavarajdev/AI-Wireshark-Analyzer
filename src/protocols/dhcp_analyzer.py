@@ -90,26 +90,44 @@ class DHCPAnalyzer:
         
         dhcp_filter = ' && '.join(filters)
 
+        capture = None
         try:
             capture = pyshark.FileCapture(
                 pcap_file,
                 display_filter=dhcp_filter,
-                use_json=True,
-                include_raw=True,
+                keep_packets=False,
             )
 
-            for i, pkt in enumerate(capture):
-                try:
-                    features = self._extract_dhcp_features(pkt)
-                    if features:
-                        packets_data.append(features)
-                except Exception as e:
-                    logger.debug(f"Error parsing DHCP packet {i}: {e}")
-                    continue
+            packet_count = 0
+            try:
+                for pkt in capture:
+                    try:
+                        features = self._extract_dhcp_features(pkt)
+                        if features:
+                            packets_data.append(features)
+                            packet_count += 1
+                    except Exception as e:
+                        logger.debug(f"Error parsing DHCP packet {packet_count}: {e}")
+                        continue
+            except Exception as e:
+                # TShark may crash on malformed packets; log and continue with what we have
+                logger.warning(f"TShark encountered an error during packet iteration: {e}. "
+                              f"Continuing with {packet_count} packets parsed so far.")
 
-            capture.close()
+            # Properly close capture
+            if capture is not None:
+                try:
+                    capture.close()
+                except Exception as e:
+                    logger.debug(f"Error closing capture: {e}")
+                    
         except Exception as e:
             logger.error(f"Error reading PCAP for DHCP analysis: {e}")
+            if capture is not None:
+                try:
+                    capture.close()
+                except:
+                    pass
             raise
 
         return packets_data

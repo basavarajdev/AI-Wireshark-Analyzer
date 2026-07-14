@@ -46,37 +46,56 @@ class PacketParser:
             raise FileNotFoundError(f"PCAP file not found: {pcap_file}")
         
         packets_data = []
+        capture = None
         
         try:
-            # Open PCAP file
+            # Open PCAP file - avoid use_json which can cause tshark crashes
+            # Use keep_packets=False to not keep raw packet data in memory
             capture = pyshark.FileCapture(
                 pcap_file,
                 display_filter=display_filter,
-                use_json=True,
-                include_raw=True
+                only_summaries=False,
+                keep_packets=False
             )
             
             packet_count = 0
-            for packet in capture:
-                try:
-                    packet_features = self._extract_packet_features(packet)
-                    if packet_features:
-                        packets_data.append(packet_features)
-                        packet_count += 1
-                        
-                        if self.max_packets > 0 and packet_count >= self.max_packets:
-                            logger.info(f"Reached max packets limit: {self.max_packets}")
-                            break
+            try:
+                for packet in capture:
+                    try:
+                        packet_features = self._extract_packet_features(packet)
+                        if packet_features:
+                            packets_data.append(packet_features)
+                            packet_count += 1
                             
-                except Exception as e:
-                    logger.warning(f"Error parsing packet {packet_count}: {e}")
-                    continue
+                            if self.max_packets > 0 and packet_count >= self.max_packets:
+                                logger.info(f"Reached max packets limit: {self.max_packets}")
+                                break
+                                
+                    except Exception as e:
+                        logger.debug(f"Error parsing packet {packet_count}: {e}")
+                        continue
+                        
+            except Exception as e:
+                # TShark may crash (e.g., on malformed packets); log and continue with what we have
+                logger.warning(f"TShark encountered an error during packet iteration: {e}. "
+                              f"Continuing with {packet_count} packets parsed so far.")
             
-            capture.close()
+            # Properly close capture and cleanup tshark process
+            if capture is not None:
+                try:
+                    capture.close()
+                except Exception as e:
+                    logger.debug(f"Error closing capture: {e}")
+                    
             logger.info(f"Parsed {len(packets_data)} packets successfully")
             
         except Exception as e:
             logger.error(f"Error reading PCAP file: {e}")
+            if capture is not None:
+                try:
+                    capture.close()
+                except:
+                    pass
             raise
         
         if not packets_data:

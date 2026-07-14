@@ -1,12 +1,14 @@
-# Byte-compiled / optimized / DLL files
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache and Compiled Files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -27,43 +29,49 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Virtual environments
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
+# IDE and Editor
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Logs and Runtime
+logs/
+*.log
+
+# Data (raw captures and processed files)
+data/raw/*.pcap
+data/raw/*.pcapng
+data/processed/*.csv
+data/processed/*.parquet
+
+# Trained Models
+models/*.pkl
+models/*.h5
+models/*.pth
+models/*.onnx
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-logs/
-*.log
+# Windows NTFS Alternate Data Streams
+*:Zone.Identifier
 
-# Results and data
-results/
-data/raw/
-
-# Environment variables
-.env
-.env.local
-
-# Build outputs
-build/
-dist/
-*.o
-*.a
+# PyInstaller build artifacts
+installer/output/

@@ -1,9 +1,11 @@
 """
 TCP Protocol Analyzer
-Detects TCP-specific critical network issues
+Detects TCP-specific critical network issues and application-layer protocol threats
+via port-based filtering (HTTP on 80/8080, HTTPS on 443/8443, SMTP, FTP, etc.)
 """
 
 import argparse
+import re
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -18,9 +20,25 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from src.parsers.packet_parser import PacketParser
 from src.preprocessing.cleaning import DataCleaner
 
+# Well-known TCP port → application-layer protocol mapping
+TCP_PORT_MAP = {
+    20: "FTP-Data", 21: "FTP", 22: "SSH", 23: "Telnet",
+    25: "SMTP", 53: "DNS/TCP", 80: "HTTP", 110: "POP3",
+    143: "IMAP", 443: "HTTPS/TLS", 465: "SMTPS", 587: "SMTP-Submission",
+    993: "IMAPS", 995: "POP3S", 3306: "MySQL", 3389: "RDP",
+    5432: "PostgreSQL", 6379: "Redis", 8080: "HTTP-Alt",
+    8443: "HTTPS-Alt", 8888: "HTTP-Alt",
+}
+
+# HTTP ports for application-layer threat detection
+HTTP_PORTS = {80, 8080, 8008, 8888}
+# HTTPS/TLS ports
+TLS_PORTS = {443, 8443, 9443}
+
 
 class TCPAnalyzer:
-    """Analyze TCP traffic for critical issues"""
+    """Analyze TCP traffic for critical issues, including application-layer
+    threats on common ports (HTTP, HTTPS/TLS, etc.)."""
     
     def __init__(self, config_path: str = "config/default.yaml"):
         """Initialize TCP Analyzer"""
@@ -46,35 +64,48 @@ class TCPAnalyzer:
         """
         logger.info(f"Analyzing TCP traffic in {pcap_file}")
         
-        # Build comprehensive filter
-        filters = ['tcp']
-        if display_filter:
-            filters.append(f'({display_filter})')
-        if ip_filter:
-            filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
-        if port_filter:
-            ports = [p.strip() for p in port_filter.split(',')]
-            port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
-            filters.append(f'({port_expr})')
-        
-        proto_filter = ' && '.join(filters)
-        df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
-        
-        if df.empty:
-            logger.warning("No TCP packets found")
-            return {"error": "No TCP packets found"}
-        
-        df = self.cleaner.clean(df)
-        
-        # Run analysis
-        results = {
-            "total_packets": len(df),
-            "critical_issues": [],
-            "statistics": self._calculate_statistics(df),
-            "threats": self._detect_threats(df)
-        }
-        
-        return results
+        try:
+            # Build comprehensive filter
+            filters = ['tcp']
+            if display_filter:
+                filters.append(f'({display_filter})')
+            if ip_filter:
+                filters.append(f'(ip.src=={ip_filter} || ip.dst=={ip_filter})')
+            if port_filter:
+                ports = [p.strip() for p in port_filter.split(',')]
+                port_expr = ' || '.join([f'tcp.port=={port}' for port in ports])
+                filters.append(f'({port_expr})')
+            
+            proto_filter = ' && '.join(filters)
+            logger.debug(f"TCP filter: {proto_filter}")
+            
+            df = self.parser.parse_pcap(pcap_file, display_filter=proto_filter)
+            
+            if df.empty:
+                logger.warning("No TCP packets found")
+                return {"error": "No TCP packets found", "status": "empty"}
+            
+            df = self.cleaner.clean(df)
+            
+            # Run analysis
+            results = {
+                "total_packets": len(df),
+                "critical_issues": [],
+                "statistics": self._calculate_statistics(df),
+                "threats": self._detect_threats(df),
+                "app_layer_protocols": self._identify_app_layer_protocols(df),
+            }
+            
+            return results
+            
+        except Exception as e:
+            error_msg = f"Error analyzing TCP traffic: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "error": error_msg,
+                "status": "error",
+                "type": type(e).__name__
+            }
     
     def _calculate_statistics(self, df: pd.DataFrame) -> Dict:
         """Calculate TCP statistics"""
@@ -169,9 +200,266 @@ class TCPAnalyzer:
         data_gaps = self._detect_data_gaps(df)
         if data_gaps['detected']:
             threats['data_transmission_gaps'] = data_gaps
+
+        # Application-layer threats based on identified ports
+        app_threats = self._detect_app_layer_threats(df)
+        threats.update(app_threats)
         
         return threats
-    
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Application-layer analysis (port-based; replaces standalone HTTP/HTTPS)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _identify_app_layer_protocols(self, df: pd.DataFrame) -> Dict:
+        """Map observed TCP ports to known application-layer protocols."""
+        result = {}
+        for col in ('dst_port', 'src_port'):
+            if col not in df.columns:
+                continue
+            port_counts = df[col].value_counts()
+            for port, count in port_counts.items():
+                try:
+                    port_int = int(port)
+                except (ValueError, TypeError):
+                    continue
+                proto_name = TCP_PORT_MAP.get(port_int)
+                if proto_name:
+                    key = f"port_{port_int}_{proto_name.replace('/', '_')}"
+                    result[key] = {
+                        "port": port_int,
+                        "protocol": proto_name,
+                        "packet_count": int(count),
+                    }
+        return result
+
+    def _detect_app_layer_threats(self, df: pd.DataFrame) -> Dict:
+        """Run application-layer threat detection based on port presence."""
+        threats = {}
+
+        if 'dst_port' not in df.columns and 'src_port' not in df.columns:
+            return threats
+
+        # Determine which ports are present
+        all_ports = set()
+        for col in ('dst_port', 'src_port'):
+            if col in df.columns:
+                all_ports.update(df[col].dropna().astype(int).tolist())
+
+        # HTTP threat detection on HTTP ports
+        http_present = all_ports & HTTP_PORTS
+        if http_present:
+            http_df = df[
+                df['dst_port'].isin(HTTP_PORTS) | df['src_port'].isin(HTTP_PORTS)
+            ] if 'dst_port' in df.columns and 'src_port' in df.columns else df
+
+            for method in (
+                self._detect_sql_injection,
+                self._detect_xss,
+                self._detect_directory_traversal,
+                self._detect_suspicious_user_agents,
+                self._detect_http_flood,
+            ):
+                result = method(http_df)
+                if result.get('detected'):
+                    threats[method.__name__.lstrip('_')] = result
+
+        # TLS/HTTPS threat detection on TLS ports
+        tls_present = all_ports & TLS_PORTS
+        if tls_present:
+            tls_df = df[
+                df['dst_port'].isin(TLS_PORTS) | df['src_port'].isin(TLS_PORTS)
+            ] if 'dst_port' in df.columns and 'src_port' in df.columns else df
+
+            for method in (
+                self._detect_tls_downgrade,
+                self._detect_tls_handshake_failures,
+                self._detect_https_flood,
+            ):
+                result = method(tls_df)
+                if result.get('detected'):
+                    threats[method.__name__.lstrip('_')] = result
+
+        return threats
+
+    # ── HTTP threat detectors ─────────────────────────────────────────────────
+
+    def _detect_sql_injection(self, df: pd.DataFrame) -> Dict:
+        """Detect SQL injection patterns in HTTP URIs."""
+        result = {"detected": False, "severity": "info"}
+        if 'http_uri' not in df.columns:
+            return result
+        uris = df[df['http_uri'].notna()]
+        if uris.empty:
+            return result
+        sql_re = re.compile(
+            r"('|(\\'))+|(union.*select)|(select.*from)|(insert.*into)"
+            r"|(delete.*from)|(drop.*table)|(update.*set)|(exec.*\()"
+            r"|(or.*1=1)|(and.*1=1)",
+            re.IGNORECASE
+        )
+        hits = uris[uris['http_uri'].str.contains(sql_re, na=False)]
+        if not hits.empty:
+            result.update({
+                "detected": True, "severity": "critical",
+                "count": len(hits),
+                "message": f"SQL injection attempts: {len(hits)} malicious HTTP requests",
+                "sample_uris": hits['http_uri'].head(5).tolist(),
+            })
+            if 'src_ip' in hits.columns:
+                result['attacker_ips'] = hits['src_ip'].value_counts().head(5).to_dict()
+        return result
+
+    def _detect_xss(self, df: pd.DataFrame) -> Dict:
+        """Detect XSS patterns in HTTP URIs."""
+        result = {"detected": False, "severity": "info"}
+        if 'http_uri' not in df.columns:
+            return result
+        uris = df[df['http_uri'].notna()]
+        if uris.empty:
+            return result
+        xss_re = re.compile(
+            r"<script|javascript:|onerror=|onload=|<iframe|document\.cookie|alert\(",
+            re.IGNORECASE
+        )
+        hits = uris[uris['http_uri'].str.contains(xss_re, na=False)]
+        if not hits.empty:
+            result.update({
+                "detected": True, "severity": "high",
+                "count": len(hits),
+                "message": f"XSS attempts: {len(hits)} malicious HTTP requests",
+                "sample_uris": hits['http_uri'].head(5).tolist(),
+            })
+            if 'src_ip' in hits.columns:
+                result['attacker_ips'] = hits['src_ip'].value_counts().head(5).to_dict()
+        return result
+
+    def _detect_directory_traversal(self, df: pd.DataFrame) -> Dict:
+        """Detect directory traversal attempts in HTTP URIs."""
+        result = {"detected": False, "severity": "info"}
+        if 'http_uri' not in df.columns:
+            return result
+        uris = df[df['http_uri'].notna()]
+        if uris.empty:
+            return result
+        trav_re = re.compile(
+            r"\.\./|\.\.\\|%2e%2e|etc/passwd|windows/system",
+            re.IGNORECASE
+        )
+        hits = uris[uris['http_uri'].str.contains(trav_re, na=False)]
+        if not hits.empty:
+            result.update({
+                "detected": True, "severity": "high",
+                "count": len(hits),
+                "message": f"Directory traversal attempts: {len(hits)} malicious requests",
+                "sample_uris": hits['http_uri'].head(5).tolist(),
+            })
+        return result
+
+    def _detect_suspicious_user_agents(self, df: pd.DataFrame) -> Dict:
+        """Detect scanning tool user agents in HTTP traffic."""
+        result = {"detected": False, "severity": "info"}
+        if 'http_user_agent' not in df.columns:
+            return result
+        agents = df[df['http_user_agent'].notna()]
+        if agents.empty:
+            return result
+        suspicious = self.config.get('protocols', {}).get('http', {}).get(
+            'suspicious_user_agents', ["sqlmap", "nikto", "nmap", "masscan"]
+        )
+        hits = agents[agents['http_user_agent'].str.lower().apply(
+            lambda x: any(s in str(x) for s in suspicious)
+        )]
+        if not hits.empty:
+            result.update({
+                "detected": True, "severity": "high",
+                "count": len(hits),
+                "message": f"Suspicious user agents: {len(hits)} requests from scanning tools",
+                "user_agents": hits['http_user_agent'].value_counts().head(10).to_dict(),
+            })
+            if 'src_ip' in hits.columns:
+                result['scanner_ips'] = hits['src_ip'].value_counts().head(5).to_dict()
+        return result
+
+    def _detect_http_flood(self, df: pd.DataFrame) -> Dict:
+        """Detect HTTP flood / high request rate."""
+        result = {"detected": False, "severity": "info"}
+        if 'src_ip' not in df.columns or 'timestamp' not in df.columns:
+            return result
+        time_span = df['timestamp'].max() - df['timestamp'].min()
+        if time_span <= 0:
+            return result
+        max_rate = self.config.get('protocols', {}).get('http', {}).get('max_request_rate', 50)
+        rate_per_ip = df.groupby('src_ip').size() / time_span
+        high_rate = rate_per_ip[rate_per_ip > max_rate]
+        if not high_rate.empty:
+            result.update({
+                "detected": True, "severity": "high",
+                "count": len(high_rate),
+                "message": f"HTTP flood: {len(high_rate)} IP(s) exceed {max_rate} req/s",
+                "top_requesters": {str(ip): float(r) for ip, r in high_rate.head(10).items()},
+            })
+        return result
+
+    # ── TLS/HTTPS threat detectors ────────────────────────────────────────────
+
+    def _detect_tls_downgrade(self, df: pd.DataFrame) -> Dict:
+        """Detect potential TLS downgrade / negotiation failures."""
+        result = {"detected": False, "severity": "info"}
+        if 'length' not in df.columns:
+            return result
+        small_pkt_ratio = (df['length'] < 100).sum() / max(len(df), 1)
+        if small_pkt_ratio > 0.7:
+            result.update({
+                "detected": True, "severity": "medium",
+                "small_packet_ratio": float(round(small_pkt_ratio, 4)),
+                "message": "Potential TLS downgrade or negotiation issues (high ratio of small packets on TLS port)",
+            })
+        return result
+
+    def _detect_tls_handshake_failures(self, df: pd.DataFrame) -> Dict:
+        """Detect TLS handshake failures via RST patterns on TLS ports."""
+        result = {"detected": False, "severity": "info"}
+        if 'tcp_flags' not in df.columns:
+            return result
+        rst_df = df[(df['tcp_flags'] & 0x04) > 0]
+        syn_df = df[(df['tcp_flags'] & 0x12) == 0x02]
+        if len(syn_df) == 0:
+            return result
+        failure_ratio = len(rst_df) / max(len(syn_df), 1)
+        if failure_ratio > 0.3 and len(rst_df) >= 5:
+            result.update({
+                "detected": True, "severity": "medium",
+                "rst_count": int(len(rst_df)),
+                "syn_count": int(len(syn_df)),
+                "failure_ratio": float(round(failure_ratio, 4)),
+                "message": f"TLS handshake failures: {len(rst_df)} RSTs for {len(syn_df)} SYNs ({failure_ratio*100:.1f}% failure rate)",
+            })
+        return result
+
+    def _detect_https_flood(self, df: pd.DataFrame) -> Dict:
+        """Detect high connection rate to TLS ports (HTTPS flood)."""
+        result = {"detected": False, "severity": "info"}
+        if 'src_ip' not in df.columns or 'timestamp' not in df.columns:
+            return result
+        time_span = df['timestamp'].max() - df['timestamp'].min()
+        if time_span <= 0:
+            return result
+        rate_per_ip = df.groupby('src_ip').size() / time_span
+        high_rate = rate_per_ip[rate_per_ip > 50]
+        if not high_rate.empty:
+            result.update({
+                "detected": True, "severity": "high",
+                "count": len(high_rate),
+                "message": f"HTTPS/TLS flood: {len(high_rate)} IP(s) with >50 conn/s",
+                "top_sources": {str(ip): float(r) for ip, r in high_rate.head(10).items()},
+            })
+        return result
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Core TCP threat detectors
+    # ─────────────────────────────────────────────────────────────────────────
+
     def _detect_syn_flood(self, df: pd.DataFrame) -> Dict:
         """Detect SYN flood attacks"""
         result = {"detected": False, "severity": "info"}

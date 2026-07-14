@@ -107,10 +107,64 @@ class WLANRFMonitor:
             result['retry_rate'] = float(round(retry_rate, 4))
             result['retry_count'] = int(data_df['retry'].sum())
             result['total_data_frames'] = int(len(data_df))
+            result['threshold_pct'] = float(threshold * 100)
             result['message'] = (
                 f"High retry rate: {retry_rate*100:.1f}% of data frames are retries "
                 f"(threshold: {threshold*100:.0f}%)"
             )
+
+            # Per-AP (BSSID) retry breakdown for targeted recommendations
+            if 'bssid' in data_df.columns:
+                try:
+                    bssid_retry = (
+                        data_df.groupby('bssid')
+                        .apply(lambda g: pd.Series({
+                            'retry_rate': float(g['retry'].mean()),
+                            'retry_count': int(g['retry'].sum()),
+                            'total_frames': int(len(g)),
+                        }))
+                        .reset_index()
+                    )
+                    high_bssid = bssid_retry[bssid_retry['retry_rate'] > threshold]
+                    if not high_bssid.empty:
+                        result['high_retry_bssids'] = {
+                            str(row['bssid']): {
+                                'retry_rate': float(round(row['retry_rate'], 4)),
+                                'retry_count': int(row['retry_count']),
+                                'total_frames': int(row['total_frames']),
+                            }
+                            for _, row in high_bssid.iterrows()
+                            if str(row['bssid']) not in ('nan', 'None', '')
+                        }
+                except Exception:
+                    pass
+
+            # Per-channel retry breakdown to identify which channels are noisy
+            if 'channel' in data_df.columns:
+                try:
+                    ch_df = data_df[data_df['channel'] > 0]
+                    if not ch_df.empty:
+                        ch_retry = (
+                            ch_df.groupby('channel')
+                            .apply(lambda g: pd.Series({
+                                'retry_rate': float(g['retry'].mean()),
+                                'retry_count': int(g['retry'].sum()),
+                                'total_frames': int(len(g)),
+                            }))
+                            .reset_index()
+                        )
+                        high_ch = ch_retry[ch_retry['retry_rate'] > threshold]
+                        if not high_ch.empty:
+                            result['high_retry_channels'] = {
+                                int(row['channel']): {
+                                    'retry_rate': float(round(row['retry_rate'], 4)),
+                                    'retry_count': int(row['retry_count']),
+                                    'total_frames': int(row['total_frames']),
+                                }
+                                for _, row in high_ch.iterrows()
+                            }
+                except Exception:
+                    pass
 
         return result
 

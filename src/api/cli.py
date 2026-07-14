@@ -19,12 +19,17 @@ from src.parsers.packet_parser import PacketParser
 from src.preprocessing.cleaning import DataCleaner
 from src.preprocessing.feature_engineering import FeatureEngineer
 from src.core.model import IsolationForestModel, AutoencoderModel
-from src.evaluation.visualization import NetworkVisualizer
+
+# Lazy import for visualization - may not be available in all environments
+try:
+    from src.evaluation.visualization import NetworkVisualizer
+except ImportError:
+    NetworkVisualizer = None
+    logger.warning("NetworkVisualizer not available - visualization features disabled")
+
 from src.protocols.tcp_analyzer import TCPAnalyzer
 from src.protocols.udp_analyzer import UDPAnalyzer
 from src.protocols.dns_analyzer import DNSAnalyzer
-from src.protocols.http_analyzer import HTTPAnalyzer
-from src.protocols.https_analyzer import HTTPSAnalyzer
 from src.protocols.icmp_analyzer import ICMPAnalyzer
 from src.protocols.wlan_analyzer import WLANAnalyzer
 from src.protocols.dhcp_analyzer import DHCPAnalyzer
@@ -42,8 +47,8 @@ def cli():
 
 @cli.command()
 @click.option('--input', '-i', required=True, help='Input PCAP file')
-@click.option('--protocol', '-p', type=click.Choice(['tcp', 'udp', 'dns', 'http', 'https', 'icmp', 'dhcp', 'all']),
-              default='all', help='Protocol to analyze')
+@click.option('--protocol', '-p', type=click.Choice(['tcp', 'udp', 'dns', 'icmp', 'dhcp', 'all']),
+              default='all', help='Protocol to analyze (HTTP/HTTPS via TCP with port filter e.g. --filter tcp.port==80)')
 @click.option('--filter', '-f', 'display_filter', default=None,
               help='Wireshark display filter for IP-based filtering (e.g. "ip.addr==192.168.1.1", "ip.src==10.0.0.1", "ip.dst==10.0.0.2")')
 @click.option('--visualize', '-v', is_flag=True, help='Generate visualizations')
@@ -92,7 +97,7 @@ def analyze(input, protocol, display_filter, visualize, output_dir):
         console.print("\n[bold cyan]Running analysis for all protocols...[/bold cyan]")
         results['protocol_analysis'] = {}
         
-        for proto in ['tcp', 'udp', 'dns', 'http', 'https', 'icmp', 'dhcp']:
+        for proto in ['tcp', 'udp', 'dns', 'icmp', 'dhcp']:
             try:
                 proto_results = _run_protocol_analysis(input, proto, display_filter)
                 if 'error' not in proto_results:
@@ -105,12 +110,15 @@ def analyze(input, protocol, display_filter, visualize, output_dir):
     
     # Visualizations
     if visualize:
-        console.print("\n[bold cyan]Generating visualizations...[/bold cyan]")
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        viz = NetworkVisualizer()
-        viz.create_analysis_report(df, str(output_path))
+        if NetworkVisualizer is None:
+            console.print("\n[yellow]Visualization disabled - matplotlib dependencies not available[/yellow]")
+        else:
+            console.print("\n[bold cyan]Generating visualizations...[/bold cyan]")
+            output_path = Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            
+            viz = NetworkVisualizer()
+            viz.create_analysis_report(df, str(output_path))
         console.print(f"[green]✓[/green] Visualizations saved to {output_path}")
     
     # Auto-generate output paths from the pcap filename
@@ -156,8 +164,6 @@ def _run_protocol_analysis(pcap_file: str, protocol: str, display_filter: str = 
         'tcp': TCPAnalyzer,
         'udp': UDPAnalyzer,
         'dns': DNSAnalyzer,
-        'http': HTTPAnalyzer,
-        'https': HTTPSAnalyzer,
         'icmp': ICMPAnalyzer,
         'dhcp': DHCPAnalyzer,
     }
@@ -424,10 +430,12 @@ def visualize(input, output_dir):
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         
-        viz = NetworkVisualizer()
-        viz.create_analysis_report(df, str(output_path))
-    
-    console.print(f"[green]✓[/green] Visualizations saved to {output_path}")
+        if NetworkVisualizer is None:
+            console.print("[yellow]Visualization disabled - matplotlib dependencies not available[/yellow]")
+        else:
+            viz = NetworkVisualizer()
+            viz.create_analysis_report(df, str(output_path))
+            console.print(f"[green]✓[/green] Visualizations saved to {output_path}")
 
 
 @cli.command()

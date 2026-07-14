@@ -67,18 +67,6 @@ class TestProtocolAnalyzersInitialization:
         analyzer = UDPAnalyzer()
         assert analyzer is not None, "UDPAnalyzer should instantiate"
 
-    def test_http_analyzer_init(self):
-        """Test HTTPAnalyzer initialization"""
-        from src.protocols.http_analyzer import HTTPAnalyzer
-        analyzer = HTTPAnalyzer()
-        assert analyzer is not None, "HTTPAnalyzer should instantiate"
-
-    def test_https_analyzer_init(self):
-        """Test HTTPSAnalyzer initialization"""
-        from src.protocols.https_analyzer import HTTPSAnalyzer
-        analyzer = HTTPSAnalyzer()
-        assert analyzer is not None, "HTTPSAnalyzer should instantiate"
-
     def test_dns_analyzer_init(self):
         """Test DNSAnalyzer initialization"""
         from src.protocols.dns_analyzer import DNSAnalyzer
@@ -175,7 +163,7 @@ class TestVersionAndStatus:
 
     def test_release_notes_updated(self):
         """Test that RELEASE_NOTES.md reflects v1.6.0"""
-        release_notes_path = Path(__file__).parent.parent / "RELEASE_NOTES.md"
+        release_notes_path = Path(__file__).parent.parent / "docs" / "RELEASE_NOTES.md"
         
         if release_notes_path.exists():
             content = release_notes_path.read_text()
