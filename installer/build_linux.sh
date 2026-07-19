@@ -18,10 +18,13 @@ PYTHON_VERSION=$(python3 --version | awk '{print $2}')
 echo "✓ Python version: $PYTHON_VERSION"
 
 # Activate virtual environment
-if [ ! -d ".venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
+if [ -d ".venv" ]; then
+    echo "Removing existing virtual environment to avoid stale dependency state..."
+    rm -rf .venv
 fi
+
+echo "Creating virtual environment..."
+python3 -m venv .venv
 
 source .venv/bin/activate
 echo "✓ Virtual environment activated"
@@ -29,7 +32,7 @@ echo "✓ Virtual environment activated"
 # Install/update dependencies
 echo ""
 echo "Installing dependencies..."
-pip install --upgrade pip
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 pip install pyinstaller
 

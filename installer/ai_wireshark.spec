@@ -30,6 +30,11 @@ a = Analysis(
     excludes=[
         'matplotlib',
         'tcltk',
+        'pytest',
+        'pytest_asyncio',
+        '_pytest',
+        'pytest_cov',
+        'cryptography',
     ],
     noarchive=False,
     optimize=0,
